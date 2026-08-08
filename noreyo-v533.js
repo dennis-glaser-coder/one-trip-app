@@ -1,4 +1,10 @@
 (function(){
+  if(!document.querySelector('link[data-noreyo-v534]')){
+    const link=document.createElement('link');
+    link.rel='stylesheet';link.href='./noreyo-v534.css?build=534';link.dataset.noreyoV534='1';
+    document.head.appendChild(link);
+  }
+
   const checks=[
     ['Zimmer0','Balkon',o=>o.confirmed?.balcony===true],
     ['Zimmer1','Meerblick',o=>o.confirmed?.seaView===true],
@@ -12,21 +18,40 @@
   ];
 
   function matchData(o){
-    let earned=0,total=0;
+    let points=0;
     const items=[];
     for(const [key,label,test] of checks){
       const state=states[key]||'any';
       if(state==='any')continue;
-      const ok=!!test(o),weight=state==='must'?3:1;
-      total+=weight;
-      if(ok)earned+=weight;
+      const ok=!!test(o);
+      if(ok)points+=state==='must'?6:2;
       items.push({label,state,ok});
     }
     if(mealPlanFilter&&mealPlanFilter!=='ANY'){
-      total+=2;earned+=2;
+      points+=6;
       items.push({label:mealPlanLabel(),state:'must',ok:true});
     }
-    return {percent:total?Math.round(earned/total*100):null,items};
+    return {
+      points,
+      items,
+      confirmed:items.filter(x=>x.ok).length,
+      active:items.length
+    };
+  }
+
+  function resultMatchLabel(m,index){
+    if(!m.active)return index===0?'LIVE AUSWAHL':'LIVE VERFÜGBAR';
+    if(index===0)return 'BESTER TREFFER';
+    if(m.confirmed>=4)return 'SEHR PASSEND';
+    if(m.confirmed>=2)return 'GUT PASSEND';
+    return 'PASSEND';
+  }
+
+  function detailMatchLabel(m){
+    if(!m.active)return 'LIVE';
+    if(m.confirmed>=4)return 'SEHR PASSEND';
+    if(m.confirmed>=2)return 'GUT PASSEND';
+    return 'PASSEND';
   }
 
   function preferenceCounts(){
@@ -56,7 +81,7 @@
       box=document.querySelector('#results .noreyo-results-principle');
     }
     const title=(counts.must||counts.wish)?`${counts.must} Pflicht · ${counts.wish} ${counts.wish===1?'Wunsch':'Wünsche'}`:'Noch keine Prioritäten gesetzt';
-    const copy=(counts.must||counts.wish)?'Pflichtkriterien zuerst. Danach sortiert NOREYO die passenden Hotels nach deinem persönlichen Match.':'Setze Wünsche oder Pflichtkriterien – dann wird aus einer normalen Hotelsuche dein persönliches Ranking.';
+    const copy=(counts.must||counts.wish)?'Pflichtkriterien werden strikt geprüft. Danach zählt jede bestätigte Wunsch-Übereinstimmung für dein persönliches Ranking.':'Setze Wünsche oder Pflichtkriterien – dann wird aus einer normalen Hotelsuche dein persönliches Ranking.';
     box.innerHTML=`<div><span>NOREYO PRIORITÄTEN</span><strong>${safeText(title)}</strong></div><p>${safeText(copy)}</p>`;
   }
 
@@ -69,15 +94,15 @@
       if(img){
         const old=img.querySelector('.noreyo-match-badge');
         if(old)old.remove();
-        const confirmed=m.items.filter(x=>x.ok).length;
-        img.insertAdjacentHTML('beforeend',`<div class="noreyo-match-badge"><span>NOREYO MATCH</span><strong>${m.percent===null?'LIVE':m.percent+'%'}</strong><small>${m.items.length?confirmed+' von '+m.items.length+' prüfbaren Kriterien bestätigt':'Live-Daten geprüft'}</small></div>`);
+        const label=resultMatchLabel(m,i);
+        const sub=m.active?`${m.confirmed} ${m.confirmed===1?'Kriterium':'Kriterien'} bestätigt`:'Preis & Verfügbarkeit live geprüft';
+        img.insertAdjacentHTML('beforeend',`<div class="noreyo-match-badge"><span>NOREYO MATCH</span><strong>${safeText(label)}</strong><small>${safeText(sub)}</small></div>`);
       }
       const line=card.querySelector('.offer-matchline');
       if(line){
         const must=m.items.filter(x=>x.ok&&x.state==='must').slice(0,2);
-        const wish=m.items.filter(x=>x.ok&&x.state==='wish').slice(0,2);
-        const open=m.items.filter(x=>!x.ok&&x.state==='wish').length;
-        line.innerHTML=[...must,...wish].slice(0,3).map(x=>`<span class="offer-matchchip ${x.state}">${x.state==='must'?'Pflicht':'Wunsch'} · ${safeText(x.label)}</span>`).join('')+(open?`<span class="offer-matchchip neutral">${open} ${open===1?'Wunsch':'Wünsche'} offen</span>`:'')||'<span class="offer-matchchip neutral">Live-Tarif geprüft</span>';
+        const wish=m.items.filter(x=>x.ok&&x.state==='wish').slice(0,3);
+        line.innerHTML=[...must,...wish].slice(0,4).map(x=>`<span class="offer-matchchip ${x.state}">${x.state==='must'?'Pflicht':'Wunsch'} · ${safeText(x.label)}</span>`).join('')||'<span class="offer-matchchip neutral">Live-Tarif geprüft</span>';
       }
       const e=card.querySelector('.offer-essentials');if(e)e.classList.add('noreyo-essentials');
       const p=card.querySelector('.offer-price-context');if(p)p.classList.add('noreyo-price-panel');
@@ -93,14 +118,14 @@
   }
 
   function detailMatchCopy(m){
-    if(m.percent===null)return 'Aktiviere Wünsche oder Pflichtkriterien – NOREYO erklärt dir danach für jedes Hotel, warum es zu dir passt.';
+    if(!m.active)return 'Aktiviere Wünsche oder Pflichtkriterien – NOREYO erklärt dir danach für jedes Hotel, warum es zu dir passt.';
     const must=m.items.filter(x=>x.state==='must');
     const wishOk=m.items.filter(x=>x.state==='wish'&&x.ok).length;
     const mustOk=must.filter(x=>x.ok).length;
-    if(must.length&&mustOk===must.length&&wishOk)return `Alle ${must.length} Pflichtkriterien bestätigt · zusätzlich ${wishOk} ${wishOk===1?'Wunsch':'Wünsche'} getroffen.`;
-    if(must.length&&mustOk===must.length)return `Alle ${must.length} Pflichtkriterien bestätigt. Deine Wünsche entscheiden jetzt über das Ranking.`;
-    if(wishOk)return `${wishOk} ${wishOk===1?'Wunsch wurde':'Wünsche wurden'} anhand bestätigter Hoteldaten getroffen.`;
-    return 'NOREYO bewertet nur Merkmale, die sich mit den vorhandenen Hotel- und Tarifdaten tatsächlich prüfen lassen.';
+    if(must.length&&mustOk===must.length&&wishOk)return `Alle ${must.length} Pflichtkriterien bestätigt · zusätzlich ${wishOk} ${wishOk===1?'Wunsch':'Wünsche'} durch Hoteldaten bestätigt.`;
+    if(must.length&&mustOk===must.length)return `Alle ${must.length} Pflichtkriterien bestätigt. NOREYO wertet nur zusätzlich bestätigte Wünsche positiv.`;
+    if(wishOk)return `${wishOk} ${wishOk===1?'deiner Wünsche ist':'deiner Wünsche sind'} durch vorhandene Hoteldaten bestätigt.`;
+    return 'NOREYO wertet nur Merkmale als Treffer, die sich mit den vorhandenen Hotel- und Tarifdaten tatsächlich bestätigen lassen.';
   }
 
   function decorateDetail(o){
@@ -109,9 +134,8 @@
     const rating=root.querySelector('.detail-rating');if(!rating)return;
     const m=matchData(o);
     const confirmed=m.items.filter(x=>x.ok);
-    const openWish=m.items.filter(x=>x.state==='wish'&&!x.ok).length;
-    const chips=confirmed.slice(0,5).map(x=>`<span class="noreyo-detail-chip ${x.state}">${x.state==='must'?'Pflicht':'Wunsch'} · ${safeText(x.label)} ✓</span>`).join('')+(openWish?`<span class="noreyo-detail-chip open">${openWish} ${openWish===1?'Wunsch':'Wünsche'} noch offen</span>`:'');
-    rating.insertAdjacentHTML('afterend',`<section class="noreyo-detail-match"><div class="noreyo-detail-score"><span>DEIN NOREYO MATCH</span><strong>${m.percent===null?'LIVE':m.percent+'%'}</strong></div><div class="noreyo-detail-why"><b>Warum passt dieses Hotel zu dir?</b><p>${safeText(detailMatchCopy(m))}</p></div>${chips?`<div class="noreyo-detail-chips">${chips}</div>`:''}</section>`);
+    const chips=confirmed.slice(0,5).map(x=>`<span class="noreyo-detail-chip ${x.state}">${x.state==='must'?'Pflicht':'Wunsch'} · ${safeText(x.label)} ✓</span>`).join('');
+    rating.insertAdjacentHTML('afterend',`<section class="noreyo-detail-match"><div class="noreyo-detail-score"><span>DEIN NOREYO MATCH</span><strong>${safeText(detailMatchLabel(m))}</strong></div><div class="noreyo-detail-why"><b>Warum passt dieses Hotel zu dir?</b><p>${safeText(detailMatchCopy(m))}</p></div>${chips?`<div class="noreyo-detail-chips">${chips}</div>`:''}</section>`);
   }
 
   const baseRender=renderOffers;
@@ -120,7 +144,7 @@
   const baseFilter=filterAndRankOffers;
   filterAndRankOffers=function(input){
     const out=baseFilter(input);
-    out.sort((a,b)=>(matchData(b).percent??-1)-(matchData(a).percent??-1)||Number(String(b.rating||0).replace(',','.'))-Number(String(a.rating||0).replace(',','.'))||Number(a.price||Infinity)-Number(b.price||Infinity));
+    out.sort((a,b)=>matchData(b).points-matchData(a).points||Number(String(b.rating||0).replace(',','.'))-Number(String(a.rating||0).replace(',','.'))||Number(a.price||Infinity)-Number(b.price||Infinity));
     return out;
   };
 
