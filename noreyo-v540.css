@@ -1,0 +1,16 @@
+/* NOREYO V5.40 — premium first screen, final authority */
+#discover .hero.noreyo-v540-hero{height:338px!important;margin:0 14px!important;border-radius:30px!important;overflow:hidden!important;position:relative!important;background:#0b3447!important;box-shadow:0 20px 52px rgba(7,31,45,.13)!important}
+#discover .hero.noreyo-v540-hero img{filter:saturate(1.05) contrast(1.01) brightness(.93)!important}
+#discover .hero.noreyo-v540-hero:after{background:linear-gradient(180deg,rgba(5,29,38,.03),rgba(5,29,38,.12) 42%,rgba(5,29,38,.80) 100%)!important}
+#discover .hero.noreyo-v540-hero .hero-signet{top:18px!important;left:20px!important;background:rgba(7,31,45,.34)!important;border:1px solid rgba(255,255,255,.22)!important;backdrop-filter:blur(16px)!important;-webkit-backdrop-filter:blur(16px)!important}
+#discover .hero.noreyo-v540-hero .hero-copy{left:22px!important;right:22px!important;top:92px!important;bottom:auto!important;z-index:5!important}
+#discover .hero.noreyo-v540-hero .hero-copy .hero-kicker{font-size:7.3px!important;letter-spacing:2px!important;color:#f0cf9c!important;font-weight:850!important;margin-bottom:8px!important}
+#discover .hero.noreyo-v540-hero .hero-copy h1{font-size:32px!important;line-height:1!important;letter-spacing:-1.1px!important;max-width:330px!important;margin:0!important;text-wrap:balance!important}
+#discover .hero.noreyo-v540-hero .hero-copy p{font-size:11.6px!important;line-height:1.38!important;max-width:320px!important;margin:10px 0 0!important;color:rgba(255,255,255,.86)!important}
+#discover .hero.noreyo-v540-hero .noreyo-priority-live,#discover .hero.noreyo-v540-hero .noreyo-usp-strip,#discover .hero.noreyo-v540-hero .noreyo-firstscreen-logic,#discover .hero.noreyo-v540-hero .noreyo-firstscreen-note,#discover .hero.noreyo-v540-hero .noreyo-v539-action{display:none!important}
+.noreyo-v540-action{position:absolute;z-index:8;left:20px;right:20px;bottom:18px;display:flex;align-items:center;gap:9px}
+.noreyo-v540-cta{appearance:none;-webkit-appearance:none;border:0;height:46px;padding:0 18px;border-radius:14px;background:#fff;color:#0a3041;font:850 10.8px/1 -apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sans-serif;box-shadow:0 10px 26px rgba(3,22,31,.18);white-space:nowrap}
+.noreyo-v540-proof{min-width:0;flex:1;height:46px;border-radius:14px;padding:0 12px;display:flex;align-items:center;background:rgba(7,31,45,.48);border:1px solid rgba(255,255,255,.18);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);color:#fff}
+.noreyo-v540-proof span{font-size:7.1px;line-height:1.28;color:rgba(255,255,255,.76)}.noreyo-v540-proof b{color:#fff;font-size:8px}
+#discover .search-wrap{margin-top:-12px!important;position:relative!important;z-index:9!important}
+@media(max-width:390px){#discover .hero.noreyo-v540-hero{height:332px!important}#discover .hero.noreyo-v540-hero .hero-copy{top:88px!important}#discover .hero.noreyo-v540-hero .hero-copy h1{font-size:30px!important}#discover .hero.noreyo-v540-hero .hero-copy p{font-size:11.1px!important}.noreyo-v540-action{left:18px;right:18px}.noreyo-v540-cta{padding:0 14px;font-size:9.8px}.noreyo-v540-proof{padding:0 9px}.noreyo-v540-proof span{font-size:6.7px}}
