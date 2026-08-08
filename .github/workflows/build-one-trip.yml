@@ -35,3 +35,5 @@ jobs:
             git commit -m "Build ONE TRIP V5.28"
             git push
           fi
+
+# trigger build after connector setup
