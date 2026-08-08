@@ -14,30 +14,43 @@ html,body{margin:0;min-height:100%;font-family:-apple-system,BlinkMacSystemFont,
 <script>
 (()=>{
 'use strict';
-const BUILD='5.29';
+const BUILD='5.30';
 const HOTFIX=`
-/* ONE TRIP V5.29 — iPhone bottom navigation clearance */
-.nav{
-  bottom:calc(4px + env(safe-area-inset-bottom))!important;
-  height:56px!important;
-  width:min(calc(100% - 18px),448px)!important;
-  padding-bottom:0!important;
-  border-radius:20px!important;
-  background:rgba(255,254,252,.88)!important;
-  backdrop-filter:blur(24px) saturate(1.22)!important;
-  -webkit-backdrop-filter:blur(24px) saturate(1.22)!important;
-  box-shadow:0 10px 30px rgba(7,31,45,.11)!important;
+/* ONE TRIP V5.30 — iPhone viewport / safe-area polish */
+@media(max-width:600px){
+  .app-head{
+    padding-top:calc(42px + env(safe-area-inset-top))!important;
+    padding-left:18px!important;
+    padding-right:18px!important;
+    padding-bottom:12px!important;
+  }
+  .nav{
+    bottom:calc(3px + env(safe-area-inset-bottom))!important;
+    height:50px!important;
+    width:calc(100% - 20px)!important;
+    max-width:448px!important;
+    padding-bottom:0!important;
+    border:1px solid rgba(7,31,45,.08)!important;
+    border-radius:18px!important;
+    background:rgba(255,254,252,.90)!important;
+    backdrop-filter:blur(24px) saturate(1.22)!important;
+    -webkit-backdrop-filter:blur(24px) saturate(1.22)!important;
+    box-shadow:0 10px 30px rgba(7,31,45,.10)!important;
+  }
+  .nav-btn{font-size:7px!important;gap:2px!important;line-height:1!important}
+  .nav-btn .icon{width:17px!important;height:17px!important}
+  .nav-btn.active:before{top:3px!important;width:18px!important}
+  .view{
+    padding-bottom:calc(145px + env(safe-area-inset-bottom))!important;
+    scroll-padding-bottom:155px!important;
+  }
+  #detail.view{padding-bottom:0!important}
+  #discover .content{padding-bottom:58px!important}
 }
-.nav-btn{font-size:7.2px!important;gap:3px!important}
-.nav-btn .icon{width:18px!important;height:18px!important}
-.nav-btn.active:before{top:4px!important;width:20px!important}
-.view{padding-bottom:calc(104px + env(safe-area-inset-bottom))!important;scroll-padding-bottom:118px!important}
-#detail.view{padding-bottom:0!important}
-#discover .content{padding-bottom:28px!important}
 @media(max-width:390px){
-  .nav{height:54px!important;width:calc(100% - 16px)!important;bottom:calc(3px + env(safe-area-inset-bottom))!important}
-  .nav-btn{font-size:7px!important}.nav-btn .icon{width:17px!important;height:17px!important}
-  .view{padding-bottom:calc(98px + env(safe-area-inset-bottom))!important}
+  .app-head{padding-top:calc(40px + env(safe-area-inset-top))!important}
+  .nav{height:48px!important;width:calc(100% - 18px)!important}
+  .nav-btn{font-size:6.8px!important}.nav-btn .icon{width:16px!important;height:16px!important}
 }
 `;
 const statusEl=document.getElementById('status');
@@ -58,7 +71,7 @@ async function unzipNative(buffer){
 function loadScript(src){return new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=rej;document.head.appendChild(s)})}
 async function unzipFallback(buffer){setStatus('Kompatibilitätsmodus wird geladen …');await loadScript('https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js');const z=await JSZip.loadAsync(buffer),out={};for(const [name,e] of Object.entries(z.files))if(!e.dir)out[name]=new Uint8Array(await e.async('uint8array'));return out}
 function patch(html){
- html=html.split('V5.27').join('V5.29').split('content="5.27"').join('content="5.29"').split('BUILD 5.27').join('BUILD 5.29');
+ html=html.split('V5.27').join('V5.30').split('content="5.27"').join('content="5.30"').split('BUILD 5.27').join('BUILD 5.30');
  const end='</style>';
  if(!html.includes(end))throw new Error('Style-Anker fehlt');
  return html.replace(end,HOTFIX+end);
@@ -66,7 +79,7 @@ function patch(html){
 async function boot(){
  try{
   setStatus('ONE TRIP '+BUILD+' wird vorbereitet …');
-  const r=await fetch('./site.zip?build=529',{cache:'no-store'});if(!r.ok)throw new Error('site.zip konnte nicht geladen werden ('+r.status+')');
+  const r=await fetch('./site.zip?build=530',{cache:'no-store'});if(!r.ok)throw new Error('site.zip konnte nicht geladen werden ('+r.status+')');
   const buffer=await r.arrayBuffer();let files;try{files=await unzipNative(buffer)}catch(e){console.warn(e);files=await unzipFallback(buffer)}
   let html=patch(new TextDecoder().decode(files['index.html']));setStatus('Bilder werden vorbereitet …');
   for(const [name,bytes] of Object.entries(files)){if(!name.startsWith('assets/')||name.endsWith('/'))continue;const url=URL.createObjectURL(new Blob([bytes],{type:mime(name)}));html=html.split(name).join(url)}
