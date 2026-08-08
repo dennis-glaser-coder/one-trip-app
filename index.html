@@ -19,9 +19,9 @@ html,body{margin:0;min-height:100%;font-family:-apple-system,BlinkMacSystemFont,
 <script>
 (()=>{
 'use strict';
-const BUILD='5.31';
+const BUILD='5.32';
 const HOTFIX=`
-/* V5.31 — iPhone viewport + readable search cards */
+/* V5.32 — iPhone viewport + readable search cards */
 @media(max-width:600px){
   .app-head{
     padding-top:calc(42px + env(safe-area-inset-top))!important;
@@ -100,16 +100,20 @@ function brand(html){
  return html;
 }
 function patch(html){
- html=html.split('V5.27').join('V5.31').split('content="5.27"').join('content="5.31"').split('BUILD 5.27').join('BUILD 5.31');
+ html=html.split('V5.27').join('V5.32').split('content="5.27"').join('content="5.32"').split('BUILD 5.27').join('BUILD 5.32');
  html=brand(html);
  const end='</style>';
  if(!html.includes(end))throw new Error('Style-Anker fehlt');
- return html.replace(end,HOTFIX+end);
+ let patched=html.replace(end,HOTFIX+end);
+ if(!patched.includes('noreyo-v532.css'))patched=patched.replace('</head>','<link rel="stylesheet" href="./noreyo-v532.css?build=532"></head>');
+ const enhancer='<scr'+'ipt src="./noreyo-v532.js?build=532"></scr'+'ipt>';
+ if(!patched.includes('noreyo-v532.js'))patched=patched.replace('</body>',enhancer+'</body>');
+ return patched;
 }
 async function boot(){
  try{
   setStatus('NOREYO '+BUILD+' wird vorbereitet …');
-  const r=await fetch('./site.zip?build=noreyo-531',{cache:'no-store'});if(!r.ok)throw new Error('site.zip konnte nicht geladen werden ('+r.status+')');
+  const r=await fetch('./site.zip?build=noreyo-532',{cache:'no-store'});if(!r.ok)throw new Error('site.zip konnte nicht geladen werden ('+r.status+')');
   const buffer=await r.arrayBuffer();let files;try{files=await unzipNative(buffer)}catch(e){console.warn(e);files=await unzipFallback(buffer)}
   let html=patch(new TextDecoder().decode(files['index.html']));setStatus('Bilder werden vorbereitet …');
   for(const [name,bytes] of Object.entries(files)){if(!name.startsWith('assets/')||name.endsWith('/'))continue;const url=URL.createObjectURL(new Blob([bytes],{type:mime(name)}));html=html.split(name).join(url)}
