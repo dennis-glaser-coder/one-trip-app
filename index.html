@@ -19,9 +19,9 @@ html,body{margin:0;min-height:100%;font-family:-apple-system,BlinkMacSystemFont,
 <script>
 (()=>{
 'use strict';
-const BUILD='5.36';
+const BUILD='5.37';
 const HOTFIX=`
-/* V5.36 — iPhone viewport + readable search cards */
+/* V5.37 — iPhone viewport + readable search cards */
 @media(max-width:600px){
   .app-head{
     padding-top:calc(42px + env(safe-area-inset-top))!important;
@@ -100,20 +100,20 @@ function brand(html){
  return html;
 }
 function patch(html){
- html=html.split('V5.27').join('V5.36').split('content="5.27"').join('content="5.36"').split('BUILD 5.27').join('BUILD 5.36');
+ html=html.split('V5.27').join('V5.37').split('content="5.27"').join('content="5.37"').split('BUILD 5.27').join('BUILD 5.37');
  html=brand(html);
  const end='</style>';
  if(!html.includes(end))throw new Error('Style-Anker fehlt');
  let patched=html.replace(end,HOTFIX+end);
- if(!patched.includes('noreyo-v533.css'))patched=patched.replace('</head>','<link rel="stylesheet" href="./noreyo-v533.css?build=536"><link rel="stylesheet" href="./noreyo-v534.css?build=536"><link rel="stylesheet" href="./noreyo-v535.css?build=536"><link rel="stylesheet" href="./noreyo-v536.css?build=536"></head>');
- const enhancer='<scr'+'ipt src="./noreyo-v533.js?build=536"></scr'+'ipt><scr'+'ipt src="./noreyo-v535.js?build=536"></scr'+'ipt><scr'+'ipt src="./noreyo-v536.js?build=536"></scr'+'ipt>';
+ if(!patched.includes('noreyo-v533.css'))patched=patched.replace('</head>','<link rel="stylesheet" href="./noreyo-v533.css?build=537"><link rel="stylesheet" href="./noreyo-v534.css?build=537"><link rel="stylesheet" href="./noreyo-v535.css?build=537"><link rel="stylesheet" href="./noreyo-v536.css?build=537"><link rel="stylesheet" href="./noreyo-v537.css?build=537"></head>');
+ const enhancer='<scr'+'ipt src="./noreyo-v533.js?build=537"></scr'+'ipt><scr'+'ipt src="./noreyo-v535.js?build=537"></scr'+'ipt><scr'+'ipt src="./noreyo-v536.js?build=537"></scr'+'ipt><scr'+'ipt src="./noreyo-v537.js?build=537"></scr'+'ipt>';
  if(!patched.includes('noreyo-v533.js'))patched=patched.replace('</body>',enhancer+'</body>');
  return patched;
 }
 async function boot(){
  try{
   setStatus('NOREYO '+BUILD+' wird vorbereitet …');
-  const r=await fetch('./site.zip?build=noreyo-536',{cache:'no-store'});if(!r.ok)throw new Error('site.zip konnte nicht geladen werden ('+r.status+')');
+  const r=await fetch('./site.zip?build=noreyo-537',{cache:'no-store'});if(!r.ok)throw new Error('site.zip konnte nicht geladen werden ('+r.status+')');
   const buffer=await r.arrayBuffer();let files;try{files=await unzipNative(buffer)}catch(e){console.warn(e);files=await unzipFallback(buffer)}
   let html=patch(new TextDecoder().decode(files['index.html']));setStatus('Bilder werden vorbereitet …');
   for(const [name,bytes] of Object.entries(files)){if(!name.startsWith('assets/')||name.endsWith('/'))continue;const url=URL.createObjectURL(new Blob([bytes],{type:mime(name)}));html=html.split(name).join(url)}
