@@ -6,93 +6,72 @@
 <title>ONE TRIP</title>
 <style>
 html,body{margin:0;min-height:100%;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sans-serif;background:#07111f;color:#fff}
-#boot{min-height:100vh;display:grid;place-items:center;padding:24px;text-align:center;box-sizing:border-box}
-.boot-card{max-width:430px} .logo{font-size:34px;font-weight:900;letter-spacing:-1.5px} .sub{margin-top:10px;opacity:.68;font-size:14px} .bar{height:4px;background:#ffffff20;border-radius:99px;overflow:hidden;margin:22px auto 0;max-width:220px} .bar:after{content:"";display:block;width:45%;height:100%;background:#fff;border-radius:99px;animation:load 1s ease-in-out infinite alternate} @keyframes load{to{transform:translateX(125%)}}
-#error{display:none;white-space:pre-wrap;line-height:1.45}
+#boot{min-height:100vh;display:grid;place-items:center;padding:24px;text-align:center;box-sizing:border-box}.boot-card{max-width:430px}.logo{font-size:34px;font-weight:900;letter-spacing:-1.5px}.sub{margin-top:10px;opacity:.68;font-size:14px}.bar{height:4px;background:#ffffff20;border-radius:99px;overflow:hidden;margin:22px auto 0;max-width:220px}.bar:after{content:"";display:block;width:45%;height:100%;background:#fff;border-radius:99px;animation:load 1s ease-in-out infinite alternate}@keyframes load{to{transform:translateX(125%)}}#error{display:none;white-space:pre-wrap;line-height:1.45}
 </style>
 </head>
 <body>
 <div id="boot"><div class="boot-card"><div class="logo">ONE TRIP</div><div class="sub" id="status">Reiseerlebnis wird geladen …</div><div class="bar" id="bar"></div><div id="error"></div></div></div>
 <script>
-(() => {
+(()=>{
 'use strict';
-const V='5.28';
-const PATCH_CSS="\n/* =========================\n   ONE TRIP V5.28 — Signature Premium Polish\n   ========================= */\n:root{\n  --ot-ink:#111827;\n  --ot-muted:#667085;\n  --ot-blue:#155eef;\n  --ot-blue2:#0b4dde;\n  --ot-bg:#f6f8fb;\n  --ot-line:rgba(15,23,42,.10);\n  --ot-shadow:0 18px 50px rgba(15,23,42,.10);\n  --ot-shadow-soft:0 10px 30px rgba(15,23,42,.07);\n}\nbody{background:linear-gradient(180deg,#ffffff 0,#f7f9fc 58%,#f4f7fb 100%);color:var(--ot-ink)}\n.shell{max-width:1180px}\n.topbar{background:rgba(255,255,255,.84);backdrop-filter:blur(18px) saturate(150%);-webkit-backdrop-filter:blur(18px) saturate(150%);border-bottom:1px solid rgba(15,23,42,.07)}\n.brand{letter-spacing:-1.2px}.brand .dot{box-shadow:0 0 0 5px rgba(21,94,239,.08)}\n.hero{border-radius:28px;box-shadow:0 25px 70px rgba(9,30,66,.18);overflow:hidden}\n.hero:after{content:\"\";position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,rgba(0,0,0,.02),rgba(0,0,0,.20))}\n.hero-content{position:relative;z-index:2}.hero h1{letter-spacing:-1.2px;text-shadow:0 2px 18px rgba(0,0,0,.18)}\n.search-card{border:1px solid rgba(255,255,255,.65);box-shadow:0 24px 60px rgba(15,23,42,.20);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}\n.search-btn{background:linear-gradient(135deg,var(--ot-blue),var(--ot-blue2));box-shadow:0 10px 24px rgba(21,94,239,.25)}\n.search-btn:active{transform:translateY(1px) scale(.995)}\n.section-head h2{letter-spacing:-.55px}.section-head p{color:#7b8494}\n.card,.deal-card,.hotel-card,.trip-card,.booking-card,.filter-panel,.result-card,.detail-card{border:1px solid rgba(15,23,42,.075);box-shadow:var(--ot-shadow-soft)}\n.card:hover,.deal-card:hover,.hotel-card:hover{transform:translateY(-2px);box-shadow:var(--ot-shadow)}\n.chip,.filter-chip,.quick-chip{border-color:rgba(15,23,42,.09);background:rgba(255,255,255,.82);box-shadow:0 4px 14px rgba(15,23,42,.04)}\n.chip.active,.filter-chip.active,.quick-chip.active{background:#edf4ff;border-color:#a9c7ff;color:#124ec5}\n.bottom-nav{background:rgba(255,255,255,.90);backdrop-filter:blur(18px) saturate(150%);-webkit-backdrop-filter:blur(18px) saturate(150%);border-top:1px solid rgba(15,23,42,.08)}\n.nav-item.active{color:#124ec5}\n.price,.deal-price,.hotel-price{letter-spacing:-.4px}\n.badge,.deal-badge,.hotel-badge{box-shadow:0 4px 12px rgba(15,23,42,.08)}\n.home-proof{display:flex;gap:8px;overflow-x:auto;padding:2px 0 14px;scrollbar-width:none}.home-proof::-webkit-scrollbar{display:none}.home-proof span{white-space:nowrap;border:1px solid rgba(15,23,42,.08);background:#fff;border-radius:999px;padding:8px 11px;font-size:12px;font-weight:800;color:#344054;box-shadow:0 5px 16px rgba(15,23,42,.05)}.home-proof i{display:inline-block;width:7px;height:7px;border-radius:50%;background:#16a34a;margin-right:6px;box-shadow:0 0 0 3px rgba(22,163,74,.10)}\n@media(max-width:720px){\n  .shell{padding-left:12px;padding-right:12px}\n  .topbar .shell{padding-left:14px;padding-right:14px}\n  .hero{border-radius:22px;min-height:470px}\n  .hero h1{font-size:36px;line-height:1.00;letter-spacing:-1.4px}\n  .hero p{font-size:15px;line-height:1.42}\n  .search-card{border-radius:18px;padding:10px}\n  .search-grid{gap:7px}\n  .search-field{min-height:52px;border-radius:14px}\n  .search-btn{min-height:52px;border-radius:14px}\n  .section{padding-top:20px}\n  .section-head{margin-bottom:12px}\n  .section-head h2{font-size:24px;letter-spacing:-.7px}\n  .cards-scroll,.deals-scroll{margin-left:-12px;margin-right:-12px;padding-left:12px;padding-right:12px;scroll-padding-left:12px}\n  .card,.deal-card{scroll-snap-align:start}\n  .bottom-nav{padding-bottom:max(8px,env(safe-area-inset-bottom))}\n}\n@media(prefers-reduced-motion:no-preference){\n  .card,.deal-card,.hotel-card,.search-btn,.nav-item{transition:transform .18s ease,box-shadow .18s ease,background .18s ease,color .18s ease}\n}\n\n/* V5.28 targeted premium refinements */\n.hero-kicker{display:inline-flex;align-items:center;gap:7px;padding:7px 10px;border-radius:999px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.28);backdrop-filter:blur(9px);-webkit-backdrop-filter:blur(9px);font-size:11px;font-weight:850;letter-spacing:.08em;text-transform:uppercase;margin-bottom:12px}.hero-kicker:before{content:\"\";width:6px;height:6px;border-radius:50%;background:#75f0ad;box-shadow:0 0 0 3px rgba(117,240,173,.16)}\n@media(max-width:720px){.hero-kicker{font-size:10px;padding:6px 9px}.hero-content{padding-left:18px!important;padding-right:18px!important}}\n\n/* Premium mobile hierarchy */\n@media(max-width:720px){\n  .page{padding-bottom:84px}\n  .hero-content{padding-top:28px!important;padding-bottom:20px!important}\n  .hero-subtitle{max-width:310px}\n  .search-card{margin-top:18px!important}\n  .section-head a,.section-head button{font-weight:800}\n  .card-image,.deal-image,.hotel-image{background-color:#e9edf4}\n  .card-title,.deal-title,.hotel-title{letter-spacing:-.25px}\n}\n\n/* tactile controls */\nbutton,a,[role=button],.chip,.quick-chip,.filter-chip{-webkit-tap-highlight-color:transparent}\nbutton:focus-visible,a:focus-visible,[role=button]:focus-visible{outline:3px solid rgba(21,94,239,.25);outline-offset:2px}\n\n/* visual quality guards */\nimg{image-rendering:auto}.hero img,.card img,.deal-card img,.hotel-card img{object-position:center}\n\n/* ---- V5.28 Home: premium editorial rhythm ---- */\n#homePage .section:first-of-type{padding-top:22px}\n#homePage .section-head{align-items:flex-end}\n#homePage .section-head h2{font-weight:900}\n#homePage .section-head p{max-width:560px}\n#homePage .cards-scroll,#homePage .deals-scroll{gap:14px}\n#homePage .card,#homePage .deal-card{border-radius:22px;overflow:hidden;background:#fff}\n#homePage .card-image,#homePage .deal-image{aspect-ratio:1.42/1;overflow:hidden}\n#homePage .card-image img,#homePage .deal-image img{width:100%;height:100%;object-fit:cover;transition:transform .35s ease}\n#homePage .card:hover img,#homePage .deal-card:hover img{transform:scale(1.018)}\n#homePage .card-body,#homePage .deal-body{padding:14px}\n#homePage .card-title,#homePage .deal-title{font-weight:900}\n#homePage .card-meta,#homePage .deal-meta{color:#7a8492}\n#homePage .deal-price{font-weight:950}\n#homePage .deal-price small{font-weight:650;color:#8a93a1}\n@media(max-width:720px){#homePage .card,#homePage .deal-card{border-radius:18px}#homePage .card-body,#homePage .deal-body{padding:12px}#homePage .cards-scroll,#homePage .deals-scroll{gap:11px}}\n\n/* ---- V5.28 Search & filters: cleaner dense controls ---- */\n#searchPage .filter-panel,#resultsPage .filter-panel{border-radius:20px;background:rgba(255,255,255,.92)}\n#searchPage input,#searchPage select,#resultsPage input,#resultsPage select{font-size:16px}\n.filter-chip{font-weight:780}\n.filter-chip .count{background:#edf2f8;color:#576171;border-radius:99px;padding:2px 6px;font-size:10px}\n#resultsPage .results-head h2{letter-spacing:-.7px}\n#resultsPage .result-card{background:#fff;border-radius:22px;overflow:hidden}\n#resultsPage .result-card .price{font-weight:950}\n@media(max-width:720px){#resultsPage .result-card{border-radius:18px}.filter-panel{box-shadow:none;border-color:rgba(15,23,42,.07)}}\n\n/* ---- V5.28 Hotel detail: booking-confidence treatment ---- */\n#hotelDetailPage .detail-card{border-radius:22px;background:#fff}\n#hotelDetailPage .hotel-hero{border-radius:24px;overflow:hidden}\n#hotelDetailPage .hotel-title{font-weight:950;letter-spacing:-.8px}\n#hotelDetailPage .rating-pill{box-shadow:0 5px 15px rgba(15,23,42,.08)}\n#hotelDetailPage .room-card{border:1px solid rgba(15,23,42,.08);border-radius:18px;background:#fff}\n#hotelDetailPage .room-card.selected{border-color:#8db5ff;box-shadow:0 0 0 3px rgba(21,94,239,.08)}\n#hotelDetailPage .tariff-card{border-radius:16px}\n#hotelDetailPage .book-cta{background:linear-gradient(135deg,#155eef,#0b4dde);box-shadow:0 12px 28px rgba(21,94,239,.22)}\n@media(max-width:720px){#hotelDetailPage .hotel-hero{border-radius:18px}#hotelDetailPage .detail-card{border-radius:18px}}\n\n/* ---- V5.28 Trips/booking: calm finance-grade clarity ---- */\n#tripsPage .trip-card,#bookingPage .booking-card{background:#fff;border-radius:22px}\n#bookingPage .booking-card h3,#tripsPage .trip-card h3{letter-spacing:-.45px}\n#bookingPage .total-row{border-top:1px solid rgba(15,23,42,.09);padding-top:14px}\n#bookingPage .total-price{font-weight:950;letter-spacing:-.7px}\n#bookingPage .primary-btn{background:linear-gradient(135deg,#155eef,#0b4dde);box-shadow:0 12px 28px rgba(21,94,239,.20)}\n\n/* ---- V5.28 Account: subtle personal dashboard ---- */\n#accountPage .profile-card{border-radius:24px;background:linear-gradient(145deg,#fff,#f8fbff);border:1px solid rgba(15,23,42,.075);box-shadow:var(--ot-shadow-soft)}\n#accountPage .avatar{box-shadow:0 8px 22px rgba(21,94,239,.16)}\n#accountPage .menu-row{border-radius:15px}\n#accountPage .menu-row:active{background:#f4f7fb}\n\n/* final safe-area & overscroll polish */\nhtml{background:#fff}body{overscroll-behavior-y:none}.bottom-nav{padding-left:max(8px,env(safe-area-inset-left));padding-right:max(8px,env(safe-area-inset-right))}\n\n/* V5.28 small screens */\n@media(max-width:390px){.hero h1{font-size:33px}.search-field label{font-size:10px}.nav-item{font-size:10px}.section-head h2{font-size:22px}}\n\n/* V5.28 loading skeleton utility */\n.skeleton{position:relative;overflow:hidden;background:#edf1f6!important;color:transparent!important}.skeleton:after{content:\"\";position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(255,255,255,.65),transparent);animation:otShimmer 1.25s infinite}@keyframes otShimmer{100%{transform:translateX(100%)}}\n\n/* preserve contrast on image overlays */\n.hero .overlay,.card-image .overlay,.deal-image .overlay{background:linear-gradient(180deg,rgba(4,15,31,0) 35%,rgba(4,15,31,.58) 100%)}\n\n/* live price confidence hint */\n.live-price-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#16a34a;vertical-align:1px;margin-right:5px;box-shadow:0 0 0 3px rgba(22,163,74,.10)}\n\n/* smoother modal surfaces */\n.modal,.sheet,.drawer{backdrop-filter:blur(20px) saturate(145%);-webkit-backdrop-filter:blur(20px) saturate(145%)}\n\n/* explicit premium typography on iOS */\n@supports(-webkit-touch-callout:none){body{-webkit-font-smoothing:antialiased}.price,.deal-price,.hotel-price{font-variant-numeric:tabular-nums}}\n\n/* navigation active indicator */\n.nav-item{position:relative}.nav-item.active:before{content:\"\";position:absolute;top:-7px;left:50%;width:20px;height:3px;border-radius:99px;background:#155eef;transform:translateX(-50%)}\n\n/* result image polish */\n.result-card img,.hotel-card img{background:#e8edf3}\n\n/* no accidental text selection on tappable UI */\n.search-btn,.primary-btn,.nav-item,.chip,.filter-chip,.quick-chip{-webkit-user-select:none;user-select:none}\n\n/* desktop spacing */\n@media(min-width:900px){.section{padding-top:38px}.hero{margin-top:18px}.search-card{max-width:1020px}}\n\n/* final v5.28 token */\nbody:before{content:\"\";position:fixed;z-index:-1;inset:0;background:radial-gradient(circle at 78% 2%,rgba(21,94,239,.035),transparent 28%)}\n";
-const PROOF=" <div class=\"home-proof\" aria-label=\"ONE TRIP Vorteile\"><span><i></i>Live Preise</span><span>Flex-Termine</span><span>Wunschfilter</span></div>\n";
+const BUILD='5.29';
+const HOTFIX=`
+/* ONE TRIP V5.29 — iPhone bottom navigation clearance */
+.nav{
+  bottom:calc(4px + env(safe-area-inset-bottom))!important;
+  height:56px!important;
+  width:min(calc(100% - 18px),448px)!important;
+  padding-bottom:0!important;
+  border-radius:20px!important;
+  background:rgba(255,254,252,.88)!important;
+  backdrop-filter:blur(24px) saturate(1.22)!important;
+  -webkit-backdrop-filter:blur(24px) saturate(1.22)!important;
+  box-shadow:0 10px 30px rgba(7,31,45,.11)!important;
+}
+.nav-btn{font-size:7.2px!important;gap:3px!important}
+.nav-btn .icon{width:18px!important;height:18px!important}
+.nav-btn.active:before{top:4px!important;width:20px!important}
+.view{padding-bottom:calc(104px + env(safe-area-inset-bottom))!important;scroll-padding-bottom:118px!important}
+#detail.view{padding-bottom:0!important}
+#discover .content{padding-bottom:28px!important}
+@media(max-width:390px){
+  .nav{height:54px!important;width:calc(100% - 16px)!important;bottom:calc(3px + env(safe-area-inset-bottom))!important}
+  .nav-btn{font-size:7px!important}.nav-btn .icon{width:17px!important;height:17px!important}
+  .view{padding-bottom:calc(98px + env(safe-area-inset-bottom))!important}
+}
+`;
 const statusEl=document.getElementById('status');
-function status(t){statusEl.textContent=t}
-function mime(name){
-  const e=name.split('.').pop().toLowerCase();
-  return ({jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',webp:'image/webp',gif:'image/gif',svg:'image/svg+xml'})[e]||'application/octet-stream';
-}
-async function inflateRaw(bytes){
-  const ds=new DecompressionStream('deflate-raw');
-  return new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(ds)).arrayBuffer());
-}
+const setStatus=t=>statusEl.textContent=t;
+const mime=name=>({jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',webp:'image/webp',gif:'image/gif',svg:'image/svg+xml'})[name.split('.').pop().toLowerCase()]||'application/octet-stream';
+async function inflateRaw(bytes){const ds=new DecompressionStream('deflate-raw');return new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(ds)).arrayBuffer())}
 async function unzipNative(buffer){
-  const u8=new Uint8Array(buffer), dv=new DataView(buffer), td=new TextDecoder();
-  const out={}; let off=0;
-  while(off+30<=u8.length && dv.getUint32(off,true)===0x04034b50){
-    const flags=dv.getUint16(off+6,true), method=dv.getUint16(off+8,true);
-    const csize=dv.getUint32(off+18,true), nlen=dv.getUint16(off+26,true), xlen=dv.getUint16(off+28,true);
-    if(flags&0x08) throw new Error('ZIP data descriptor unsupported');
-    const name=td.decode(u8.subarray(off+30,off+30+nlen));
-    const start=off+30+nlen+xlen, comp=u8.slice(start,start+csize);
-    let raw;
-    if(method===0) raw=comp;
-    else if(method===8) raw=await inflateRaw(comp);
-    else throw new Error('ZIP compression '+method+' unsupported');
-    out[name]=raw;
-    off=start+csize;
-  }
-  if(!out['index.html']) throw new Error('index.html missing in package');
-  return out;
+ const u8=new Uint8Array(buffer),dv=new DataView(buffer),td=new TextDecoder(),out={};let off=0;
+ while(off+30<=u8.length&&dv.getUint32(off,true)===0x04034b50){
+  const flags=dv.getUint16(off+6,true),method=dv.getUint16(off+8,true),csize=dv.getUint32(off+18,true),nlen=dv.getUint16(off+26,true),xlen=dv.getUint16(off+28,true);
+  if(flags&0x08)throw new Error('ZIP data descriptor unsupported');
+  const name=td.decode(u8.subarray(off+30,off+30+nlen)),start=off+30+nlen+xlen,comp=u8.slice(start,start+csize);let raw;
+  if(method===0)raw=comp;else if(method===8)raw=await inflateRaw(comp);else throw new Error('ZIP compression '+method+' unsupported');
+  out[name]=raw;off=start+csize;
+ }
+ if(!out['index.html'])throw new Error('index.html fehlt im Paket');return out;
 }
 function loadScript(src){return new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=rej;document.head.appendChild(s)})}
-async function unzipFallback(buffer){
-  status('Kompatibilitätsmodus wird geladen …');
-  await loadScript('https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js');
-  const zip=await JSZip.loadAsync(buffer), out={};
-  for(const [name,entry] of Object.entries(zip.files)) if(!entry.dir) out[name]=new Uint8Array(await entry.async('uint8array'));
-  return out;
-}
-function patchToV528(html){
-  const repl=[
-    ['ONE TRIP V5.27 – Mobile Premium Travel App','ONE TRIP V5.28 – Signature Premium Travel App'],
-    ['V5.27','V5.28'],
-    ['content="5.27"','content="5.28"'],
-    ['BUILD 5.27','BUILD 5.28']
-  ];
-  for(const [a,b] of repl){if(!html.includes(a)) throw new Error('Build-Anker fehlt: '+a);html=html.split(a).join(b)}
-  const styleEnd='</style>\n';
-  if(html.split(styleEnd).length!==2) throw new Error('Style-Anker unerwartet');
-  html=html.replace(styleEnd,PATCH_CSS+styleEnd);
-  const anchor=' <div class="content"><div class="section-head"><h2>Inspiration für dich</h2>';
-  if(html.split(anchor).length!==2) throw new Error('Home-Anker unerwartet');
-  return html.replace(anchor,PROOF+anchor);
+async function unzipFallback(buffer){setStatus('Kompatibilitätsmodus wird geladen …');await loadScript('https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js');const z=await JSZip.loadAsync(buffer),out={};for(const [name,e] of Object.entries(z.files))if(!e.dir)out[name]=new Uint8Array(await e.async('uint8array'));return out}
+function patch(html){
+ html=html.split('V5.27').join('V5.29').split('content="5.27"').join('content="5.29"').split('BUILD 5.27').join('BUILD 5.29');
+ const end='</style>';
+ if(!html.includes(end))throw new Error('Style-Anker fehlt');
+ return html.replace(end,HOTFIX+end);
 }
 async function boot(){
-  try{
-    status('ONE TRIP '+V+' wird vorbereitet …');
-    const r=await fetch('./site.zip?build=528',{cache:'no-store'});
-    if(!r.ok) throw new Error('site.zip konnte nicht geladen werden ('+r.status+')');
-    const buffer=await r.arrayBuffer();
-    let files;
-    try{files=await unzipNative(buffer)}catch(nativeErr){console.warn(nativeErr);files=await unzipFallback(buffer)}
-    let html=new TextDecoder().decode(files['index.html']);
-    html=patchToV528(html);
-    status('Bilder werden vorbereitet …');
-    for(const [name,bytes] of Object.entries(files)){
-      if(!name.startsWith('assets/')||name.endsWith('/')) continue;
-      const url=URL.createObjectURL(new Blob([bytes],{type:mime(name)}));
-      html=html.split(name).join(url);
-    }
-    if(!html.includes('ONE TRIP V5.28')) throw new Error('Build-Verifikation fehlgeschlagen');
-    document.open();document.write(html);document.close();
-  }catch(err){
-    console.error(err);document.getElementById('bar').style.display='none';statusEl.textContent='ONE TRIP konnte nicht geladen werden';
-    const e=document.getElementById('error');e.style.display='block';e.textContent='Bitte Seite neu laden.\n\n'+(err&&err.message?err.message:String(err));
-  }
+ try{
+  setStatus('ONE TRIP '+BUILD+' wird vorbereitet …');
+  const r=await fetch('./site.zip?build=529',{cache:'no-store'});if(!r.ok)throw new Error('site.zip konnte nicht geladen werden ('+r.status+')');
+  const buffer=await r.arrayBuffer();let files;try{files=await unzipNative(buffer)}catch(e){console.warn(e);files=await unzipFallback(buffer)}
+  let html=patch(new TextDecoder().decode(files['index.html']));setStatus('Bilder werden vorbereitet …');
+  for(const [name,bytes] of Object.entries(files)){if(!name.startsWith('assets/')||name.endsWith('/'))continue;const url=URL.createObjectURL(new Blob([bytes],{type:mime(name)}));html=html.split(name).join(url)}
+  document.open();document.write(html);document.close();
+ }catch(err){console.error(err);document.getElementById('bar').style.display='none';statusEl.textContent='ONE TRIP konnte nicht geladen werden';const e=document.getElementById('error');e.style.display='block';e.textContent='Bitte Seite neu laden.\n\n'+(err?.message||String(err))}
 }
 boot();
 })();
