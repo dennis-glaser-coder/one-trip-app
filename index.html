@@ -3,20 +3,25 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>ONE TRIP</title>
+<title>NOREYO – Travel made for you.</title>
+<meta name="description" content="NOREYO – Travel made for you. Finde Hotels und Reisen, die wirklich zu deinen Wünschen passen.">
+<meta name="application-name" content="NOREYO">
+<meta name="apple-mobile-web-app-title" content="NOREYO">
+<meta property="og:title" content="NOREYO – Travel made for you.">
+<meta property="og:description" content="Premium-Reiseplattform für Hotels und Reisen, die zu deinen Wünschen passen.">
 <style>
 html,body{margin:0;min-height:100%;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sans-serif;background:#07111f;color:#fff}
-#boot{min-height:100vh;display:grid;place-items:center;padding:24px;text-align:center;box-sizing:border-box}.boot-card{max-width:430px}.logo{font-size:34px;font-weight:900;letter-spacing:-1.5px}.sub{margin-top:10px;opacity:.68;font-size:14px}.bar{height:4px;background:#ffffff20;border-radius:99px;overflow:hidden;margin:22px auto 0;max-width:220px}.bar:after{content:"";display:block;width:45%;height:100%;background:#fff;border-radius:99px;animation:load 1s ease-in-out infinite alternate}@keyframes load{to{transform:translateX(125%)}}#error{display:none;white-space:pre-wrap;line-height:1.45}
+#boot{min-height:100vh;display:grid;place-items:center;padding:24px;text-align:center;box-sizing:border-box}.boot-card{max-width:430px}.logo{font-size:34px;font-weight:900;letter-spacing:3.4px}.sub{margin-top:10px;opacity:.68;font-size:14px}.bar{height:4px;background:#ffffff20;border-radius:99px;overflow:hidden;margin:22px auto 0;max-width:220px}.bar:after{content:"";display:block;width:45%;height:100%;background:#fff;border-radius:99px;animation:load 1s ease-in-out infinite alternate}@keyframes load{to{transform:translateX(125%)}}#error{display:none;white-space:pre-wrap;line-height:1.45}
 </style>
 </head>
 <body>
-<div id="boot"><div class="boot-card"><div class="logo">ONE TRIP</div><div class="sub" id="status">Reiseerlebnis wird geladen …</div><div class="bar" id="bar"></div><div id="error"></div></div></div>
+<div id="boot"><div class="boot-card"><div class="logo">NOREYO</div><div class="sub" id="status">Reiseerlebnis wird geladen …</div><div class="bar" id="bar"></div><div id="error"></div></div></div>
 <script>
 (()=>{
 'use strict';
 const BUILD='5.31';
 const HOTFIX=`
-/* ONE TRIP V5.31 — iPhone viewport + readable search cards */
+/* V5.31 — iPhone viewport + readable search cards */
 @media(max-width:600px){
   .app-head{
     padding-top:calc(42px + env(safe-area-inset-top))!important;
@@ -46,7 +51,6 @@ const HOTFIX=`
   }
   #detail.view{padding-bottom:0!important}
   #discover .content{padding-bottom:58px!important}
-
   .booking-command-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}
   .command-cell{min-width:0!important;padding:10px 9px!important;gap:7px!important}
   .command-cell .command-copy{min-width:0!important;overflow:visible!important}
@@ -87,21 +91,30 @@ async function unzipNative(buffer){
 }
 function loadScript(src){return new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=rej;document.head.appendChild(s)})}
 async function unzipFallback(buffer){setStatus('Kompatibilitätsmodus wird geladen …');await loadScript('https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js');const z=await JSZip.loadAsync(buffer),out={};for(const [name,e] of Object.entries(z.files))if(!e.dir)out[name]=new Uint8Array(await e.async('uint8array'));return out}
+function brand(html){
+ html=html.split('ONE TRIP').join('NOREYO').split('One Trip').join('NOREYO').split('one trip').join('NOREYO');
+ html=html.replace(/<title>.*?<\/title>/i,'<title>NOREYO – Travel made for you.</title>');
+ html=html.replace(/<meta\s+name="application-name"[^>]*>/i,'<meta name="application-name" content="NOREYO">');
+ if(!/name="apple-mobile-web-app-title"/i.test(html))html=html.replace('</title>','</title>\n<meta name="apple-mobile-web-app-title" content="NOREYO">');
+ if(!/name="description"/i.test(html))html=html.replace('</title>','</title>\n<meta name="description" content="NOREYO – Travel made for you. Finde Hotels und Reisen, die wirklich zu deinen Wünschen passen.">');
+ return html;
+}
 function patch(html){
  html=html.split('V5.27').join('V5.31').split('content="5.27"').join('content="5.31"').split('BUILD 5.27').join('BUILD 5.31');
+ html=brand(html);
  const end='</style>';
  if(!html.includes(end))throw new Error('Style-Anker fehlt');
  return html.replace(end,HOTFIX+end);
 }
 async function boot(){
  try{
-  setStatus('ONE TRIP '+BUILD+' wird vorbereitet …');
-  const r=await fetch('./site.zip?build=531',{cache:'no-store'});if(!r.ok)throw new Error('site.zip konnte nicht geladen werden ('+r.status+')');
+  setStatus('NOREYO '+BUILD+' wird vorbereitet …');
+  const r=await fetch('./site.zip?build=noreyo-531',{cache:'no-store'});if(!r.ok)throw new Error('site.zip konnte nicht geladen werden ('+r.status+')');
   const buffer=await r.arrayBuffer();let files;try{files=await unzipNative(buffer)}catch(e){console.warn(e);files=await unzipFallback(buffer)}
   let html=patch(new TextDecoder().decode(files['index.html']));setStatus('Bilder werden vorbereitet …');
   for(const [name,bytes] of Object.entries(files)){if(!name.startsWith('assets/')||name.endsWith('/'))continue;const url=URL.createObjectURL(new Blob([bytes],{type:mime(name)}));html=html.split(name).join(url)}
   document.open();document.write(html);document.close();
- }catch(err){console.error(err);document.getElementById('bar').style.display='none';statusEl.textContent='ONE TRIP konnte nicht geladen werden';const e=document.getElementById('error');e.style.display='block';e.textContent='Bitte Seite neu laden.\n\n'+(err?.message||String(err))}
+ }catch(err){console.error(err);document.getElementById('bar').style.display='none';statusEl.textContent='NOREYO konnte nicht geladen werden';const e=document.getElementById('error');e.style.display='block';e.textContent='Bitte Seite neu laden.\n\n'+(err?.message||String(err))}
 }
 boot();
 })();
