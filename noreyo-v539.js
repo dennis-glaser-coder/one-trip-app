@@ -1,4 +1,7 @@
 (function(){
+  let applying=false;
+  let scheduled=false;
+
   function cleanInteractiveLayer(hero){
     hero.classList.remove('noreyo-interactive-hero');
     hero.querySelectorAll('.noreyo-priority-live,.noreyo-usp-strip,.noreyo-firstscreen-logic,.noreyo-firstscreen-note').forEach(el=>el.remove());
@@ -25,59 +28,73 @@
     }
   }
 
+  function setText(el,text){if(el&&el.textContent!==text)el.textContent=text;}
+
   function applyPremiumHero(){
-    const discover=document.getElementById('discover');if(!discover)return;
-    const hero=discover.querySelector('.hero');if(!hero)return;
-    const isFlight=typeof productMode!=='undefined'&&productMode==='flight';
+    if(applying)return;
+    applying=true;
+    try{
+      const discover=document.getElementById('discover');if(!discover)return;
+      const hero=discover.querySelector('.hero');if(!hero)return;
+      const isFlight=typeof productMode!=='undefined'&&productMode==='flight';
 
-    if(isFlight){
-      hero.classList.remove('noreyo-v539-hero');
-      const action=hero.querySelector('.noreyo-v539-action');if(action)action.remove();
-      return;
-    }
+      if(isFlight){
+        hero.classList.remove('noreyo-v539-hero');
+        const action=hero.querySelector('.noreyo-v539-action');if(action)action.remove();
+        return;
+      }
 
-    cleanInteractiveLayer(hero);
-    hero.classList.add('noreyo-v539-hero');
+      cleanInteractiveLayer(hero);
+      hero.classList.add('noreyo-v539-hero');
 
-    const signet=hero.querySelector('.hero-signet');
-    if(signet)signet.innerHTML='<span></span>NOREYO MATCH';
+      const signet=hero.querySelector('.hero-signet');
+      if(signet&&signet.textContent.trim()!=='NOREYO MATCH')signet.innerHTML='<span></span>NOREYO MATCH';
 
-    const copy=hero.querySelector('.hero-copy');
-    if(copy){
-      const kicker=copy.querySelector('.hero-kicker');
-      const title=copy.querySelector('h1');
-      const lead=copy.querySelector('p');
-      if(kicker)kicker.textContent='PERSÖNLICH STATT ENDLOS SUCHEN';
-      if(title)title.textContent='Nicht 200 Hotels. Die passenden zuerst.';
-      if(lead)lead.textContent='Du entscheidest: Muss oder Wunsch. NOREYO prüft deine Prioritäten, rankt die Treffer und zeigt dir sofort, warum ein Hotel passt.';
-    }
+      const copy=hero.querySelector('.hero-copy');
+      if(copy){
+        setText(copy.querySelector('.hero-kicker'),'PERSÖNLICH STATT ENDLOS SUCHEN');
+        setText(copy.querySelector('h1'),'Nicht 200 Hotels. Die passenden zuerst.');
+        setText(copy.querySelector('p'),'Du sagst, was wirklich zählt. NOREYO prüft Pflichtkriterien, rankt deine Wünsche und erklärt jeden Treffer.');
+      }
 
-    addAction(hero,discover);
+      addAction(hero,discover);
 
-    discover.querySelectorAll('.search-console-head').forEach(head=>{
-      const label=head.querySelector('span');
-      const title=head.querySelector('b');
-      if(label)label.textContent='DEINE REISE';
-      if(title)title.textContent='Ziel, Zeitraum & Reisende festlegen';
-    });
+      discover.querySelectorAll('.search-console-head').forEach(head=>{
+        setText(head.querySelector('span'),'DEINE REISE');
+        setText(head.querySelector('b'),'Ziel, Zeitraum & Reisende festlegen');
+      });
+    }finally{applying=false;}
+  }
+
+  function scheduleApply(){
+    if(scheduled)return;
+    scheduled=true;
+    requestAnimationFrame(()=>{scheduled=false;applyPremiumHero();});
   }
 
   try{
     if(typeof renderProductControls==='function'){
       const baseControls=renderProductControls;
-      renderProductControls=function(){const r=baseControls();applyPremiumHero();return r;};
+      renderProductControls=function(){const r=baseControls();scheduleApply();return r;};
     }
     if(typeof updateCounts==='function'){
       const baseCounts=updateCounts;
-      updateCounts=function(){const r=baseCounts();applyPremiumHero();return r;};
+      updateCounts=function(){const r=baseCounts();scheduleApply();return r;};
     }
     if(typeof go==='function'){
       const baseGo=go;
-      go=function(id){const r=baseGo(id);if(id==='discover')setTimeout(applyPremiumHero,0);return r;};
+      go=function(id){const r=baseGo(id);if(id==='discover')scheduleApply();return r;};
     }
-  }catch(e){console.warn('NOREYO V5.39 hooks',e)}
+  }catch(e){console.warn('NOREYO premium hero hooks',e)}
+
+  const discover=document.getElementById('discover');
+  if(discover&&typeof MutationObserver!=='undefined'){
+    const observer=new MutationObserver(()=>{if(!applying)scheduleApply();});
+    observer.observe(discover,{childList:true,subtree:true,characterData:true});
+  }
 
   applyPremiumHero();
-  setTimeout(applyPremiumHero,120);
-  window.addEventListener('pageshow',applyPremiumHero);
+  setTimeout(applyPremiumHero,80);
+  setTimeout(applyPremiumHero,220);
+  window.addEventListener('pageshow',scheduleApply);
 })();
