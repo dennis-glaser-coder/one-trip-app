@@ -1,4 +1,10 @@
 (function(){
+  if(!document.querySelector('link[data-noreyo-v534]')){
+    const link=document.createElement('link');
+    link.rel='stylesheet';link.href='./noreyo-v534.css?build=534';link.dataset.noreyoV534='1';
+    document.head.appendChild(link);
+  }
+
   const checks=[
     ['Zimmer0','Balkon',o=>o.confirmed?.balcony===true],
     ['Zimmer1','Meerblick',o=>o.confirmed?.seaView===true],
