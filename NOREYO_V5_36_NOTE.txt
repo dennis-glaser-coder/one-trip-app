@@ -1,0 +1,1 @@
+V5.36 makes the NOREYO USP visible on the existing first-screen hero: MUST criteria are checked first, WISH criteria improve ranking, and every result explains why it fits. Pre-V5.36 restore point: commit 7938af0b2270d43556d9652a98324a82b37ef633.
