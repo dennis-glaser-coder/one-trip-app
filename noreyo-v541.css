@@ -1,4 +1,4 @@
-/* NOREYO V5.41/V5.62 — premium booking-first home + Safari stability */
+/* NOREYO V5.41/V5.64 — premium booking-first home + Safari stability */
 #discover .hero.noreyo-v541-hero{height:286px!important;margin:0 14px!important;border-radius:30px!important;overflow:hidden!important;position:relative!important;background:#0b3447!important;box-shadow:0 20px 52px rgba(7,31,45,.12)!important}
 #discover .hero.noreyo-v541-hero img{filter:saturate(1.05) contrast(1.01) brightness(.95)!important;transform:scale(1.01)!important}
 #discover .hero.noreyo-v541-hero:after{background:linear-gradient(180deg,rgba(5,29,38,.02),rgba(5,29,38,.11) 40%,rgba(5,29,38,.82) 100%)!important}
@@ -19,7 +19,7 @@
 .noreyo-v541-booking-cta:active{transform:scale(.99)}.noreyo-v541-booking-cta:focus-visible{outline:3px solid rgba(12,143,146,.24);outline-offset:3px}
 .noreyo-v541-search-note{display:flex;align-items:center;justify-content:center;gap:6px;margin:8px 2px 0;color:#7f8d91;font-size:7.4px;line-height:1.2}.noreyo-v541-search-note i{width:5px;height:5px;border-radius:50%;background:#20aaa8;box-shadow:0 0 0 4px rgba(32,170,168,.10)}
 
-/* V5.62: modal/keyboard/visual viewport hardening */
+/* V5.64: modal/keyboard/visual viewport hardening */
 body.noreyo-modal-open{overflow:hidden!important;overscroll-behavior:none!important}
 .nav.noreyo-modal-hidden,body.noreyo-keyboard-open .nav{opacity:0!important;pointer-events:none!important;transform:translate(-50%,18px)!important;transition:opacity .16s ease,transform .16s ease!important}
 .planner-sheet.show,.sheet.show{max-height:min(92dvh,calc(var(--noreyo-visual-height,100dvh) - 8px))!important}
@@ -27,7 +27,7 @@ body.noreyo-modal-open{overflow:hidden!important;overscroll-behavior:none!import
 .planner-close,.close,.planner-save,.apply,.choice,.counter button,.tab{touch-action:manipulation}
 .planner-close,.close,.counter button{min-width:44px!important;min-height:44px!important}
 .planner-save,.apply{min-height:50px!important}
-.planner-sheet [role="dialog"]:focus-visible,.sheet [role="dialog"]:focus-visible{outline:none}
+.planner-sheet[role="dialog"]:focus-visible,.sheet[role="dialog"]:focus-visible{outline:none}
 @media(max-width:390px){
  #discover .hero.noreyo-v541-hero{height:278px!important}#discover .hero.noreyo-v541-hero .hero-copy{top:78px!important}#discover .hero.noreyo-v541-hero .hero-copy h1{font-size:30px!important}#discover .hero.noreyo-v541-hero .hero-copy p{font-size:11px!important}
  .noreyo-v541-trust{left:18px;right:18px;padding:8px 7px;gap:3px}.noreyo-v541-trust span{font-size:6.35px;gap:3px}#discover .search-console-head b{font-size:16px!important}.noreyo-v541-booking-cta{min-height:48px;font-size:11px}
