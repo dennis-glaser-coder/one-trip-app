@@ -29,13 +29,19 @@
       if(btn.parentElement!==card)card.appendChild(btn);
       return;
     }
-    const cells=[...grid.children].filter(el=>el.classList&&el.classList.contains('command-cell'));
-    if(cells.length>=4){
-      const fourth=cells[3];
-      if(fourth.nextElementSibling!==btn)fourth.insertAdjacentElement('afterend',btn);
-    }else if(btn.parentElement!==grid){
-      grid.appendChild(btn);
-    }
+
+    const cellItems=[...grid.children].filter(el=>{
+      if(!el||!el.classList)return false;
+      return el.classList.contains('command-cell')||!!el.querySelector('.command-cell');
+    });
+
+    cellItems.forEach((item,index)=>{
+      item.classList.remove('noreyo-v541-main-cell','noreyo-v541-extra-cell');
+      item.classList.add(index<4?'noreyo-v541-main-cell':'noreyo-v541-extra-cell');
+    });
+
+    if(btn.parentElement!==grid)grid.appendChild(btn);
+    btn.classList.add('noreyo-v541-cta-grid-item');
   }
 
   function ensureBookingCTA(card){
@@ -109,7 +115,7 @@
   }catch(e){console.warn('NOREYO V5.41 hooks',e)}
 
   enforce();
-  setTimeout(enforce,80);setTimeout(enforce,220);
+  setTimeout(enforce,80);setTimeout(enforce,220);setTimeout(enforce,500);
   const discover=document.getElementById('discover');
   if(discover&&typeof MutationObserver!=='undefined')new MutationObserver(()=>{if(!lock)schedule();}).observe(discover,{childList:true,subtree:true});
   window.addEventListener('pageshow',schedule);
