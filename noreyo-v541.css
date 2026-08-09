@@ -1,4 +1,4 @@
-/* NOREYO V5.41 — premium booking-first home */
+/* NOREYO V5.41/V5.68 — compact booking-first home + Safari stability */
 #discover .hero.noreyo-v541-hero{height:246px!important;margin:0 14px!important;border-radius:30px!important;overflow:hidden!important;position:relative!important;background:#0b3447!important;box-shadow:0 20px 52px rgba(7,31,45,.12)!important}
 #discover .hero.noreyo-v541-hero img{filter:saturate(1.05) contrast(1.01) brightness(.95)!important;transform:scale(1.01)!important}
 #discover .hero.noreyo-v541-hero:after{background:linear-gradient(180deg,rgba(5,29,38,.02),rgba(5,29,38,.11) 40%,rgba(5,29,38,.82) 100%)!important}
@@ -24,9 +24,20 @@
 #discover .booking-command-grid>.noreyo-v541-main-cell{order:0!important}
 #discover .booking-command-grid>.noreyo-v541-cta-grid-item{order:1!important;grid-column:1/-1!important}
 #discover .booking-command-grid>.noreyo-v541-extra-cell{order:2!important}
-.noreyo-v541-booking-cta{appearance:none;-webkit-appearance:none;border:0;grid-column:1/-1!important;width:100%;height:42px;margin:2px 0 0!important;border-radius:14px;background:#0c8f92;color:#fff;font:850 11.3px/1 -apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sans-serif;letter-spacing:.05px;box-shadow:0 10px 22px rgba(12,143,146,.20);display:flex;align-items:center;justify-content:center;gap:8px;position:relative;z-index:2}
+.noreyo-v541-booking-cta{appearance:none;-webkit-appearance:none;border:0;grid-column:1/-1!important;width:100%;min-height:44px;margin:2px 0 0!important;border-radius:14px;background:#0c8f92;color:#fff;font:850 11.3px/1 -apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sans-serif;letter-spacing:.05px;box-shadow:0 10px 22px rgba(12,143,146,.20);display:flex;align-items:center;justify-content:center;gap:8px;position:relative;z-index:2;touch-action:manipulation}
 .noreyo-v541-booking-cta:active{transform:scale(.99)}
+.noreyo-v541-booking-cta:focus-visible{outline:3px solid rgba(12,143,146,.24);outline-offset:3px}
 .noreyo-v541-search-note{display:none!important}
+
+/* V5.64+: modal/keyboard/visual viewport hardening */
+body.noreyo-modal-open{overflow:hidden!important;overscroll-behavior:none!important}
+.nav.noreyo-modal-hidden,body.noreyo-keyboard-open .nav{opacity:0!important;pointer-events:none!important;transform:translate(-50%,18px)!important;transition:opacity .16s ease,transform .16s ease!important}
+.planner-sheet.show,.sheet.show{max-height:min(92dvh,calc(var(--noreyo-visual-height,100dvh) - 8px))!important}
+.planner-body,.sheet-scroll{-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.planner-close,.close,.planner-save,.apply,.choice,.counter button,.tab{touch-action:manipulation}
+.planner-close,.close,.counter button{min-width:44px!important;min-height:44px!important}
+.planner-save,.apply{min-height:50px!important}
+.planner-sheet[role="dialog"]:focus-visible,.sheet[role="dialog"]:focus-visible{outline:none}
 @media(max-width:600px){
  .app-head{padding-top:calc(36px + env(safe-area-inset-top))!important;padding-bottom:9px!important}
 }
@@ -39,5 +50,8 @@
  .noreyo-v541-trust span{font-size:6.2px;gap:3px}
  #discover .search-console-head b{font-size:15.2px!important}
  #discover .command-cell{min-height:47px!important;padding:5px 7px!important}
- .noreyo-v541-booking-cta{height:40px;font-size:10.7px}
+ .noreyo-v541-booking-cta{min-height:44px;font-size:10.7px}
+}
+@media(prefers-reduced-motion:reduce){
+ *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}
 }
