@@ -1,0 +1,17 @@
+(function(){
+'use strict';
+const BUILD='5.82';
+let active=false,returnFocus=null,observer=null;
+function backdrop(){return document.getElementById('noreyoDna560');}
+function sheet(){return backdrop()?.querySelector('.noreyo-v560-sheet')||null;}
+function visible(){return !!backdrop()?.classList.contains('show');}
+function focusables(){const s=sheet();if(!s)return[];return [...s.querySelectorAll('button:not([disabled]),a[href],input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])')].filter(el=>!el.hidden&&el.getClientRects().length);}
+function restorePageLock(){const body=document.body;if(!body)return;let y=0;const top=String(body.style.top||'');const match=top.match(/^-(\d+(?:\.\d+)?)px$/);if(match)y=Math.max(0,Number(match[1])||0);const had=body.classList.contains('noreyo-v560-lock');body.classList.remove('noreyo-v560-lock');body.style.top='';if(had&&y){try{window.scrollTo({top:y,left:0,behavior:'auto'});}catch(_){window.scrollTo(0,y);}}}
+function sync(){const now=visible();if(now===active)return;active=now;const nav=document.querySelector('.nav');if(now){returnFocus=document.activeElement instanceof HTMLElement?document.activeElement:null;nav?.classList.add('noreyo-v582-nav-hidden');const s=sheet();s?.setAttribute('role','dialog');s?.setAttribute('aria-modal','true');const items=focusables();if(items.length)setTimeout(()=>items[0].focus?.({preventScroll:true}),0);}else{nav?.classList.remove('noreyo-v582-nav-hidden');const r=returnFocus;returnFocus=null;if(r&&document.contains(r))setTimeout(()=>r.focus?.({preventScroll:true}),0);}}
+function keydown(event){if(!visible())return;if(event.key==='Escape'){const close=sheet()?.querySelector('.noreyo-v560-close');if(close){event.preventDefault();close.click();}return;}if(event.key!=='Tab')return;const items=focusables();if(!items.length)return;const first=items[0],last=items[items.length-1];if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}}
+function pagehide(){if(visible()){try{sheet()?.querySelector('.noreyo-v560-close')?.click();}catch(_){}}active=false;document.querySelector('.nav')?.classList.remove('noreyo-v582-nav-hidden');restorePageLock();}
+function installStyle(){if(document.getElementById('noreyoV582Style'))return;const style=document.createElement('style');style.id='noreyoV582Style';style.textContent='@media(max-width:600px){.noreyo-v582-nav-hidden{visibility:hidden!important;pointer-events:none!important}}';document.head.appendChild(style);}
+function install(){installStyle();sync();document.addEventListener('keydown',keydown,true);if(typeof MutationObserver!=='undefined'){observer=new MutationObserver(sync);observer.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});}window.addEventListener('pagehide',pagehide,{passive:true});window.addEventListener('pageshow',()=>{restorePageLock();sync();},{passive:true});}
+window.NOREYO_V582=Object.freeze({BUILD,visible,focusables,restorePageLock,sync});
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
+})();
