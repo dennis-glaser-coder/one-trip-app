@@ -37,20 +37,20 @@ function install(){
  root.insertAdjacentHTML('beforeend',markup().replace('Noch kein Preisalarm aktiv',esc(oldAlert||'Noch kein Preisalarm aktiv')));
  root.dataset.v576='1';
 }
-function openPrefs(){try{if(typeof openFilter==='function'){openFilter();return;}}catch(_){ }try{showToast?.('Urlaubswünsche konnten gerade nicht geöffnet werden');}catch(_){ }}
-function openAlerts(){try{if(typeof window.openAlerts==='function'){window.openAlerts();return;}if(typeof openAlerts==='function'){openAlerts();return;}}catch(_){ }try{showToast?.('Preisalarm konnte gerade nicht geöffnet werden');}catch(_){ }}
+function openPrefs(){try{if(typeof openFilter==='function'){openFilter();return;}}catch(_){ }try{if(typeof showToast==='function')showToast('Urlaubswünsche konnten gerade nicht geöffnet werden');}catch(_){ }}
+function openPriceAlerts(){try{if(typeof window.openAlerts==='function'){window.openAlerts();return;}}catch(_){ }try{if(typeof showToast==='function')showToast('Preisalarm konnte gerade nicht geöffnet werden');}catch(_){ }}
 function openStyle(){
  try{
   const launch=document.querySelector('#discover .noreyo-v560-launch');
   if(launch){launch.click();setTimeout(()=>window.NOREYO_V564?.start?.(),120);return;}
  }catch(_){ }
- try{showToast?.('Reisestil lässt sich gerade nicht öffnen');}catch(_){ }
+ try{if(typeof showToast==='function')showToast('Reisestil lässt sich gerade nicht öffnen');}catch(_){ }
 }
 function paint(){if(painting)return;painting=true;try{install();}finally{painting=false;}}
 document.addEventListener('click',e=>{
  if(e.target.closest?.('[data-v576-prefs]')){e.preventDefault();openPrefs();return;}
  if(e.target.closest?.('[data-v576-style]')){e.preventDefault();openStyle();return;}
- if(e.target.closest?.('[data-v576-alert]')){e.preventDefault();openAlerts();return;}
+ if(e.target.closest?.('[data-v576-alert]')){e.preventDefault();openPriceAlerts();return;}
 });
 const mo=new MutationObserver(()=>requestAnimationFrame(paint));mo.observe(document.documentElement,{childList:true,subtree:true});
 setTimeout(paint,100);setTimeout(paint,350);setTimeout(paint,900);
