@@ -23,22 +23,32 @@
     return buttons.find(b=>b.classList.contains('dark-btn')||b.classList.contains('primary-btn')||b.classList.contains('search-btn'))||null;
   }
 
+  function placeBookingCTA(card,btn){
+    const grid=card.querySelector('.booking-command-grid');
+    if(!grid){
+      if(btn.parentElement!==card)card.appendChild(btn);
+      return;
+    }
+    const cells=[...grid.children].filter(el=>el.classList&&el.classList.contains('command-cell'));
+    if(cells.length>=4){
+      const fourth=cells[3];
+      if(fourth.nextElementSibling!==btn)fourth.insertAdjacentElement('afterend',btn);
+    }else if(btn.parentElement!==grid){
+      grid.appendChild(btn);
+    }
+  }
+
   function ensureBookingCTA(card){
     if(!card)return;
+    card.querySelectorAll('.noreyo-v541-search-note').forEach(el=>el.remove());
     let btn=card.querySelector('.noreyo-v541-booking-cta');
     if(!btn){
       btn=document.createElement('button');
       btn.type='button';
       btn.className='noreyo-v541-booking-cta';
       btn.innerHTML='<span>Passende Reisen finden</span><span aria-hidden="true">→</span>';
-      const grid=card.querySelector('.booking-command-grid');
-      const host=grid?.parentElement||card;
-      if(grid&&grid.nextSibling)host.insertBefore(btn,grid.nextSibling);else host.appendChild(btn);
-      const note=document.createElement('div');
-      note.className='noreyo-v541-search-note';
-      note.innerHTML='<i></i><span>Deine Prioritäten legst du direkt im nächsten Schritt fest.</span>';
-      btn.insertAdjacentElement('afterend',note);
     }
+    placeBookingCTA(card,btn);
     if(!btn.dataset.bound){
       btn.dataset.bound='1';
       btn.addEventListener('click',()=>{
