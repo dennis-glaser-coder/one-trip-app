@@ -1,0 +1,19 @@
+/* NOREYO V5.61 — Chef demo polish */
+@media(max-width:600px){
+  .app-head{padding-top:calc(66px + env(safe-area-inset-top))!important}
+  #discover .search-card .noreyo-v560-launch{border-color:rgba(8,116,121,.18)!important;box-shadow:0 10px 26px rgba(7,57,72,.09)!important}
+  #discover .search-card .noreyo-v555-ai-launch{min-height:46px!important;padding:7px 11px!important;margin:0 0 10px!important;border-radius:15px!important;border-color:rgba(8,116,121,.10)!important;background:rgba(249,252,251,.96)!important;box-shadow:none!important;opacity:.94!important}
+  #discover .search-card .noreyo-v555-ai-mark{width:31px!important;height:31px!important;min-width:31px!important;border-radius:11px!important}
+  #discover .search-card .noreyo-v555-ai-launch small{font-size:6.4px!important;letter-spacing:1.25px!important}
+  #discover .search-card .noreyo-v555-ai-launch b{font-size:11.1px!important;line-height:1.15!important}
+  #discover .search-card .noreyo-v555-ai-go{font-size:17px!important}
+  .nav{height:46px!important;bottom:calc(1px + env(safe-area-inset-bottom))!important}
+  .nav-btn{font-size:6.7px!important}
+  .nav-btn .icon{width:16px!important;height:16px!important}
+  .view{padding-bottom:calc(170px + env(safe-area-inset-bottom))!important;scroll-padding-bottom:180px!important}
+  #discover .content{padding-bottom:120px!important}
+}
+@media(max-width:390px){
+  .app-head{padding-top:calc(64px + env(safe-area-inset-top))!important}
+  .nav{height:45px!important}
+}
