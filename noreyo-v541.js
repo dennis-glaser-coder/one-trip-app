@@ -40,8 +40,6 @@
   function adoptNativeBookingCTA(card){
     if(!card)return;
     card.querySelectorAll('.noreyo-v541-search-note').forEach(el=>el.remove());
-
-    /* Remove the temporary extra CTA from the previous build. */
     card.querySelectorAll('.noreyo-v541-booking-cta[data-noreyo-synthetic="1"]').forEach(el=>el.remove());
 
     let btn=card.querySelector('.noreyo-v541-booking-cta[data-noreyo-native="1"]');
@@ -94,7 +92,6 @@
       const saved=wishKeys.map(k=>[k,states[k]]);
       let out;
       try{
-        /* WUNSCH must never remove an offer. Only MUSS stays strict. */
         wishKeys.forEach(k=>{states[k]='any';});
         out=prior(input);
       }finally{
@@ -115,6 +112,120 @@
     };
     wrapped.__noreyoSoftWish=true;
     filterAndRankOffers=wrapped;
+  }
+
+  function validISODate(value){
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(String(value||'')))return false;
+    const d=new Date(String(value)+'T12:00:00');
+    return !Number.isNaN(d.getTime());
+  }
+
+  function normalizeChildren(value){
+    return (Array.isArray(value)?value:[])
+      .map(v=>Number(v))
+      .filter(Number.isFinite)
+      .map(v=>Math.max(0,Math.min(17,Math.round(v))))
+      .slice(0,4);
+  }
+
+  function sanitizeClientSearchState(){
+    if(typeof searchState==='undefined'||!searchState)return;
+    searchState.adults=Math.max(1,Math.min(6,Math.round(Number(searchState.adults)||2)));
+    searchState.childAges=normalizeChildren(searchState.childAges);
+    searchState.airports=(Array.isArray(searchState.airports)?searchState.airports:[])
+      .map(x=>String(x||'').trim().toUpperCase())
+      .filter((x,i,a)=>/^[A-Z]{3}$/.test(x)&&a.indexOf(x)===i)
+      .slice(0,5);
+    if(!searchState.airports.length)searchState.airports=['DUS','CGN','PAD'];
+
+    if(!validISODate(searchState.checkin)&&typeof tomorrowISO==='function')searchState.checkin=tomorrowISO();
+    if(!validISODate(searchState.checkout)||String(searchState.checkout)<=String(searchState.checkin)){
+      if(typeof nextDayISO==='function')searchState.checkout=nextDayISO(searchState.checkin);
+    }
+    try{if(typeof persistState==='function')persistState();}catch(_){ }
+  }
+
+  function destinationFallbackIata(){
+    try{
+      const key=typeof normalizeLookup==='function'?normalizeLookup(dest):String(dest||'').trim().toLowerCase();
+      return String(destinationIata?.[key]||destinationIata?.[String(dest||'').toLowerCase()]||'').toUpperCase();
+    }catch(_){return '';}
+  }
+
+  function sanitizeHotelBody(raw){
+    const body={...(raw||{})};
+    const occ=Array.isArray(body.occupancies)&&body.occupancies.length?body.occupancies[0]:{};
+    const adults=Math.max(1,Math.min(6,Math.round(Number(occ?.adults ?? (typeof searchState!=='undefined'?searchState.adults:2))||2)));
+    const children=normalizeChildren(Array.isArray(occ?.children)?occ.children:(typeof searchState!=='undefined'?searchState.childAges:[]));
+    body.occupancies=[{adults,children}];
+    body.currency='EUR';
+    body.guestNationality='DE';
+
+    if(!validISODate(body.checkin)&&typeof searchState!=='undefined'&&validISODate(searchState.checkin))body.checkin=searchState.checkin;
+    if(!validISODate(body.checkout)&&typeof searchState!=='undefined'&&validISODate(searchState.checkout))body.checkout=searchState.checkout;
+
+    if(Array.isArray(body.hotelIds)){
+      body.hotelIds=body.hotelIds.map(x=>String(x||'').trim()).filter(Boolean).slice(0,20);
+      if(!body.hotelIds.length)delete body.hotelIds;
+    }
+
+    if(!body.hotelIds?.length){
+      let iata=String(body.iataCode||'').trim().toUpperCase();
+      if(!/^[A-Z]{3}$/.test(iata))iata=destinationFallbackIata();
+      if(/^[A-Z]{3}$/.test(iata))body.iataCode=iata;
+    }
+    return body;
+  }
+
+  function minimalHotelBody(body){
+    const clean=sanitizeHotelBody(body);
+    if(!validISODate(clean.checkin)||!validISODate(clean.checkout)||String(clean.checkout)<=String(clean.checkin))return null;
+    const minimal={
+      occupancies:clean.occupancies,
+      currency:'EUR',
+      guestNationality:'DE',
+      checkin:clean.checkin,
+      checkout:clean.checkout,
+      includeHotelData:true,
+      roomMapping:true,
+      maxRatesPerHotel:Number(clean.maxRatesPerHotel)||3,
+      limit:Number(clean.limit)||40
+    };
+    if(clean.hotelIds?.length)minimal.hotelIds=clean.hotelIds;
+    else if(/^[A-Z]{3}$/.test(String(clean.iataCode||'')))minimal.iataCode=clean.iataCode;
+    else return null;
+    return minimal;
+  }
+
+  function installHotelRequestGuard(){
+    if(window.fetch?.__noreyoHotelGuard)return;
+    const nativeFetch=window.fetch.bind(window);
+    const guarded=async function(input,init){
+      const url=typeof input==='string'?input:String(input?.url||'');
+      if(!url.includes('/functions/v1/search-travel')||typeof init?.body!=='string')return nativeFetch(input,init);
+
+      let raw;
+      try{raw=JSON.parse(init.body);}catch(_){return nativeFetch(input,init);}
+      if(raw?.action)return nativeFetch(input,init);
+
+      const clean=sanitizeHotelBody(raw);
+      let response=await nativeFetch(input,{...init,body:JSON.stringify(clean)});
+      if(response.ok)return response;
+
+      let message='';
+      try{
+        const payload=await response.clone().json();
+        message=String(payload?.error?.message||payload?.message||'');
+      }catch(_){ }
+      if(!/required request field|wrong input|missing/i.test(message))return response;
+
+      const retry=minimalHotelBody(clean);
+      if(!retry)return response;
+      console.warn('NOREYO V5.43: retrying hotel search with sanitized request');
+      return nativeFetch(input,{...init,body:JSON.stringify(retry)});
+    };
+    guarded.__noreyoHotelGuard=true;
+    window.fetch=guarded;
   }
 
   function enforce(){
@@ -150,6 +261,8 @@
 
   function schedule(){if(raf)return;raf=requestAnimationFrame(()=>{raf=0;enforce();});}
 
+  sanitizeClientSearchState();
+  installHotelRequestGuard();
   installSoftWishRanking();
 
   try{
@@ -165,11 +278,11 @@
       const baseGo=go;
       go=function(id){const r=baseGo(id);if(id==='discover')schedule();return r;};
     }
-  }catch(e){console.warn('NOREYO V5.42 hooks',e)}
+  }catch(e){console.warn('NOREYO V5.43 hooks',e)}
 
   enforce();
   setTimeout(enforce,80);setTimeout(enforce,220);setTimeout(enforce,500);
   const discover=document.getElementById('discover');
   if(discover&&typeof MutationObserver!=='undefined')new MutationObserver(()=>{if(!lock)schedule();}).observe(discover,{childList:true,subtree:true});
-  window.addEventListener('pageshow',schedule);
+  window.addEventListener('pageshow',()=>{sanitizeClientSearchState();schedule();});
 })();
