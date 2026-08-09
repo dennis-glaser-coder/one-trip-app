@@ -17,7 +17,8 @@ Checks:
 
 ## V5.74 family + traveller safety
 - Parses explicit adult counts and `zu zweit`.
-- Parses child counts and ages, including singular child cases and babies in months.
+- Parses child counts and ages, including singular child cases, `5 und 8 Jahre`, `5 Jahre und 8 Jahre`, and babies in months.
+- Multiple babies expressed in months are normalized to age 0 for provider occupancy.
 - Complete family data writes to `searchState.childAges`.
 - `ohne Kinder` / `nur Erwachsene` clears stale child ages.
 - Missing child ages fail closed before live search and open the traveller planner.
@@ -27,7 +28,7 @@ Checks:
 
 Checks:
 - JavaScript syntax PASS.
-- Family/adult parser matrix 8/8 PASS.
+- Family/adult parser matrix 10/10 PASS.
 
 ## iPhone readability
 - Tiny 6–9px helper text in V5.73 is raised into a more readable mobile range.
