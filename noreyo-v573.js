@@ -1,7 +1,7 @@
-/* NOREYO V5.73 — multimodal vision search: text + 3–8 images + saved taste */
+/* NOREYO V5.73.1 — multimodal vision-search UI, honest image status + idempotent paint */
 (()=>{
 'use strict';
-let painting=false;
+let painting=false,paintQueued=false,lastMode='';
 let photoUrls=[];
 const PROFILE_KEY='noreyoTravelDNA';
 function norm(v){return String(v||'').toLowerCase();}
@@ -14,18 +14,18 @@ const examples={
  cruise:'z. B. Mittelmeer im September, 7–9 Nächte, Balkonkabine, eher modernes Schiff, max. 2.500 €.'
 };
 function formulaMarkup(p){
- const parts=['<span>deinen Wunsch</span>','<span>3–8 Bilder</span>'];
+ const parts=['<span>deinen Wunsch</span>'];
  if(p)parts.push('<span>deinen Reisestil</span>');
- return '<div class="noreyo-v573-formula"><small>NOREYO VERBINDET</small><div>'+parts.join('<b>+</b>')+'<i>→</i><strong>eine Suche</strong></div></div>';
+ return '<div class="noreyo-v573-formula"><small>NOREYO VERBINDET HEUTE</small><div>'+parts.join('<b>+</b>')+'<i>→</i><strong>eine Suche</strong></div><p>3–8 Bilder kannst du schon vormerken. Die Bildanalyse wird noch nicht für die Live-Suche verwendet.</p></div>';
 }
 function markup(){
  const p=profile();
  return '<div class="noreyo-v573-head"><span>✦</span><div><small>SO SOLL MEIN URLAUB AUSSEHEN</small><h3>Zeig oder beschreib NOREYO, was du willst.</h3></div>'+(p?'<em>Reisestil aktiv</em>':'')+'</div>'+
- '<p class="noreyo-v573-sub">Schreib einen Satz. Wenn du willst, ergänze mehrere Fotos oder Screenshots, die zeigen, was dir gefällt.</p>'+
+ '<p class="noreyo-v573-sub">Schreib einen Satz. Wenn du willst, kannst du schon mehrere Fotos oder Screenshots vormerken.</p>'+
  '<div class="noreyo-v573-compose">'+
    '<textarea data-v571-text maxlength="500" rows="2" placeholder="'+examples[mode()]+'" aria-label="Urlaub beschreiben"></textarea>'+
    '<div class="noreyo-v573-addrow">'+
-     '<label class="noreyo-v573-images"><input type="file" accept="image/*" multiple data-v573-photos><span>▧</span><b>3–8 Bilder ergänzen</b><small>Fotos oder Screenshots</small><i>+</i></label>'+
+     '<label class="noreyo-v573-images"><input type="file" accept="image/*" multiple data-v573-photos><span>▧</span><b>3–8 Bilder vormerken</b><small>Analyse folgt</small><i>+</i></label>'+
      '<button type="button" class="noreyo-v573-go" data-v573-go>Genau danach suchen <span>→</span></button>'+
    '</div>'+
    '<div class="noreyo-v573-preview" data-v573-preview></div>'+
@@ -34,35 +34,58 @@ function markup(){
  '<div class="noreyo-v573-classic"><span>ODER KLASSISCH SUCHEN</span></div>';
 }
 function install(){
- const panel=document.querySelector('#discover [data-v571-smart]');if(!panel)return;
- if(panel.dataset.v573==='1'&&panel.querySelector('.noreyo-v573-head'))return;
- panel.dataset.v573='1';panel.classList.add('noreyo-v573-smart');panel.innerHTML=markup();
- const head=document.querySelector('#discover .search-card .search-console-head b,#discover .search-card .noreyo-v552-search-head b');if(head)head.textContent='So möchtest du deinen Urlaub finden';
+ const panel=document.querySelector('#discover [data-v571-smart]');if(!panel)return false;
+ const currentMode=mode();
+ if(panel.dataset.v573==='1'&&panel.dataset.v573Mode===currentMode&&panel.querySelector('.noreyo-v573-head'))return true;
+ panel.dataset.v573='1';panel.dataset.v573Mode=currentMode;panel.classList.add('noreyo-v573-smart');panel.innerHTML=markup();
+ const head=document.querySelector('#discover .search-card .search-console-head b,#discover .search-card .noreyo-v552-search-head b');if(head&&head.textContent!=='So möchtest du deinen Urlaub finden')head.textContent='So möchtest du deinen Urlaub finden';
+ lastMode=currentMode;
+ return true;
 }
 function clearPhotos(){photoUrls.forEach(u=>{try{URL.revokeObjectURL(u);}catch(_){}});photoUrls=[];}
 function showPhotos(files){
- clearPhotos();const arr=[...(files||[])].slice(0,8);photoUrls=arr.map(f=>URL.createObjectURL(f));const host=document.querySelector('#discover [data-v573-preview]');if(!host)return;
+ clearPhotos();
+ const arr=[...(files||[])].filter(f=>String(f?.type||'').startsWith('image/')).slice(0,8);
+ photoUrls=arr.map(f=>URL.createObjectURL(f));
+ const host=document.querySelector('#discover [data-v573-preview]');if(!host)return;
  if(!arr.length){host.innerHTML='';return;}
  const shown=photoUrls.slice(0,5);
- host.innerHTML='<div class="noreyo-v573-thumbs">'+shown.map((u,i)=>'<img src="'+u+'" alt="Ausgewähltes Urlaubsbild '+(i+1)+'">').join('')+(arr.length>5?'<span>+'+(arr.length-5)+'</span>':'')+'</div><div class="noreyo-v573-previewcopy"><b>'+arr.length+' Bild'+(arr.length===1?'':'er')+' ausgewählt</b><small>'+(arr.length<3?'3–8 unterschiedliche Bilder geben NOREYO später ein besseres Gesamtbild.':'Perfekt: mehrere Eindrücke zeigen deinen gewünschten Stil besser als ein einzelnes Foto.')+'</small><em>Lokale Vorschau · Bildanalyse noch nicht aktiv</em></div>';
+ host.innerHTML='<div class="noreyo-v573-thumbs">'+shown.map((u,i)=>'<img src="'+u+'" alt="Ausgewähltes Urlaubsbild '+(i+1)+'">').join('')+(arr.length>5?'<span>+'+(arr.length-5)+'</span>':'')+'</div><div class="noreyo-v573-previewcopy"><b>'+arr.length+' Bild'+(arr.length===1?'':'er')+' vorgemerkt</b><small>'+(arr.length<3?'3–8 unterschiedliche Bilder helfen später bei der visuellen Suche.':'Mehrere Eindrücke sind für die geplante Bildanalyse vorgemerkt.')+'</small><em>Lokale Vorschau · noch keine Bildanalyse in der Live-Suche</em></div>';
 }
 function submit(){
  const ta=document.querySelector('#discover [data-v571-text]');const text=String(ta?.value||'').trim();
  if(text.length>=8){window.NOREYO_V571?.submit?.();return;}
  if(photoUrls.length){
    ta?.focus();
-   try{if(typeof showToast==='function')showToast('Bilder sind gewählt. Ergänze aktuell noch einen kurzen Wunsch – die Bildanalyse wird als nächstes angebunden.');}catch(_){ }
+   try{if(typeof showToast==='function')showToast('Bilder sind vorgemerkt. Für die aktuelle Live-Suche ergänze bitte noch einen kurzen Wunsch.');}catch(_){}
    return;
  }
- ta?.focus();try{if(typeof showToast==='function')showToast('Schreib kurz, wie dein Urlaub sein soll – oder füge mehrere Bilder hinzu.');}catch(_){ }
+ ta?.focus();try{if(typeof showToast==='function')showToast('Schreib kurz, wie dein Urlaub sein soll.');}catch(_){}
 }
 function paint(){if(painting)return;painting=true;try{install();}finally{painting=false;}}
+function schedulePaint(){if(paintQueued)return;paintQueued=true;requestAnimationFrame(()=>{paintQueued=false;paint();});}
+function mutationRelevant(records){
+ for(const r of records){
+  for(const n of r.addedNodes||[]){
+   if(n.nodeType!==1)continue;
+   if(n.matches?.('#discover,.search-card,[data-v571-smart]')||n.querySelector?.('#discover,.search-card,[data-v571-smart]'))return true;
+  }
+ }
+ return false;
+}
+function loadSafety(){
+ if(window.NOREYO_V574||document.querySelector('script[data-noreyo-v574]'))return;
+ const s=document.createElement('script');s.src='./noreyo-v574.js?build=574';s.dataset.noreyoV574='1';document.head.appendChild(s);
+ if(!document.querySelector('link[data-noreyo-v574]')){const l=document.createElement('link');l.rel='stylesheet';l.href='./noreyo-v574.css?build=574';l.dataset.noreyoV574='1';document.head.appendChild(l);}
+}
 document.addEventListener('click',e=>{
  if(e.target.closest?.('[data-v573-go]')){e.preventDefault();submit();return;}
- if(e.target.closest?.('#discover .product-mode'))setTimeout(()=>{const p=document.querySelector('#discover [data-v571-smart]');if(p)p.dataset.v573='';paint();},170);
+ if(e.target.closest?.('#discover .product-mode'))setTimeout(()=>{const p=document.querySelector('#discover [data-v571-smart]');if(p){p.dataset.v573='';p.dataset.v573Mode='';}lastMode='';schedulePaint();},170);
 });
 document.addEventListener('change',e=>{const input=e.target.closest?.('[data-v573-photos]');if(input)showPhotos(input.files);});
-const mo=new MutationObserver(()=>requestAnimationFrame(paint));mo.observe(document.documentElement,{childList:true,subtree:true});
-setTimeout(paint,80);setTimeout(paint,260);setTimeout(paint,720);setTimeout(paint,1450);
-window.NOREYO_V573={paint};
+const mo=new MutationObserver(records=>{if(mutationRelevant(records))schedulePaint();});
+mo.observe(document.documentElement,{childList:true,subtree:true});
+setTimeout(paint,80);setTimeout(paint,260);setTimeout(paint,720);setTimeout(paint,1450);setTimeout(loadSafety,90);
+window.addEventListener('pagehide',clearPhotos,{passive:true});
+window.NOREYO_V573={paint,showPhotos,clearPhotos,mutationRelevant};
 })();
