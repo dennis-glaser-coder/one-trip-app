@@ -1,0 +1,11 @@
+/* NOREYO V5.69 — iPhone Safari planner/search safety on latest main */
+body.noreyo-v569-modal-open{overflow:hidden!important;overscroll-behavior:none!important}
+.nav.noreyo-v569-nav-hidden,body.noreyo-v569-keyboard .nav{opacity:0!important;pointer-events:none!important;transform:translate(-50%,18px)!important;transition:opacity .16s ease,transform .16s ease!important}
+.planner-sheet.show,.sheet.show{max-height:min(92dvh,calc(var(--noreyo-v569-vh,100dvh) - 8px))!important}
+.planner-body,.sheet-scroll{-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.planner-close,.close,.planner-save,.apply,.choice,.counter button,.tab,.noreyo-v541-booking-cta{touch-action:manipulation}
+.planner-close,.close,.counter button{min-width:44px!important;min-height:44px!important}
+.planner-save,.apply,.noreyo-v541-booking-cta{min-height:44px!important}
+.planner-sheet[role="dialog"]:focus-visible,.sheet[role="dialog"]:focus-visible{outline:none}
+.noreyo-v541-booking-cta[aria-busy="true"]{opacity:.72!important;cursor:progress!important}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}}
