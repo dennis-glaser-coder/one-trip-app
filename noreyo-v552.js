@@ -68,8 +68,7 @@
         cell('REISEART',cruiseState.type,'type','ship')+
         '<button class="command-cell noreyo-v552-cruise-filter" type="button" data-cruise-picker="cabin"><span class="command-icon">'+icon('sliders')+'</span><span class="command-copy"><small>KABINE & WÜNSCHE</small><b>'+esc(cruiseState.cabin)+'</b></span><span class="noreyo-v552-chevron" aria-hidden="true">›</span></button>'+
         '<button class="noreyo-v552-cruise-cta" type="button" data-cruise-search="1"><span>Kreuzfahrten finden</span><span aria-hidden="true">→</span></button>'+
-      '</div>'+
-      '<p class="noreyo-v552-cruise-note">Kreuzfahrt-Suche ist vorbereitet. Live-Routen und Preise werden mit dem späteren Kreuzfahrtanbieter angebunden.</p>';
+      '</div>';
   }
 
   function renderProductNav(){
@@ -127,7 +126,7 @@
     if(cta&&cta.dataset.noreyoBound!=='1'){
       cta.dataset.noreyoBound='1';
       cta.addEventListener('click',()=>{
-        try{if(typeof showToast==='function')showToast('Kreuzfahrt-Suche bereit – Live-Anbieter folgt');}catch(_){ }
+        try{if(typeof showToast==='function')showToast('Live-Kreuzfahrten werden nach Anbieteranbindung aktiviert');}catch(_){ }
       });
     }
   }
