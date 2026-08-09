@@ -16,7 +16,7 @@
 
   function parseAdults(text){
     const t=norm(text);
-    let m=t.match(/\b(\d|ein(?:e|en|em|er)?|zwei|drei|vier|fuenf|funf|sechs)\s+erwachsene(?:n)?\b/);
+    let m=t.match(/\b(\d|ein(?:e|en|em|er)?|zwei|drei|vier|fuenf|funf|sechs)\s+erwachsen(?:e|er|en)?\b/);
     if(m)return wordNumber(m[1]);
     if(/\bzu zweit\b/.test(t))return 2;
     return null;
@@ -75,10 +75,13 @@
   }
 
   function parseFamily(text){
-    const adults=parseAdults(text);
-    const childCount=parseChildCount(text);
-    const ages=parseChildAges(text);
-    const hasFamilyIntent=childCount!==null||ages.length>0||/\b(kinder|kindern|kind|baby|sohn|tochter|familie)\b/.test(norm(text));
+    const t=norm(text);
+    if(/\b(ohne|keine|kein)\s+(?:kinder|kind|baby)\b/.test(t)||/\bnur\s+erwachsene\b/.test(t))return null;
+
+    const adults=parseAdults(t);
+    const childCount=parseChildCount(t);
+    const ages=parseChildAges(t);
+    const hasFamilyIntent=childCount!==null||ages.length>0||/\b(kinder|kindern|kind|baby|sohn|tochter|familie)\b/.test(t);
     if(!hasFamilyIntent)return null;
 
     const count=childCount!==null?childCount:ages.length;
