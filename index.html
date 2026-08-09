@@ -44,8 +44,8 @@ function patch(html){
  html=brand(html);
  const end='</style>';if(!html.includes(end))throw new Error('Style-Anker fehlt');
  let patched=html.replace(end,HOTFIX+end);
- if(!patched.includes('noreyo-v533.css'))patched=patched.replace('</head>','<link rel="stylesheet" href="./noreyo-v533.css?build=541"><link rel="stylesheet" data-noreyo-v534="1" href="./noreyo-v534.css?build=541"><link rel="stylesheet" href="./noreyo-v541.css?build=541d"></head>');
- const enhancer='<scr'+'ipt src="./noreyo-v533.js?build=541"></scr'+'ipt><scr'+'ipt src="./noreyo-v541.js?build=541"></scr'+'ipt>';
+ if(!patched.includes('noreyo-v533.css'))patched=patched.replace('</head>','<link rel="stylesheet" href="./noreyo-v533.css?build=541"><link rel="stylesheet" data-noreyo-v534="1" href="./noreyo-v534.css?build=541"><link rel="stylesheet" href="./noreyo-v541.css?build=541e"></head>');
+ const enhancer='<scr'+'ipt src="./noreyo-v533.js?build=541"></scr'+'ipt><scr'+'ipt src="./noreyo-v541.js?build=541e"></scr'+'ipt>';
  if(!patched.includes('noreyo-v533.js'))patched=patched.replace('</body>',enhancer+'</body>');
  return patched;
 }
