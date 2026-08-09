@@ -50,6 +50,7 @@
     loadScript('579');
     loadStyle('580');
     loadStyle('581');
+    loadScript('582');
   }
 
   function schedule(){
