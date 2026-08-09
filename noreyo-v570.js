@@ -8,6 +8,7 @@
   let bodySnapshot=null;
   let searchBusy=false;
   let busyTimer=0;
+  let specializedLockReleasedOnHide=false;
 
   function productModeValue(){
     try{
@@ -275,8 +276,43 @@
     busyTimer=setTimeout(releaseBusy,15000);
   }
 
+  function releaseSpecializedLocksForPageHide(){
+    if(!document.body)return;
+    const body=document.body;
+    const html=document.documentElement;
+    const hadPlanner=body.classList.contains('noreyo-planner-lock')||html.classList.contains('noreyo-planner-lock');
+    const hadAi=body.classList.contains('noreyo-v556-lock');
+    if(!hadPlanner&&!hadAi)return;
+
+    const top=parseFloat(body.style.top||'0');
+    const restoreY=Number.isFinite(top)&&top<0?Math.abs(top):Math.max(0,window.scrollY||0);
+    specializedLockReleasedOnHide=true;
+    html.classList.remove('noreyo-planner-lock');
+    body.classList.remove('noreyo-planner-lock','noreyo-planner-keyboard','noreyo-v556-lock');
+    body.style.top='';
+    try{window.scrollTo({top:restoreY,left:0,behavior:'auto'});}catch(_){window.scrollTo(0,restoreY);}
+  }
+
+  function normalizeSpecializedModalAfterPageShow(){
+    if(!specializedLockReleasedOnHide)return;
+    specializedLockReleasedOnHide=false;
+
+    const ai=document.querySelector('.noreyo-v556-backdrop.show .noreyo-v556-sheet');
+    if(ai){
+      const close=closeControl(ai);
+      if(close){close.click();return;}
+    }
+
+    const planner=document.getElementById('plannerSheet');
+    if(planner?.classList.contains('show')&&destinationPlannerOwnsScrollLock(planner)){
+      try{if(typeof closePlanner==='function'){closePlanner();return;}}catch(_){ }
+      closeControl(planner)?.click?.();
+    }
+  }
+
   function recoverPageShow(){
     updateViewport();
+    normalizeSpecializedModalAfterPageShow();
     if(!visibleModal()){
       document.body?.classList.remove('noreyo-v570-modal-open');
       document.querySelector('.nav')?.classList.remove('noreyo-v570-nav-hidden');
@@ -288,6 +324,9 @@
 
   function cleanupPageHide(){
     if(modalLocked)unlockScroll(true);
+    releaseSpecializedLocksForPageHide();
+    document.body?.classList.remove('noreyo-v570-modal-open','noreyo-v570-keyboard');
+    document.querySelector('.nav')?.classList.remove('noreyo-v570-nav-hidden');
     releaseBusy();
   }
 
@@ -321,7 +360,8 @@
     validIso,
     destinationPlannerOwnsScrollLock,
     aiOwnsScrollLock,
-    specializedModalOwnsScrollLock
+    specializedModalOwnsScrollLock,
+    releaseSpecializedLocksForPageHide
   });
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});
