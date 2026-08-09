@@ -1,6 +1,0 @@
-NOREYO V5.52
-- Produktnavigation: Pauschalreise, Hotel, Flug, Kreuzfahrt als 2x2 Raster
-- Kreuzfahrt-Suchoberfläche: Reisegebiet/Hafen, Zeitraum, Reisende, Reisedauer, Reiseart, Kabine & Wünsche
-- Zeitraum/Reisende verwenden bestehende NOREYO-Dialoge
-- Kreuzfahrt-Auswahlen werden lokal gespeichert
-- Live-Kreuzfahrtraten/Buchung bleiben bewusst bis zur späteren Provider-Anbindung deaktiviert
