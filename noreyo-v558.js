@@ -12,6 +12,8 @@
     try{if(typeof productMode==='string')return productMode;}catch(_){ }
     return 'package';
   }
+  function setText(el,text){if(el&&el.textContent!==text)el.textContent=text;}
+  function setHTML(el,html){if(el&&el.innerHTML!==html)el.innerHTML=html;}
 
   const rules={
     Zimmer0:{label:'Balkon',read:o=>tri(o?.confirmed?.balcony)},
@@ -42,7 +44,7 @@
     }catch(_){return {must:0,wish:0};}
   }
   function matchInfo(o){
-    const selected=activePrefs();
+    const selected=activePrefs(),counts=allActiveCounts();
     const checked=selected.map(p=>({...p,value:p.read(o)}));
     const yes=checked.filter(x=>x.value===true);
     const no=checked.filter(x=>x.value===false);
@@ -50,16 +52,25 @@
     const must=checked.filter(x=>x.state==='must');
     const knownMust=must.filter(x=>x.value!==null);
     const allKnownMustOk=knownMust.length>0&&knownMust.every(x=>x.value===true);
-    return {selected,checked,yes,no,unknown,must,knownMust,allKnownMustOk};
+    return {selected,checked,yes,no,unknown,must,knownMust,allKnownMustOk,counts,totalActive:counts.must+counts.wish};
   }
   function labelFor(info,index){
-    if(!info.selected.length)return index===0?'Live Auswahl':'Live verfügbar';
-    if(index===0&&info.yes.length)return 'Bester Match';
+    if(!info.selected.length){
+      if(info.totalActive)return index===0?'Beste Auswahl':'Passend';
+      return index===0?'Live Auswahl':'Live verfügbar';
+    }
+    if(index===0&&info.yes.length)return 'Bester Treffer';
     if(info.allKnownMustOk&&info.yes.length>=2)return 'Sehr passend';
     if(info.yes.length>=2)return 'Gut passend';
     return 'Passend';
   }
   function displayName(){return currentMode()==='hotel'?'Hotels':'Reisen';}
+  function preferenceSummary(counts){
+    const parts=[];
+    if(counts.must)parts.push(counts.must+' '+(counts.must===1?'Muss-Kriterium':'Muss-Kriterien'));
+    if(counts.wish)parts.push(counts.wish+' '+(counts.wish===1?'wichtiger Wunsch':'wichtige Wünsche'));
+    return parts.join(' · ');
+  }
 
   function cleanTop(cards){
     const mode=currentMode();
@@ -68,26 +79,23 @@
     const match=document.querySelector('#results .match');
     if(!match||!cards.length)return;
     const counts=allActiveCounts();
-    const b=match.querySelector('b');
-    const small=match.querySelector('small');
-    if(b)b.textContent=cards.length+' '+displayName()+' gefunden';
-    if(small){
-      small.textContent=(counts.must||counts.wish)
-        ?`${counts.must} muss sein · ${counts.wish} wichtig · beste Übereinstimmungen zuerst`
-        :'Preis & Verfügbarkeit geprüft · beste Treffer zuerst';
-    }
+    setText(match.querySelector('b'),cards.length+' '+displayName()+' gefunden');
+    setText(match.querySelector('small'),(counts.must||counts.wish)
+      ?preferenceSummary(counts)+' · beste Übereinstimmungen zuerst'
+      :'Preis & Verfügbarkeit geprüft · beste Treffer zuerst');
     match.classList.add('noreyo-v558-match');
   }
 
   function decorateCard(card,o,index){
-    if(!card||!o)return;
-    const info=matchInfo(o),label=labelFor(info,index);
+    if(!card)return;
     card.classList.add('noreyo-v558-offer');
+    if(!o)return;
+    const info=matchInfo(o),label=labelFor(info,index);
 
     const badge=card.querySelector('.noreyo-match-badge');
     if(badge){
       badge.classList.add('noreyo-v558-badge');
-      badge.innerHTML='<strong>'+label+'</strong>';
+      setHTML(badge,'<strong>'+label+'</strong>');
     }
 
     const line=card.querySelector('.offer-matchline');
@@ -97,9 +105,9 @@
       if(!title||!title.classList?.contains('noreyo-v558-why')){
         title=document.createElement('div');
         title.className='noreyo-v558-why';
-        title.textContent=info.selected.length?'Warum passt das?':'Auf einen Blick';
         line.insertAdjacentElement('beforebegin',title);
-      }else title.textContent=info.selected.length?'Warum passt das?':'Auf einen Blick';
+      }
+      setText(title,info.totalActive?'Warum passt das?':'Auf einen Blick');
 
       const positives=[
         ...info.yes.filter(x=>x.state==='must'),
@@ -109,23 +117,23 @@
       const chips=positives.map(x=>'<span class="offer-matchchip '+x.state+'"><i>✓</i>'+x.label+'</span>');
       if(negative)chips.push('<span class="offer-matchchip noreyo-v558-unconfirmed"><i>–</i>'+negative.label+' nicht bestätigt</span>');
       if(!chips.length){
-        chips.push('<span class="offer-matchchip neutral"><i>✓</i>'+(info.selected.length?'Weitere Kriterien werden anhand verfügbarer Daten geprüft':'Preis & Verfügbarkeit geprüft')+'</span>');
+        chips.push('<span class="offer-matchchip neutral"><i>✓</i>'+(info.totalActive?'Weitere gewählte Kriterien werden in der Suche berücksichtigt':'Preis & Verfügbarkeit geprüft')+'</span>');
       }
-      line.innerHTML=chips.join('');
+      setHTML(line,chips.join(''));
     }
 
     const trust=card.querySelector('.noreyo-trust-row');
     if(trust){
       trust.classList.add('noreyo-v558-trust');
       const live=o.live===true?'Preis & Verfügbarkeit geprüft':'Tarifstand verfügbar';
-      trust.innerHTML='<span><i></i>'+live+'</span>'+(typeof o.refundable==='boolean'?'<span>'+(o.refundable?'Stornierbar':'Tarifbedingungen')+'</span>':'');
+      setHTML(trust,'<span><i></i>'+live+'</span>'+(typeof o.refundable==='boolean'?'<span>'+(o.refundable?'Stornierbar':'Tarifbedingungen')+'</span>':''));
     }
 
     const btn=card.querySelector('.noreyo-cta,.dark-btn');
     if(btn){
       btn.classList.add('noreyo-v558-cta');
       const text=currentMode()==='hotel'?'Hotel & Preise ansehen':'Reise & Preise ansehen';
-      btn.innerHTML='<span>'+text+'</span><span aria-hidden="true">→</span>';
+      setHTML(btn,'<span>'+text+'</span><span aria-hidden="true">→</span>');
     }
   }
 
@@ -136,10 +144,10 @@
     if(!box)return;
     box.classList.add('noreyo-v558-detail');
     box.querySelectorAll('.noreyo-detail-chip').forEach(chip=>{
-      chip.textContent=(chip.textContent||'').replace(/^Pflicht\s*·/,'Muss sein ·').replace(/^Wunsch\s*·/,'Wichtig ·');
+      const next=(chip.textContent||'').replace(/^Pflicht\s*·/,'Muss sein ·').replace(/^Wunsch\s*·/,'Wichtig ·');
+      setText(chip,next);
     });
-    const why=box.querySelector('.noreyo-detail-why b');
-    if(why)why.textContent='Warum passt das zu dir?';
+    setText(box.querySelector('.noreyo-detail-why b'),'Warum passt das zu dir?');
   }
 
   function decorate(){
