@@ -41,6 +41,15 @@
     document.head.appendChild(s);
   }
 
+  function loadSafety(version){
+    if(window[`NOREYO_V${version}`]||document.querySelector(`script[data-noreyo-v${version}]`))return;
+    const s=document.createElement('script');
+    s.src=`./noreyo-v${version}.js?build=${version}`;s.setAttribute(`data-noreyo-v${version}`,'1');
+    document.head.appendChild(s);
+  }
+
+  function loadSafetyStack(){loadSafety('583');loadSafety('584');loadSafety('585');loadSafety('586');loadSafety('587');}
+
   function schedule(){
     if(raf)return;
     raf=requestAnimationFrame(()=>{raf=0;normalizeFlightLayout();});
@@ -49,6 +58,7 @@
   normalizeFlightLayout();
   loadV557();
   loadV559();
+  loadSafetyStack();
   setTimeout(normalizeFlightLayout,80);
   setTimeout(normalizeFlightLayout,220);
   setTimeout(normalizeFlightLayout,500);
@@ -57,5 +67,5 @@
   if(discover&&typeof MutationObserver!=='undefined'){
     new MutationObserver(schedule).observe(discover,{childList:true,subtree:true});
   }
-  window.addEventListener('pageshow',()=>{schedule();loadV557();loadV559();},{passive:true});
+  window.addEventListener('pageshow',()=>{schedule();loadV557();loadV559();loadSafetyStack();},{passive:true});
 })();
