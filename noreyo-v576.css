@@ -1,0 +1,30 @@
+/* NOREYO V5.76 — clear profile */
+#profile .noreyo-v576-wrap{padding:10px 18px calc(118px + env(safe-area-inset-bottom));color:#0c3543}
+#profile .noreyo-v576-intro{margin:4px 2px 14px}
+#profile .noreyo-v576-intro>small{display:block;color:#ad7d3d;font-size:8px;font-weight:950;letter-spacing:2.2px;margin-bottom:7px}
+#profile .noreyo-v576-intro h1{margin:0;max-width:380px;color:#082f3f;font-size:27px;line-height:1.03;letter-spacing:-.8px;font-weight:920}
+#profile .noreyo-v576-intro p{margin:9px 0 0;max-width:390px;color:#72858c;font-size:12px;line-height:1.4;font-weight:520}
+#profile .noreyo-v576-status{margin:0 0 16px;padding:14px;border-radius:22px;background:linear-gradient(135deg,#073f52,#0a5b68);color:#fff;box-shadow:0 14px 30px rgba(7,56,72,.13)}
+#profile .noreyo-v576-status-head{display:flex;align-items:center;gap:10px}
+#profile .noreyo-v576-status-head>i{display:grid;place-items:center;width:38px;height:38px;flex:0 0 38px;border-radius:13px;background:#0ba4a4;color:#fff;font-style:normal;font-size:16px}
+#profile .noreyo-v576-status-head div{min-width:0}
+#profile .noreyo-v576-status-head small{display:block;color:#9ddedb;font-size:7px;font-weight:900;letter-spacing:1.55px;margin-bottom:3px}
+#profile .noreyo-v576-status-head b{display:block;font-size:13.5px;line-height:1.2;font-weight:850}
+#profile .noreyo-v576-status>p{margin:10px 2px 0;color:rgba(255,255,255,.78);font-size:9.5px;line-height:1.35}
+#profile .noreyo-v576-status-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:11px}
+#profile .noreyo-v576-status-chips span{padding:6px 8px;border-radius:999px;background:rgba(255,255,255,.11);border:1px solid rgba(255,255,255,.10);font-size:8px;font-weight:760;color:#fff}
+#profile .noreyo-v576-actions{display:grid;gap:8px}
+#profile .noreyo-v576-section-label{display:block;margin:0 3px 1px;color:#8a9a9f;font-size:7px;font-weight:950;letter-spacing:1.7px}
+#profile .noreyo-v576-row{appearance:none;-webkit-appearance:none;width:100%;border:1px solid rgba(8,52,67,.07);background:#fff;border-radius:19px;min-height:72px;padding:10px 11px;display:grid;grid-template-columns:42px minmax(0,1fr) auto 12px;gap:10px;align-items:center;text-align:left;color:#0c3543;box-shadow:0 8px 22px rgba(7,41,53,.045)}
+#profile .noreyo-v576-row>i{display:grid;place-items:center;width:42px;height:42px;border-radius:14px;background:#e6f6f3;color:#099a9d;font-style:normal}
+#profile .noreyo-v576-row>i .icon{width:22px;height:22px}
+#profile .noreyo-v576-row>i.noreyo-v576-style-icon{font-size:18px}
+#profile .noreyo-v576-row>span{min-width:0}
+#profile .noreyo-v576-row>span>b{display:block;color:#0d3443;font-size:13px;line-height:1.15;font-weight:880;margin-bottom:4px}
+#profile .noreyo-v576-row>span>small{display:block;color:#7c8e94;font-size:9.2px;line-height:1.28;font-weight:520}
+#profile .noreyo-v576-row>em{font-style:normal;color:#16888c;font-size:8px;font-weight:850;white-space:nowrap}
+#profile .noreyo-v576-row>strong{color:#7d9197;font-size:19px;font-weight:400;line-height:1}
+#profile .noreyo-v576-row:active{transform:scale(.992)}
+#profile .noreyo-v576-note{margin:13px 4px 0;color:#8a999e;font-size:8.7px;line-height:1.4;text-align:center}
+#profile .noreyo-v576-build{margin:18px 0 0;text-align:center;color:#a5afb2;font-size:7px;font-weight:900;letter-spacing:1.5px}
+@media(max-width:390px){#profile .noreyo-v576-wrap{padding-left:14px;padding-right:14px}#profile .noreyo-v576-intro h1{font-size:25px}#profile .noreyo-v576-intro p{font-size:11.3px}#profile .noreyo-v576-row{grid-template-columns:39px minmax(0,1fr) auto 10px;gap:8px;min-height:68px;padding:9px}#profile .noreyo-v576-row>i{width:39px;height:39px}#profile .noreyo-v576-row>span>b{font-size:12.3px}#profile .noreyo-v576-row>span>small{font-size:8.7px}#profile .noreyo-v576-row>em{font-size:7.4px}}
