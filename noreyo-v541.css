@@ -21,6 +21,9 @@
 #discover .booking-command-grid{gap:6px!important}
 #discover .command-cell{min-height:49px!important;padding:5px 8px!important;gap:6px!important}
 #discover .command-cell .command-copy{min-width:0!important}
+#discover .booking-command-grid>.noreyo-v541-main-cell{order:0!important}
+#discover .booking-command-grid>.noreyo-v541-cta-grid-item{order:1!important;grid-column:1/-1!important}
+#discover .booking-command-grid>.noreyo-v541-extra-cell{order:2!important}
 .noreyo-v541-booking-cta{appearance:none;-webkit-appearance:none;border:0;grid-column:1/-1!important;width:100%;height:42px;margin:2px 0 0!important;border-radius:14px;background:#0c8f92;color:#fff;font:850 11.3px/1 -apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sans-serif;letter-spacing:.05px;box-shadow:0 10px 22px rgba(12,143,146,.20);display:flex;align-items:center;justify-content:center;gap:8px;position:relative;z-index:2}
 .noreyo-v541-booking-cta:active{transform:scale(.99)}
 .noreyo-v541-search-note{display:none!important}
