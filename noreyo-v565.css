@@ -1,0 +1,24 @@
+/* NOREYO V5.65 — Travel DNA clarity */
+.noreyo-v565-intro{padding-top:18px!important}
+.noreyo-v565-orbit{margin-bottom:18px!important;transform:scale(.82);transform-origin:center}
+.noreyo-v565-intro .noreyo-v560-kicker{margin-bottom:8px!important}
+.noreyo-v565-intro h3{font-size:31px!important;line-height:1.02!important;letter-spacing:-1.25px!important;margin:0 auto 12px!important;max-width:660px!important}
+.noreyo-v565-copy{max-width:680px;margin:0 auto 18px;color:#667a83;font-size:15px;line-height:1.5;text-align:center}
+.noreyo-v565-copy strong{color:#0a6572}
+.noreyo-v565-steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0 0 16px}
+.noreyo-v565-steps span{min-width:0;border:1px solid rgba(9,113,124,.12);background:#f8fbfa;border-radius:18px;padding:12px 8px 11px;text-align:left;display:grid;grid-template-columns:26px 1fr;grid-template-rows:auto auto;column-gap:8px;align-items:center}
+.noreyo-v565-steps i{grid-row:1/3;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:#e4f5f3;color:#087b82;font-style:normal;font-size:12px;font-weight:900}
+.noreyo-v565-steps b{font-size:12px;line-height:1.05;color:#0b3542}
+.noreyo-v565-steps small{font-size:8.5px;line-height:1.2;color:#7a8d94;margin-top:3px}
+.noreyo-v565-active{margin:2px 0 14px;padding:13px 15px;border-radius:18px;background:linear-gradient(135deg,#073e51,#0b9995);color:#fff;text-align:left;box-shadow:0 12px 28px rgba(5,80,92,.16)}
+.noreyo-v565-active small{display:block;font-size:8px;letter-spacing:1.6px;color:#9df2e8;font-weight:900;margin-bottom:5px}
+.noreyo-v565-active b{display:block;font-size:20px;line-height:1.08}
+.noreyo-v565-active p{margin:5px 0 0;font-size:10px;line-height:1.35;color:rgba(255,255,255,.77)}
+.noreyo-v565-intro .noreyo-v560-primary{margin-top:0!important}
+.noreyo-v565-intro .noreyo-v560-secondary{margin-top:8px!important;min-height:44px!important}
+.noreyo-v565-future{margin-top:14px;border:1px dashed rgba(9,113,124,.20);border-radius:18px;padding:12px 13px;display:flex;gap:11px;align-items:flex-start;text-align:left;background:linear-gradient(135deg,rgba(229,247,245,.62),rgba(255,247,231,.50))}
+.noreyo-v565-future>span{width:32px;height:32px;border-radius:11px;background:#e7f6f4;color:#0a8f93;display:grid;place-items:center;flex:0 0 auto;font-size:15px}
+.noreyo-v565-future small{display:block;font-size:7.8px;letter-spacing:1.5px;font-weight:900;color:#0a9195;margin-bottom:3px}
+.noreyo-v565-future b{display:block;font-size:11.5px;line-height:1.2;color:#123b47}
+.noreyo-v565-future p{margin:4px 0 0;font-size:9px;line-height:1.35;color:#7c8c92}
+@media(max-width:600px){.noreyo-v565-intro{padding:10px 18px 26px!important}.noreyo-v565-orbit{margin-top:-2px!important;margin-bottom:8px!important;transform:scale(.70)}.noreyo-v565-intro h3{font-size:25px!important;letter-spacing:-.95px!important;margin-bottom:10px!important}.noreyo-v565-copy{font-size:12px;line-height:1.42;margin-bottom:13px}.noreyo-v565-steps{gap:6px;margin-bottom:12px}.noreyo-v565-steps span{border-radius:14px;padding:9px 6px;grid-template-columns:22px 1fr;column-gap:5px}.noreyo-v565-steps i{width:22px;height:22px;font-size:10px}.noreyo-v565-steps b{font-size:10px}.noreyo-v565-steps small{font-size:7px}.noreyo-v565-active{padding:11px 13px;margin-bottom:10px;border-radius:15px}.noreyo-v565-active b{font-size:17px}.noreyo-v565-future{margin-top:11px;padding:10px 11px;border-radius:15px}.noreyo-v565-intro .noreyo-v560-primary{min-height:50px!important;font-size:14px!important}.noreyo-v565-intro .noreyo-v560-secondary{min-height:40px!important;font-size:12px!important}}
