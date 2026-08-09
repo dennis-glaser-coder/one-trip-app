@@ -1,0 +1,176 @@
+(function(){
+  'use strict';
+
+  let cruiseMode=false;
+  let cruiseState={area:'Alle Reisegebiete',duration:'7–14 Nächte',type:'Hochsee & Fluss',cabin:'Kabine egal'};
+
+  try{
+    const saved=JSON.parse(localStorage.getItem('noreyoCruiseState')||'null');
+    if(saved&&typeof saved==='object')cruiseState={...cruiseState,...saved};
+  }catch(_){ }
+
+  const baseSetProductMode=typeof setProductMode==='function'?setProductMode:null;
+  const baseRenderProductControls=typeof renderProductControls==='function'?renderProductControls:null;
+  const baseProductSwitchHTML=typeof productSwitchHTML==='function'?productSwitchHTML:null;
+
+  function esc(v){return String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));}
+
+  function icon(type){
+    try{if(typeof svg==='function'&&type!=='ship')return svg(type); }catch(_){ }
+    if(type==='ship')return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 14.5 6 7.8h3V4.5h6v3.3h3l2 6.7-8 3.2-8-3.2Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M3 19c1.3 1 2.6 1 4 0 1.3-1 2.7-1 4 0 1.3 1 2.7 1 4 0 1.3-1 2.7-1 4 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
+    return '';
+  }
+
+  function currentBaseMode(){
+    try{return typeof productMode==='string'?productMode:'package';}catch(_){return 'package';}
+  }
+
+  function productNavHTML(){
+    const active=cruiseMode?'cruise':currentBaseMode();
+    const item=(mode,label,ico)=>'<button class="product-mode '+(active===mode?'on':'')+'" type="button" data-noreyo-product="'+mode+'" onclick="setProductMode(\''+mode+'\')">'+icon(ico)+'<span>'+label+'</span></button>';
+    return '<div class="product-switch noreyo-v552-products">'+
+      item('package','Pauschalreise','bag')+
+      item('hotel','Hotel','hotel')+
+      item('flight','Flug','plane')+
+      item('cruise','Kreuzfahrt','ship')+
+    '</div>';
+  }
+
+  function dateValue(){
+    try{
+      const ci=searchState?.checkin,co=searchState?.checkout;
+      if(ci&&co){
+        const f=iso=>new Intl.DateTimeFormat('de-DE',{day:'2-digit',month:'short'}).format(new Date(iso+'T12:00:00')).replace('.','');
+        return f(ci)+'–'+f(co);
+      }
+    }catch(_){ }
+    return 'Zeitraum wählen';
+  }
+
+  function travellerValue(){
+    try{
+      const a=Math.max(1,Number(searchState?.adults)||2),kids=Array.isArray(searchState?.childAges)?searchState.childAges.length:0;
+      return a+' '+(a===1?'Erwachsener':'Erwachsene')+(kids?' · '+kids+' '+(kids===1?'Kind':'Kinder'):'');
+    }catch(_){return '2 Erwachsene';}
+  }
+
+  function cell(label,value,kind,ico){
+    return '<button class="command-cell noreyo-v552-cruise-cell" type="button" data-cruise-picker="'+kind+'"><span class="command-icon">'+icon(ico)+'</span><span class="command-copy"><small>'+label+'</small><b class="'+(kind==='dates'?'dateValue':kind==='travellers'?'travellerValue':'')+'">'+esc(value)+'</b></span><span class="noreyo-v552-chevron" aria-hidden="true">›</span></button>';
+  }
+
+  function cruiseCardHTML(){
+    return '<div class="noreyo-v552-search-head"><span>DEINE KREUZFAHRT</span><b>Route, Zeitraum & Kabine festlegen</b></div>'+
+      '<div class="noreyo-v552-cruise-grid">'+
+        '<button class="command-cell noreyo-v552-cruise-main" type="button" data-cruise-picker="area"><span class="command-icon">'+icon('ship')+'</span><span class="command-copy"><small>REISEGEBIET / HAFEN</small><b>'+esc(cruiseState.area)+'</b></span><span class="noreyo-v552-chevron" aria-hidden="true">›</span></button>'+
+        cell('ZEITRAUM',dateValue(),'dates','cal')+
+        cell('REISENDE',travellerValue(),'travellers','users')+
+        cell('REISEDAUER',cruiseState.duration,'duration','cal')+
+        cell('REISEART',cruiseState.type,'type','ship')+
+        '<button class="command-cell noreyo-v552-cruise-filter" type="button" data-cruise-picker="cabin"><span class="command-icon">'+icon('sliders')+'</span><span class="command-copy"><small>KABINE & WÜNSCHE</small><b>'+esc(cruiseState.cabin)+'</b></span><span class="noreyo-v552-chevron" aria-hidden="true">›</span></button>'+
+        '<button class="noreyo-v552-cruise-cta" type="button" data-cruise-search="1"><span>Kreuzfahrten finden</span><span aria-hidden="true">→</span></button>'+
+      '</div>'+
+      '<p class="noreyo-v552-cruise-note">Kreuzfahrt-Suche ist vorbereitet. Live-Routen und Preise werden mit dem späteren Kreuzfahrtanbieter angebunden.</p>';
+  }
+
+  function renderProductNav(){
+    document.querySelectorAll('.product-switch-host').forEach(el=>{el.innerHTML=productNavHTML();});
+  }
+
+  function renderCruiseControls(){
+    renderProductNav();
+    document.querySelectorAll('#discover .search-card').forEach(card=>{
+      card.className='search-card noreyo-v552-cruise-search';
+      card.dataset.noreyoMode='cruise';
+      card.innerHTML=cruiseCardHTML();
+    });
+    bindCruiseUI();
+  }
+
+  function saveCruise(){try{localStorage.setItem('noreyoCruiseState',JSON.stringify(cruiseState));}catch(_){ }}
+
+  const pickerOptions={
+    area:['Alle Reisegebiete','Mittelmeer','Nordeuropa','Karibik','Kanaren','Orient'],
+    duration:['Flexibel','3–6 Nächte','7–9 Nächte','10–14 Nächte','15+ Nächte'],
+    type:['Hochsee & Fluss','Hochseekreuzfahrt','Flusskreuzfahrt'],
+    cabin:['Kabine egal','Innenkabine','Außenkabine','Balkonkabine','Suite']
+  };
+
+  function pickerTitle(kind){return ({area:'Reisegebiet oder Hafen',duration:'Reisedauer',type:'Reiseart',cabin:'Kabine & Wünsche'})[kind]||'Auswahl';}
+
+  function closePicker(){document.querySelector('.noreyo-v552-sheet-backdrop')?.remove();}
+
+  function openPicker(kind){
+    const options=pickerOptions[kind];if(!options)return;
+    closePicker();
+    const wrap=document.createElement('div');
+    wrap.className='noreyo-v552-sheet-backdrop';
+    wrap.innerHTML='<div class="noreyo-v552-sheet" role="dialog" aria-modal="true"><div class="noreyo-v552-sheet-handle"></div><div class="noreyo-v552-sheet-head"><div><small>KREUZFAHRT</small><b>'+esc(pickerTitle(kind))+'</b></div><button type="button" data-close-cruise-sheet="1">×</button></div><div class="noreyo-v552-sheet-options">'+options.map(v=>'<button type="button" data-cruise-value="'+esc(v)+'">'+esc(v)+'</button>').join('')+'</div></div>';
+    wrap.addEventListener('click',e=>{if(e.target===wrap||e.target.closest('[data-close-cruise-sheet]'))closePicker();});
+    wrap.querySelectorAll('[data-cruise-value]').forEach(b=>b.addEventListener('click',()=>{
+      const value=b.getAttribute('data-cruise-value')||'';
+      cruiseState={...cruiseState,[kind]:value};saveCruise();closePicker();renderCruiseControls();
+    }));
+    document.body.appendChild(wrap);
+  }
+
+  function bindCruiseUI(){
+    document.querySelectorAll('#discover [data-cruise-picker]').forEach(btn=>{
+      if(btn.dataset.noreyoBound==='1')return;btn.dataset.noreyoBound='1';
+      btn.addEventListener('click',()=>{
+        const kind=btn.dataset.cruisePicker;
+        if(kind==='dates'){try{if(typeof openPlanner==='function')openPlanner('dates');}catch(_){ }return;}
+        if(kind==='travellers'){try{if(typeof openPlanner==='function')openPlanner('travellers');}catch(_){ }return;}
+        openPicker(kind);
+      });
+    });
+    const cta=document.querySelector('#discover [data-cruise-search]');
+    if(cta&&cta.dataset.noreyoBound!=='1'){
+      cta.dataset.noreyoBound='1';
+      cta.addEventListener('click',()=>{
+        try{if(typeof showToast==='function')showToast('Kreuzfahrt-Suche bereit – Live-Anbieter folgt');}catch(_){ }
+      });
+    }
+  }
+
+  if(baseProductSwitchHTML){
+    productSwitchHTML=function(){return productNavHTML();};
+  }
+
+  if(baseRenderProductControls){
+    renderProductControls=function(){
+      if(cruiseMode){renderCruiseControls();return;}
+      const r=baseRenderProductControls();
+      renderProductNav();
+      return r;
+    };
+  }
+
+  if(baseSetProductMode){
+    setProductMode=function(mode){
+      if(mode==='cruise'){
+        cruiseMode=true;
+        try{productMode='package';}catch(_){ }
+        renderCruiseControls();
+        try{if(typeof persistState==='function')persistState();}catch(_){ }
+        return;
+      }
+      cruiseMode=false;
+      const r=baseSetProductMode(mode);
+      setTimeout(renderProductNav,0);
+      return r;
+    };
+  }
+
+  try{
+    if(typeof updateSearchUI==='function'){
+      const baseUpdateSearchUI=updateSearchUI;
+      updateSearchUI=function(){const r=baseUpdateSearchUI();if(cruiseMode){
+        document.querySelectorAll('#discover .dateValue').forEach(el=>el.textContent=dateValue());
+        document.querySelectorAll('#discover .travellerValue').forEach(el=>el.textContent=travellerValue());
+      }return r;};
+    }
+  }catch(_){ }
+
+  renderProductNav();
+  window.NOREYO_V552=Object.freeze({renderProductNav,renderCruiseControls,isCruise:()=>cruiseMode});
+})();
