@@ -41,6 +41,13 @@
     document.head.appendChild(s);
   }
 
+  function loadV583(){
+    if(window.NOREYO_V583||document.querySelector('script[data-noreyo-v583]'))return;
+    const s=document.createElement('script');
+    s.src='./noreyo-v583.js?build=583';s.dataset.noreyoV583='1';
+    document.head.appendChild(s);
+  }
+
   function schedule(){
     if(raf)return;
     raf=requestAnimationFrame(()=>{raf=0;normalizeFlightLayout();});
@@ -49,6 +56,7 @@
   normalizeFlightLayout();
   loadV557();
   loadV559();
+  loadV583();
   setTimeout(normalizeFlightLayout,80);
   setTimeout(normalizeFlightLayout,220);
   setTimeout(normalizeFlightLayout,500);
@@ -57,5 +65,5 @@
   if(discover&&typeof MutationObserver!=='undefined'){
     new MutationObserver(schedule).observe(discover,{childList:true,subtree:true});
   }
-  window.addEventListener('pageshow',()=>{schedule();loadV557();loadV559();},{passive:true});
+  window.addEventListener('pageshow',()=>{schedule();loadV557();loadV559();loadV583();},{passive:true});
 })();
