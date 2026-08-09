@@ -81,10 +81,10 @@
 
     if(wanted!=='ANY'){
       const label=mealLabel();
-      if(title)title.textContent=`Keine ${label}-Rate gefunden`;
-      if(sub)sub.textContent='Für deine Reisedaten wurde aktuell kein bestätigter Tarif mit dieser Verpflegung zurückgegeben.';
-      if(cardTitle)cardTitle.textContent=`Aktuell kein ${label}-Tarif`;
-      if(cardCopy)cardCopy.textContent=`Es gibt Live-Hotels für deine Suche, aber in den aktuell geladenen Tarifen wurde ${label} für diesen Zeitraum nicht bestätigt. Ändere die Verpflegung oder den Zeitraum.`;
+      if(title)title.textContent=`Aktuell keine bestätigte ${label}-Rate`;
+      if(sub)sub.textContent='Die aktuelle Datenquelle hat für deine Reisedaten keinen bestätigten Tarif mit dieser Verpflegung zurückgegeben.';
+      if(cardTitle)cardTitle.textContent=`${label} in den aktuellen Daten nicht bestätigt`;
+      if(cardCopy)cardCopy.textContent=`Das bedeutet nicht, dass es am Reiseziel generell keine ${label}-Hotels gibt. Für genau deine Reisedaten wurde in der aktuell angebundenen Tarifquelle nur kein bestätigter ${label}-Tarif geliefert.`;
       if(primary){primary.textContent='Verpflegung ändern';primary.setAttribute('onclick',"openPlanner('board')");}
       return;
     }
