@@ -29,6 +29,15 @@
     s.overflow=snapshot.overflow;
   }
 
+  function restoreScroll(y,synchronous=false){
+    const apply=()=>{
+      try{window.scrollTo({top:y,left:0,behavior:'auto'});}
+      catch{window.scrollTo(0,y);}
+    };
+    if(synchronous)apply();
+    else requestAnimationFrame(apply);
+  }
+
   function lockScroll(){
     if(modalLocked||!document.body)return;
     modalLocked=true;
@@ -44,17 +53,14 @@
     document.documentElement.style.setProperty('--noreyo-modal-scroll-y',`${lockedScrollY}px`);
   }
 
-  function unlockScroll(){
+  function unlockScroll({synchronous=false}={}){
     if(!modalLocked||!document.body)return;
     modalLocked=false;
     const y=lockedScrollY;
     restoreBodyStyle(previousBodyStyle);
     previousBodyStyle=null;
     lockedScrollY=0;
-    requestAnimationFrame(()=>{
-      try{window.scrollTo({top:y,left:0,behavior:'auto'});}
-      catch{window.scrollTo(0,y);}
-    });
+    restoreScroll(y,synchronous);
   }
 
   function syncScrollLock(){
@@ -70,7 +76,7 @@
     syncScrollLock();
   }
 
-  function recoverAfterPageShow(event){
+  function recoverAfterPageShow(){
     // BFCache can restore stale inline fixed-body styles without a live planner.
     const modal=document.querySelector('.planner-sheet.show,.sheet.show,[role="dialog"].show');
     if(!modal&&document.body?.classList.contains('noreyo-modal-open')){
@@ -80,8 +86,9 @@
   }
 
   function cleanupBeforePageHide(){
-    // Avoid persisting a fixed body offset into Safari BFCache.
-    if(modalLocked)unlockScroll();
+    // Safari can freeze the page before requestAnimationFrame runs. Restore scroll synchronously
+    // so BFCache captures the real document offset instead of the fixed-body scroll position.
+    if(modalLocked)unlockScroll({synchronous:true});
   }
 
   function install(){
