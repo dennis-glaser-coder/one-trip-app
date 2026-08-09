@@ -1,4 +1,4 @@
-/* NOREYO V5.41 — premium booking-first home */
+/* NOREYO V5.41/V5.62 — premium booking-first home + Safari stability */
 #discover .hero.noreyo-v541-hero{height:286px!important;margin:0 14px!important;border-radius:30px!important;overflow:hidden!important;position:relative!important;background:#0b3447!important;box-shadow:0 20px 52px rgba(7,31,45,.12)!important}
 #discover .hero.noreyo-v541-hero img{filter:saturate(1.05) contrast(1.01) brightness(.95)!important;transform:scale(1.01)!important}
 #discover .hero.noreyo-v541-hero:after{background:linear-gradient(180deg,rgba(5,29,38,.02),rgba(5,29,38,.11) 40%,rgba(5,29,38,.82) 100%)!important}
@@ -10,25 +10,28 @@
 #discover .hero.noreyo-v541-hero .noreyo-v539-action,#discover .hero.noreyo-v541-hero .noreyo-v540-action,#discover .hero.noreyo-v541-hero .noreyo-priority-live,#discover .hero.noreyo-v541-hero .noreyo-usp-strip,#discover .hero.noreyo-v541-hero .noreyo-firstscreen-logic,#discover .hero.noreyo-v541-hero .noreyo-firstscreen-note{display:none!important}
 .noreyo-v541-trust{position:absolute;z-index:7;left:20px;right:20px;bottom:17px;display:flex;align-items:center;gap:6px;padding:9px 11px;border-radius:14px;background:rgba(7,31,45,.48);border:1px solid rgba(255,255,255,.20);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);color:#fff;overflow:hidden}
 .noreyo-v541-trust span{min-width:0;flex:1;display:flex;align-items:center;justify-content:center;gap:4px;font-size:6.9px;line-height:1.15;font-weight:760;color:rgba(255,255,255,.96);white-space:nowrap;text-shadow:0 1px 5px rgba(0,0,0,.22)}
-.noreyo-v541-trust i{font-style:normal;color:#6ee2d8;font-weight:900;font-size:8px}
-.noreyo-v541-trust span+span{border-left:1px solid rgba(255,255,255,.14)}
+.noreyo-v541-trust i{font-style:normal;color:#6ee2d8;font-weight:900;font-size:8px}.noreyo-v541-trust span+span{border-left:1px solid rgba(255,255,255,.14)}
 #discover .search-wrap{margin-top:-12px!important;position:relative!important;z-index:9!important}
 #discover .search-card{border:1px solid rgba(13,45,58,.07)!important;box-shadow:0 18px 48px rgba(7,31,45,.085)!important;border-radius:28px!important}
-#discover .search-console-head{margin-bottom:12px!important}
-#discover .search-console-head span{color:#ad7d3d!important}
-#discover .search-console-head b{font-size:17.2px!important;line-height:1.15!important;letter-spacing:-.25px!important}
-#discover .noreyo-search-logic{display:none!important}
-.noreyo-v541-booking-cta{appearance:none;-webkit-appearance:none;border:0;width:100%;height:50px;margin-top:12px;border-radius:16px;background:#0c8f92;color:#fff;font:850 11.7px/1 -apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sans-serif;letter-spacing:.05px;box-shadow:0 12px 26px rgba(12,143,146,.20);display:flex;align-items:center;justify-content:center;gap:8px}
-.noreyo-v541-booking-cta:active{transform:scale(.99)}
-.noreyo-v541-search-note{display:flex;align-items:center;justify-content:center;gap:6px;margin:8px 2px 0;color:#7f8d91;font-size:7.4px;line-height:1.2}
-.noreyo-v541-search-note i{width:5px;height:5px;border-radius:50%;background:#20aaa8;box-shadow:0 0 0 4px rgba(32,170,168,.10)}
+#discover .search-console-head{margin-bottom:12px!important}#discover .search-console-head span{color:#ad7d3d!important}
+#discover .search-console-head b{font-size:17.2px!important;line-height:1.15!important;letter-spacing:-.25px!important}#discover .noreyo-search-logic{display:none!important}
+.noreyo-v541-booking-cta{appearance:none;-webkit-appearance:none;border:0;width:100%;min-height:50px;margin-top:12px;border-radius:16px;background:#0c8f92;color:#fff;font:850 11.7px/1 -apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sans-serif;letter-spacing:.05px;box-shadow:0 12px 26px rgba(12,143,146,.20);display:flex;align-items:center;justify-content:center;gap:8px;touch-action:manipulation}
+.noreyo-v541-booking-cta:active{transform:scale(.99)}.noreyo-v541-booking-cta:focus-visible{outline:3px solid rgba(12,143,146,.24);outline-offset:3px}
+.noreyo-v541-search-note{display:flex;align-items:center;justify-content:center;gap:6px;margin:8px 2px 0;color:#7f8d91;font-size:7.4px;line-height:1.2}.noreyo-v541-search-note i{width:5px;height:5px;border-radius:50%;background:#20aaa8;box-shadow:0 0 0 4px rgba(32,170,168,.10)}
+
+/* V5.62: modal/keyboard/visual viewport hardening */
+body.noreyo-modal-open{overflow:hidden!important;overscroll-behavior:none!important}
+.nav.noreyo-modal-hidden,body.noreyo-keyboard-open .nav{opacity:0!important;pointer-events:none!important;transform:translate(-50%,18px)!important;transition:opacity .16s ease,transform .16s ease!important}
+.planner-sheet.show,.sheet.show{max-height:min(92dvh,calc(var(--noreyo-visual-height,100dvh) - 8px))!important}
+.planner-body,.sheet-scroll{-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.planner-close,.close,.planner-save,.apply,.choice,.counter button,.tab{touch-action:manipulation}
+.planner-close,.close,.counter button{min-width:44px!important;min-height:44px!important}
+.planner-save,.apply{min-height:50px!important}
+.planner-sheet [role="dialog"]:focus-visible,.sheet [role="dialog"]:focus-visible{outline:none}
 @media(max-width:390px){
- #discover .hero.noreyo-v541-hero{height:278px!important}
- #discover .hero.noreyo-v541-hero .hero-copy{top:78px!important}
- #discover .hero.noreyo-v541-hero .hero-copy h1{font-size:30px!important}
- #discover .hero.noreyo-v541-hero .hero-copy p{font-size:11px!important}
- .noreyo-v541-trust{left:18px;right:18px;padding:8px 7px;gap:3px}
- .noreyo-v541-trust span{font-size:6.35px;gap:3px}
- #discover .search-console-head b{font-size:16px!important}
- .noreyo-v541-booking-cta{height:48px;font-size:11px}
+ #discover .hero.noreyo-v541-hero{height:278px!important}#discover .hero.noreyo-v541-hero .hero-copy{top:78px!important}#discover .hero.noreyo-v541-hero .hero-copy h1{font-size:30px!important}#discover .hero.noreyo-v541-hero .hero-copy p{font-size:11px!important}
+ .noreyo-v541-trust{left:18px;right:18px;padding:8px 7px;gap:3px}.noreyo-v541-trust span{font-size:6.35px;gap:3px}#discover .search-console-head b{font-size:16px!important}.noreyo-v541-booking-cta{min-height:48px;font-size:11px}
+}
+@media(prefers-reduced-motion:reduce){
+ *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}
 }
