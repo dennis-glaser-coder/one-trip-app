@@ -112,7 +112,7 @@
   }
   function parseDate(text,duration){
     const raw=String(text||'');
-    let m=raw.match(/\b(\d{1,2})[.\/]\s*(\d{1,2})(?:[.\/]\s*(\d{2,4}))?\s*(?:bis|-|–)\s*(\d{1,2})[.\/]\s*(\d{1,2})(?:[.\/]\s*(\d{2,4}))?/i);
+    let m=raw.match(/\b(\d{1,2})[.\/]\s*(\d{1,2})(?:[.\/]\s*(\d{2,4}))?\.?\s*(?:bis|-|–)\s*(\d{1,2})[.\/]\s*(\d{1,2})(?:[.\/]\s*(\d{2,4}))?/i);
     const now=new Date();
     const yearOf=y=>{if(!y)return now.getFullYear();const n=Number(y);return n<100?2000+n:n;};
     const iso=d=>{const y=d.getFullYear(),mo=String(d.getMonth()+1).padStart(2,'0'),da=String(d.getDate()).padStart(2,'0');return `${y}-${mo}-${da}`;};
@@ -129,10 +129,12 @@
     return null;
   }
   function hardNear(text,re){
-    const t=norm(text),m=t.match(re);if(!m)return false;const idx=m.index||0,windowText=t.slice(Math.max(0,idx-34),Math.min(t.length,idx+m[0].length+34));return /(muss|unbedingt|pflicht|auf jeden fall|nur|zwingend)/.test(windowText);
+    const t=norm(text),m=t.match(re);if(!m)return false;const idx=m.index||0,end=idx+m[0].length;
+    const before=t.slice(Math.max(0,idx-26),idx),after=t.slice(end,Math.min(t.length,end+24));
+    return /(muss|unbedingt|pflicht|auf jeden fall|nur|zwingend)\s*(?:sein|ist|:)?\s*$/.test(before)||/^\s*(?:muss|unbedingt|pflicht|zwingend|auf jeden fall)/.test(after);
   }
   function parsePrefs(text){
-    const out=[];for(const d of prefDefs){if(!d.re.test(text))continue;out.push({...d,state:hardNear(text,d.re)?'must':'wish'});}return out;
+    const out=[];for(const d of prefDefs){if(!d.re.test(text))continue;const explicitMin=d.key==='Hotel0'&&/mindestens\s*4\s*sterne/.test(norm(text));out.push({...d,state:(explicitMin||hardNear(text,d.re))?'must':'wish'});}return out;
   }
   function parseCruise(text){
     const t=norm(text),out={};
