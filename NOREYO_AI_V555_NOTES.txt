@@ -1,9 +1,0 @@
-NOREYO V5.55
-- Natural-language search entry inside all four product modes
-- Confirmation step: "Das habe ich verstanden"
-- Parses supported destination, exact/flexible date intent, duration, adults, departure airports, meal plan, budget and mapped Wunsch/Pflicht preferences
-- Applies parsed values into existing NOREYO search state instead of inventing inventory
-- Exact package/hotel dates can continue into the existing live search
-- Flexible month intent opens the existing date planner for final date selection
-- Cruise intent maps supported area/type/cabin/duration choices into the existing cruise UI
-- No provider, LiteAPI or Supabase search logic changed
