@@ -1,0 +1,30 @@
+/* NOREYO V5.80 — iPhone filter readability / touch polish */
+@media(max-width:600px){
+  .noreyo-v557-sheet{width:min(100%,500px)}
+  .noreyo-v557-head{padding:12px 18px 14px}
+  .noreyo-v557-head small{font-size:10px;line-height:1.2;letter-spacing:1.25px}
+  .noreyo-v557-head h2{margin-top:5px;font-size:22px;line-height:1.08}
+  .noreyo-v557-close{width:44px;height:44px;min-width:44px;min-height:44px;font-size:23px;touch-action:manipulation}
+  .noreyo-v557-body{padding:14px 18px calc(18px + env(safe-area-inset-bottom));overscroll-behavior:contain}
+  .noreyo-v557-copy{margin-bottom:12px;font-size:13px;line-height:1.45}
+  .noreyo-v557-context{padding:10px 11px;font-size:11.5px;line-height:1.38}
+  .noreyo-v557-label{margin-bottom:7px}
+  .noreyo-v557-label span,.noreyo-v557-more-toggle{font-size:10px;line-height:1.2}
+  .noreyo-v557-more-toggle{min-height:44px;padding:10px 2px;touch-action:manipulation}
+  .noreyo-v557-list{gap:8px}
+  .noreyo-v557-item{min-height:54px;padding:9px 11px;border-radius:14px;touch-action:manipulation}
+  .noreyo-v557-item-icon{width:32px;height:32px;min-width:32px;font-size:13px}
+  .noreyo-v557-item-copy b{font-size:13px;line-height:1.18}
+  .noreyo-v557-item-copy small{margin-top:3px;font-size:10px;line-height:1.25}
+  .noreyo-v557-state{min-width:70px;padding:7px 8px;font-size:10.5px;line-height:1.15}
+  .noreyo-v557-foot{gap:9px;margin-top:16px;padding-top:12px}
+  .noreyo-v557-foot button{height:48px;font-size:13px;touch-action:manipulation}
+}
+@media(max-width:360px){
+  .noreyo-v557-head,.noreyo-v557-body{padding-left:14px;padding-right:14px}
+  .noreyo-v557-item{gap:8px;padding-left:9px;padding-right:9px}
+  .noreyo-v557-state{min-width:64px;font-size:10px}
+}
+@media(prefers-reduced-motion:reduce){
+  .noreyo-v557-backdrop,.noreyo-v557-sheet,.noreyo-v557-item{transition:none!important}
+}
