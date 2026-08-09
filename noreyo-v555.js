@@ -75,12 +75,12 @@
     let choices=[];
     try{if(typeof destinationChoices!=='undefined'&&Array.isArray(destinationChoices))choices=destinationChoices.map(x=>x[0]);}catch(_){ }
     if(!choices.length)choices=['Mallorca','Kreta','Santorini','Rhodos','Kos','Antalya','Teneriffa','Gran Canaria','Fuerteventura','Lanzarote','Sardinien','Algarve','Ibiza','Menorca','Hurghada','Dubai','Malediven'];
-    return choices.sort((a,b)=>b.length-a.length).find(n=>t.includes(norm(n)))||'';
+    return choices.sort((a,b)=>b.length-a.length).find(n=>{const q=norm(n).replace(/[.*+?^${}()|[\]\\]/g,'\\$&');return new RegExp('(^|[^a-z0-9])'+q+'([^a-z0-9]|$)','i').test(t);})||'';
   }
 
   function parseBudget(text){
     const t=norm(text);
-    const patterns=[/(?:max(?:imal)?|bis|budget(?: von)?|höchstens|hoechstens)\s*(?:ca\.?\s*)?([0-9][0-9\.\s]{2,})\s*(?:€|euro)/i,/([0-9][0-9\.\s]{2,})\s*(?:€|euro)\s*(?:max(?:imal)?|budget|insgesamt)?/i];
+    const patterns=[/(?:max(?:imal)?|bis|budget(?: von)?|höchstens|hoechstens|hochstens)\s*(?:ca\.?\s*)?([0-9][0-9\.\s]{2,})\s*(?:€|euro)/i,/([0-9][0-9\.\s]{2,})\s*(?:€|euro)\s*(?:max(?:imal)?|budget|insgesamt)?/i];
     for(const re of patterns){const m=t.match(re);if(m){const n=Number(m[1].replace(/[\.\s]/g,''));if(Number.isFinite(n)&&n>=200&&n<=50000)return n;}}
     return null;
   }
