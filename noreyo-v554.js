@@ -70,6 +70,15 @@
     document.head.appendChild(s);
   }
 
+  function loadV580(){
+    if(document.querySelector('link[data-noreyo-v580]'))return;
+    const l=document.createElement('link');
+    l.rel='stylesheet';
+    l.href='./noreyo-v580.css?build=580';
+    l.dataset.noreyoV580='1';
+    document.head.appendChild(l);
+  }
+
   function schedule(){
     if(raf)return;
     raf=requestAnimationFrame(()=>{raf=0;normalizeFlightLayout();});
@@ -81,6 +90,7 @@
   loadV577();
   loadV578();
   loadV579();
+  loadV580();
   setTimeout(normalizeFlightLayout,80);
   setTimeout(normalizeFlightLayout,220);
   setTimeout(normalizeFlightLayout,500);
@@ -89,5 +99,5 @@
   if(discover&&typeof MutationObserver!=='undefined'){
     new MutationObserver(schedule).observe(discover,{childList:true,subtree:true});
   }
-  window.addEventListener('pageshow',()=>{schedule();loadV557();loadV576();loadV577();loadV578();loadV579();},{passive:true});
+  window.addEventListener('pageshow',()=>{schedule();loadV557();loadV576();loadV577();loadV578();loadV579();loadV580();},{passive:true});
 })();
