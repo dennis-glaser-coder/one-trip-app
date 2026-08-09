@@ -21,12 +21,26 @@
     if(!hero.querySelector('.noreyo-v541-trust'))hero.insertAdjacentHTML('beforeend',trustMarkup());
   }
 
+  function loadV557(){
+    if(!document.querySelector('link[data-noreyo-v557]')){
+      const l=document.createElement('link');
+      l.rel='stylesheet';l.href='./noreyo-v557.css?build=557';l.dataset.noreyoV557='1';
+      document.head.appendChild(l);
+    }
+    if(!window.NOREYO_V557&&!document.querySelector('script[data-noreyo-v557]')){
+      const s=document.createElement('script');
+      s.src='./noreyo-v557.js?build=557';s.dataset.noreyoV557='1';
+      document.head.appendChild(s);
+    }
+  }
+
   function schedule(){
     if(raf)return;
     raf=requestAnimationFrame(()=>{raf=0;normalizeFlightLayout();});
   }
 
   normalizeFlightLayout();
+  loadV557();
   setTimeout(normalizeFlightLayout,80);
   setTimeout(normalizeFlightLayout,220);
   setTimeout(normalizeFlightLayout,500);
@@ -35,5 +49,5 @@
   if(discover&&typeof MutationObserver!=='undefined'){
     new MutationObserver(schedule).observe(discover,{childList:true,subtree:true});
   }
-  window.addEventListener('pageshow',schedule,{passive:true});
+  window.addEventListener('pageshow',()=>{schedule();loadV557();},{passive:true});
 })();
