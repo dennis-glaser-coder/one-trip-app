@@ -44,18 +44,20 @@ function parseAges(text){
     /(?:mit|und)\s+(\d{1,2}(?:\s*(?:,|und|&|\/)\s*\d{1,2})+)\s*jahre?(?:\s+alt)?/g
   ];
   for(const re of lists)while((m=re.exec(t)))for(const n of (m[1].match(/\d{1,2}/g)||[]))pushAge(ages,n);
-
-  const oneAfterChildren=t.match(/\b(?:kinder|kindern|kind|babys|baby)\b[^.!?;]{0,24}?(\d{1,2})\s*(?:jahre?|jahr|j\.)\b/);
-  if(oneAfterChildren&&!ages.length)pushAge(ages,oneAfterChildren[1]);
+  if(ages.length)return ages;
 
   const singles=[
     /\b(?:kind|sohn|tochter)\s*(?:ist|mit|,)?\s*(\d{1,2})\s*(?:jahre?|jahr|j\.)\b/g,
     /\b(\d{1,2})\s*(?:jahre?|jahr)\s*(?:altes?|alte|alter)\s*(?:kind|sohn|tochter)\b/g
   ];
   for(const re of singles)while((m=re.exec(t)))pushAge(ages,m[1]);
+  if(ages.length)return ages;
 
   const baby=t.match(/\bbaby[^.!?;]{0,24}?(\d{1,2})\s*(?:monate?|monat)\b/);
-  if(baby)pushAge(ages,0);
+  if(baby){pushAge(ages,0);return ages;}
+
+  const oneAfterChildren=t.match(/\b(?:kinder|kindern|kind|babys|baby)\b[^.!?;]{0,24}?(\d{1,2})\s*(?:jahre?|jahr|j\.)\b/);
+  if(oneAfterChildren)pushAge(ages,oneAfterChildren[1]);
 
   return ages;
 }
