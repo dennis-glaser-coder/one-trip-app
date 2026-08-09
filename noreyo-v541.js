@@ -34,21 +34,31 @@
     return buttons.find(b=>b.classList.contains('dark-btn')||b.classList.contains('primary-btn')||b.classList.contains('search-btn'))||null;
   }
 
+  function placeBookingCTA(card,btn){
+    const grid=card.querySelector('.booking-command-grid');
+    if(!grid){
+      if(btn.parentElement!==card)card.appendChild(btn);
+      return;
+    }
+    const cells=[...grid.children].filter(el=>el.classList&&el.classList.contains('command-cell'));
+    if(cells.length>=4){
+      const fourth=cells[3];
+      if(fourth.nextElementSibling!==btn)fourth.insertAdjacentElement('afterend',btn);
+    }else if(btn.parentElement!==grid){
+      grid.appendChild(btn);
+    }
+  }
+
   function ensureBookingCTA(card){
     if(!card)return;
+    card.querySelectorAll('.noreyo-v541-search-note').forEach(el=>el.remove());
     let btn=card.querySelector('.noreyo-v541-booking-cta');
     if(!btn){
       btn=document.createElement('button');
       btn.type='button';
       btn.className='noreyo-v541-booking-cta';
-      const grid=card.querySelector('.booking-command-grid');
-      const host=grid?.parentElement||card;
-      if(grid&&grid.nextSibling)host.insertBefore(btn,grid.nextSibling);else host.appendChild(btn);
-      const note=document.createElement('div');
-      note.className='noreyo-v541-search-note';
-      note.innerHTML='<i></i><span>Deine Prioritäten legst du direkt im nächsten Schritt fest.</span>';
-      btn.insertAdjacentElement('afterend',note);
     }
+    placeBookingCTA(card,btn);
     btn.innerHTML=`<span>${bookingCtaLabel()}</span><span aria-hidden="true">→</span>`;
     if(!btn.dataset.bound){
       btn.dataset.bound='1';
@@ -190,7 +200,7 @@
       const baseGo=go;
       go=function(id){const r=baseGo(id);if(id==='discover')schedule();syncModalState();return r;};
     }
-  }catch(e){console.warn('NOREYO V5.62 hooks',e)}
+  }catch(e){console.warn('NOREYO V5.68 hooks',e)}
 
   enforce();
   installModalSafety();
