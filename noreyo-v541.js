@@ -17,53 +17,104 @@
   }
 
   function findNativeSearchButton(card){
-    const buttons=[...card.querySelectorAll('button')].filter(b=>!b.classList.contains('noreyo-v541-booking-cta'));
-    const exact=buttons.find(b=>/reise.*(finden|suchen)|angebote.*(finden|suchen)|jetzt.*suchen|suchen/i.test((b.textContent||'').trim())&&!/muss|wunsch/i.test((b.textContent||'').trim()));
-    if(exact)return exact;
+    const buttons=[...card.querySelectorAll('button')].filter(b=>!b.dataset.noreyoSynthetic);
+    const byText=buttons.find(b=>{
+      const t=(b.textContent||'').replace(/\s+/g,' ').trim();
+      return /urlaub\s*finden|reise[n]?\s*(finden|suchen)|angebote?\s*(finden|suchen)|jetzt\s*suchen|^suchen$/i.test(t);
+    });
+    if(byText)return byText;
     return buttons.find(b=>b.classList.contains('dark-btn')||b.classList.contains('primary-btn')||b.classList.contains('search-btn'))||null;
   }
 
-  function placeBookingCTA(card,btn){
-    const grid=card.querySelector('.booking-command-grid');
-    if(!grid){
-      if(btn.parentElement!==card)card.appendChild(btn);
-      return;
-    }
-
+  function markGridItems(grid){
     const cellItems=[...grid.children].filter(el=>{
       if(!el||!el.classList)return false;
       return el.classList.contains('command-cell')||!!el.querySelector('.command-cell');
     });
-
     cellItems.forEach((item,index)=>{
       item.classList.remove('noreyo-v541-main-cell','noreyo-v541-extra-cell');
       item.classList.add(index<4?'noreyo-v541-main-cell':'noreyo-v541-extra-cell');
     });
+  }
 
+  function adoptNativeBookingCTA(card){
+    if(!card)return;
+    card.querySelectorAll('.noreyo-v541-search-note').forEach(el=>el.remove());
+
+    /* Remove the temporary extra CTA from the previous build. */
+    card.querySelectorAll('.noreyo-v541-booking-cta[data-noreyo-synthetic="1"]').forEach(el=>el.remove());
+
+    let btn=card.querySelector('.noreyo-v541-booking-cta[data-noreyo-native="1"]');
+    if(!btn){
+      btn=findNativeSearchButton(card);
+      if(!btn)return;
+      btn.dataset.noreyoNative='1';
+      btn.classList.add('noreyo-v541-booking-cta');
+    }
+
+    btn.innerHTML='<span>Passende Reisen finden</span><span aria-hidden="true">→</span>';
+
+    const grid=card.querySelector('.booking-command-grid');
+    if(!grid)return;
+    markGridItems(grid);
     if(btn.parentElement!==grid)grid.appendChild(btn);
     btn.classList.add('noreyo-v541-cta-grid-item');
   }
 
-  function ensureBookingCTA(card){
-    if(!card)return;
-    card.querySelectorAll('.noreyo-v541-search-note').forEach(el=>el.remove());
-    let btn=card.querySelector('.noreyo-v541-booking-cta');
-    if(!btn){
-      btn=document.createElement('button');
-      btn.type='button';
-      btn.className='noreyo-v541-booking-cta';
-      btn.innerHTML='<span>Passende Reisen finden</span><span aria-hidden="true">→</span>';
+  function preferenceScore(o){
+    if(typeof states==='undefined')return 0;
+    const checks=[
+      ['Zimmer0',x=>x.confirmed?.balcony===true],
+      ['Zimmer1',x=>x.confirmed?.seaView===true],
+      ['Zimmer2',x=>x.confirmed?.terrace===true],
+      ['Hotel0',x=>Number(x.stars||0)>=4],
+      ['Hotel4',x=>x.confirmed?.spa===true],
+      ['Hotel5',x=>x.confirmed?.fitness===true],
+      ['Hotel6',x=>x.confirmed?.breakfast===true],
+      ['Hotel7',x=>x.confirmed?.allInclusive===true],
+      ['Preis2',x=>x.refundable===true]
+    ];
+    let score=0;
+    for(const [key,test] of checks){
+      const state=states[key]||'any';
+      if(state==='any')continue;
+      if(test(o))score+=state==='must'?6:2;
     }
-    placeBookingCTA(card,btn);
-    if(!btn.dataset.bound){
-      btn.dataset.bound='1';
-      btn.addEventListener('click',()=>{
-        const native=findNativeSearchButton(card);
-        if(native){native.click();return;}
-        const bottom=card.lastElementChild||card;
-        bottom.scrollIntoView({behavior:'smooth',block:'center'});
-      });
-    }
+    return score;
+  }
+
+  function installSoftWishRanking(){
+    if(typeof filterAndRankOffers!=='function'||filterAndRankOffers.__noreyoSoftWish)return;
+    const prior=filterAndRankOffers;
+    const wrapped=function(input){
+      if(typeof states==='undefined')return prior(input);
+      const wishKeys=Object.keys(states).filter(k=>states[k]==='wish');
+      if(!wishKeys.length)return prior(input);
+
+      const saved=wishKeys.map(k=>[k,states[k]]);
+      let out;
+      try{
+        /* WUNSCH must never remove an offer. Only MUSS stays strict. */
+        wishKeys.forEach(k=>{states[k]='any';});
+        out=prior(input);
+      }finally{
+        saved.forEach(([k,v])=>{states[k]=v;});
+      }
+
+      if(Array.isArray(out)){
+        out.sort((a,b)=>{
+          const scoreDiff=preferenceScore(b)-preferenceScore(a);
+          if(scoreDiff)return scoreDiff;
+          const rb=Number(String(b?.rating||0).replace(',','.'))||0;
+          const ra=Number(String(a?.rating||0).replace(',','.'))||0;
+          if(rb!==ra)return rb-ra;
+          return (Number(a?.price)||Infinity)-(Number(b?.price)||Infinity);
+        });
+      }
+      return out;
+    };
+    wrapped.__noreyoSoftWish=true;
+    filterAndRankOffers=wrapped;
   }
 
   function enforce(){
@@ -93,12 +144,14 @@
         setText(head.querySelector('span'),'DEINE REISE');
         setText(head.querySelector('b'),'Ziel, Zeitraum & Reisende festlegen');
       });
-      const card=discover.querySelector('.search-card');
-      ensureBookingCTA(card);
+      adoptNativeBookingCTA(discover.querySelector('.search-card'));
     }finally{lock=false;}
   }
 
   function schedule(){if(raf)return;raf=requestAnimationFrame(()=>{raf=0;enforce();});}
+
+  installSoftWishRanking();
+
   try{
     if(typeof renderProductControls==='function'){
       const baseControls=renderProductControls;
@@ -112,7 +165,7 @@
       const baseGo=go;
       go=function(id){const r=baseGo(id);if(id==='discover')schedule();return r;};
     }
-  }catch(e){console.warn('NOREYO V5.41 hooks',e)}
+  }catch(e){console.warn('NOREYO V5.42 hooks',e)}
 
   enforce();
   setTimeout(enforce,80);setTimeout(enforce,220);setTimeout(enforce,500);
