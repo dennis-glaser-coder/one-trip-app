@@ -21,24 +21,34 @@
     if(!hero.querySelector('.noreyo-v541-trust'))hero.insertAdjacentHTML('beforeend',trustMarkup());
   }
 
-  function loadV557(){
-    if(!document.querySelector('link[data-noreyo-v557]')){
-      const l=document.createElement('link');
-      l.rel='stylesheet';l.href='./noreyo-v557.css?build=557';l.dataset.noreyoV557='1';
-      document.head.appendChild(l);
-    }
-    if(!window.NOREYO_V557&&!document.querySelector('script[data-noreyo-v557]')){
-      const s=document.createElement('script');
-      s.src='./noreyo-v557.js?build=557';s.dataset.noreyoV557='1';
-      document.head.appendChild(s);
-    }
+  function loadScript(version){
+    const key=`noreyo-v${version}`;
+    if(window[`NOREYO_V${version}`]||document.querySelector(`script[data-${key}]`))return;
+    const s=document.createElement('script');
+    s.src=`./noreyo-v${version}.js?build=${version}`;
+    s.setAttribute(`data-${key}`,'1');
+    document.head.appendChild(s);
   }
 
-  function loadV559(){
-    if(window.NOREYO_V559||document.querySelector('script[data-noreyo-v559]'))return;
-    const s=document.createElement('script');
-    s.src='./noreyo-v559.js?build=559';s.dataset.noreyoV559='1';
-    document.head.appendChild(s);
+  function loadStyle(version){
+    const key=`noreyo-v${version}`;
+    if(document.querySelector(`link[data-${key}]`))return;
+    const l=document.createElement('link');
+    l.rel='stylesheet';
+    l.href=`./noreyo-v${version}.css?build=${version}`;
+    l.setAttribute(`data-${key}`,'1');
+    document.head.appendChild(l);
+  }
+
+  function loadEnhancements(){
+    loadStyle('557');
+    loadScript('557');
+    loadScript('559');
+    loadScript('576');
+    loadScript('577');
+    loadScript('578');
+    loadScript('579');
+    loadStyle('580');
   }
 
   function schedule(){
@@ -47,8 +57,7 @@
   }
 
   normalizeFlightLayout();
-  loadV557();
-  loadV559();
+  loadEnhancements();
   setTimeout(normalizeFlightLayout,80);
   setTimeout(normalizeFlightLayout,220);
   setTimeout(normalizeFlightLayout,500);
@@ -57,5 +66,5 @@
   if(discover&&typeof MutationObserver!=='undefined'){
     new MutationObserver(schedule).observe(discover,{childList:true,subtree:true});
   }
-  window.addEventListener('pageshow',()=>{schedule();loadV557();loadV559();},{passive:true});
+  window.addEventListener('pageshow',()=>{schedule();loadEnhancements();},{passive:true});
 })();
