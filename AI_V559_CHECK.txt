@@ -1,0 +1,1 @@
+V5.59 scope: qualitative AI understanding state, editable Wunsch/Muss/Egal preference review, neutral phrase handling, post-apply state synchronization. No provider/search API logic changes.
