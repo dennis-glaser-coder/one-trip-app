@@ -184,17 +184,26 @@
     setTimeout(applyFamilyAfterNative,0);
   }
 
+  function scheduleDecoration(event){
+    const target=event.target instanceof Element?event.target:null;
+    if(target?.closest?.('.noreyo-v556-analyze'))setTimeout(decorateResult,0);
+  }
+
+  function onAnalyzeShortcut(event){
+    if(!(event.metaKey||event.ctrlKey)||event.key!=='Enter')return;
+    if(event.target?.id==='noreyoAi556Text')setTimeout(decorateResult,0);
+  }
+
   function install(){
     document.addEventListener('click',onClickCapture,true);
+    document.addEventListener('click',scheduleDecoration,false);
+    document.addEventListener('keydown',onAnalyzeShortcut,true);
     document.addEventListener('click',()=>setTimeout(reconcilePendingFamily,0),false);
-
-    if(typeof MutationObserver!=='undefined'){
-      new MutationObserver(()=>decorateResult()).observe(document.body,{subtree:true,childList:true});
-    }
   }
 
   window.NOREYO_V571=Object.freeze({
     parseFamily,
+    decorateResult,
     reconcilePendingFamily,
     get pendingFamily(){return pendingFamily;}
   });
