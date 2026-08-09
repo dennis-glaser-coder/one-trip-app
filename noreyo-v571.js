@@ -16,10 +16,11 @@ function launchExisting(text){const launcher=document.querySelector('#discover .
 function submit(){const ta=document.querySelector('#discover [data-v571-text]'),text=String(ta?.value||'').trim();if(text.length<8){ta?.focus();try{if(typeof showToast==='function')showToast('Beschreib deinen Urlaub kurz in einem Satz.');}catch(_){}return;}launchExisting(text);}
 function paint(){if(painting)return;painting=true;try{install();hideLegacyLaunchers();patchAiSheet();}finally{painting=false;}}
 function schedulePaint(){if(paintQueued)return;paintQueued=true;requestAnimationFrame(()=>{paintQueued=false;paint();});}
+function loadSafety(){if(window.NOREYO_V572||document.querySelector('script[data-noreyo-v572]'))return;const s=document.createElement('script');s.src='./noreyo-v572.js?build=572';s.dataset.noreyoV572='1';document.head.appendChild(s);}
 document.addEventListener('click',e=>{if(e.target.closest?.('[data-v571-go]')){e.preventDefault();submit();return;}if(e.target.closest?.('#discover .product-mode'))setTimeout(()=>{lastMode='';install();updatePlaceholder();},80);});
 document.addEventListener('keydown',e=>{const ta=e.target.closest?.('[data-v571-text]');if(ta&&(e.metaKey||e.ctrlKey)&&e.key==='Enter'){e.preventDefault();submit();}});
 const mo=new MutationObserver(records=>{for(const r of records){if([...r.addedNodes].some(n=>n.nodeType===1&&(n.matches?.('#discover,#noreyoAi556,#noreyoAi555,.search-card')||n.querySelector?.('#discover,#noreyoAi556,#noreyoAi555,.search-card')))){schedulePaint();break;}}});
 mo.observe(document.documentElement,{childList:true,subtree:true});
-setTimeout(paint,60);setTimeout(paint,220);setTimeout(paint,600);setTimeout(paint,1300);
-window.NOREYO_V571={paint,submit,schedulePaint};
+setTimeout(paint,60);setTimeout(paint,220);setTimeout(paint,600);setTimeout(paint,1300);loadSafety();
+window.NOREYO_V571={paint,submit,schedulePaint,loadSafety};
 })();
