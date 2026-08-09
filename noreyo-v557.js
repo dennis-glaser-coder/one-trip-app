@@ -2,7 +2,7 @@
 'use strict';
 const BUILD='5.57';
 const baseOpenFilter=typeof openFilter==='function'?openFilter:null;
-let draft=null,activeKeys=[];
+let draft=null,activeKeys=[],lastMode='';
 const defs={
   Zimmer0:{label:'Balkon',hint:'Zimmer mit Balkon',icon:'▱'},
   Zimmer1:{label:'Meerblick',hint:'Meerblick bevorzugen',icon:'≈'},
@@ -25,6 +25,7 @@ const sets={
   hotel:{popular:['Zimmer0','Zimmer1','Hotel0','Lage1','Lage2','Preis2'],extra:['Zimmer2','Hotel1','Hotel4','Hotel5','Lage0','Lage3','Lage4']},
   flight:{popular:['Flug0','Flug1'],extra:[]}
 };
+const knownStateKeys=[...Object.keys(defs),'Hotel6','Hotel7'];
 function mode(){
   const active=document.querySelector('#discover .product-mode.on');
   const t=(active?.textContent||'').toLowerCase();
@@ -45,7 +46,7 @@ function introCopy(m){
   if(m==='hotel')return 'Wähle nur das, was für dein Hotel wirklich wichtig ist. Seltenere Kriterien findest du unter „Weitere Filter“.';
   return 'Die häufigsten Reisewünsche stehen oben. Alles Weitere ist bewusst eingeklappt, damit die Suche übersichtlich bleibt.';
 }
-function stateLabel(v){return v==='must'?'Pflicht':v==='wish'?'Wunsch':'Egal';}
+function stateLabel(v){return v==='must'?'Muss sein':v==='wish'?'Wichtig':'Egal';}
 function nextState(v){return v==='any'||!v?'wish':v==='wish'?'must':'any';}
 function esc(v){return String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));}
 function item(key){
@@ -97,13 +98,27 @@ function close(apply){
   if(apply&&draft&&typeof states!=='undefined'&&states){activeKeys.forEach(k=>{if(k in draft)states[k]=draft[k];});syncAfterApply();try{if(typeof showToast==='function')showToast('Filter übernommen');}catch(_){ }}
   w.classList.remove('show');draft=null;activeKeys=[];
 }
+function clearIrrelevantOnModeChange(m){
+  if(m==='cruise'||m===lastMode)return;
+  lastMode=m;
+  if(typeof states==='undefined'||!states)return;
+  const set=sets[m]||sets.package,allowed=new Set([...set.popular,...set.extra]);
+  let changed=false;
+  knownStateKeys.forEach(k=>{
+    if(!allowed.has(k)&&states[k]&&states[k]!=='any'){
+      states[k]='any';changed=true;
+    }
+  });
+  if(changed)syncAfterApply();
+}
 function install(){
+  const m=mode();
+  clearIrrelevantOnModeChange(m);
   if(typeof openFilter==='function'&&!openFilter.__noreyoV557){
     const wrapped=function(){openSmart();};wrapped.__noreyoV557=true;openFilter=wrapped;
   }
   const card=document.querySelector('#discover .search-card');
   if(card){
-    const m=mode();
     card.querySelectorAll('.command-cell').forEach(el=>{
       const t=(el.textContent||'').replace(/\s+/g,' ').trim();
       if(/wünsche\s*&\s*pflicht|flugwünsche|filter/i.test(t)){
