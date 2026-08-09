@@ -48,7 +48,7 @@
     document.head.appendChild(s);
   }
 
-  function loadSafetyStack(){loadSafety('583');loadSafety('584');loadSafety('585');}
+  function loadSafetyStack(){loadSafety('583');loadSafety('584');loadSafety('585');loadSafety('586');}
 
   function schedule(){
     if(raf)return;
