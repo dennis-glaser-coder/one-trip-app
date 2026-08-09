@@ -1,13 +1,40 @@
-/* NOREYO V5.44 — iPhone destination planner viewport stability */
+/* NOREYO V5.45 — iPhone destination planner keyboard stability */
 html.noreyo-planner-lock{overscroll-behavior:none!important}
 body.noreyo-planner-lock{position:fixed!important;left:0!important;right:0!important;width:100%!important;overflow:hidden!important;overscroll-behavior:none!important}
+
 #plannerSheet.noreyo-destination-sheet{max-height:min(82dvh,calc(var(--noreyo-vv-height,100dvh) - 8px))!important}
 #plannerSheet.noreyo-destination-sheet .planner-body{max-height:calc(min(82dvh,var(--noreyo-vv-height,100dvh)) - 72px)!important;overscroll-behavior:contain!important;-webkit-overflow-scrolling:touch!important}
 #plannerSheet.noreyo-destination-sheet .planner-search{position:sticky!important;top:0!important;z-index:12!important;background:var(--paper)!important;padding-top:2px!important;padding-bottom:10px!important}
-#plannerSheet.noreyo-destination-sheet .planner-search input{font-size:16px!important;scroll-margin-top:8px!important}
-body.noreyo-planner-keyboard #plannerSheet.noreyo-destination-sheet{max-height:calc(var(--noreyo-vv-height,100dvh) - 6px)!important}
-body.noreyo-planner-keyboard #plannerSheet.noreyo-destination-sheet .planner-body{max-height:calc(var(--noreyo-vv-height,100dvh) - 76px)!important}
+#plannerSheet.noreyo-destination-sheet .planner-search input{font-size:16px!important;scroll-margin:0!important}
+
 @media(max-width:600px){
- #plannerSheet.noreyo-destination-sheet{height:auto!important;transition:transform .22s ease!important}
+ #plannerSheet.noreyo-destination-sheet{height:auto!important}
  #plannerSheet.noreyo-destination-sheet .planner-body{padding-top:12px!important}
+
+ /* When the iPhone keyboard is open, stop behaving like a bottom sheet.
+    Pin the dialog to the actual visible Safari viewport instead. */
+ body.noreyo-planner-keyboard #plannerSheet.noreyo-destination-sheet,
+ body.noreyo-planner-keyboard #plannerSheet.noreyo-destination-sheet.show{
+   position:fixed!important;
+   left:var(--noreyo-vv-left,0px)!important;
+   right:auto!important;
+   top:calc(var(--noreyo-vv-top,0px) + 4px)!important;
+   bottom:auto!important;
+   width:100vw!important;
+   max-width:none!important;
+   height:calc(var(--noreyo-vv-height,100dvh) - 4px)!important;
+   max-height:none!important;
+   transform:none!important;
+   border-radius:24px 24px 0 0!important;
+   transition:none!important;
+ }
+ body.noreyo-planner-keyboard #plannerSheet.noreyo-destination-sheet .planner-body{
+   height:calc(var(--noreyo-vv-height,100dvh) - 68px)!important;
+   max-height:calc(var(--noreyo-vv-height,100dvh) - 68px)!important;
+   overflow-y:auto!important;
+   padding-bottom:18px!important;
+ }
+ body.noreyo-planner-keyboard #plannerSheet.noreyo-destination-sheet .planner-search{
+   top:0!important;
+ }
 }
