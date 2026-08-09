@@ -1,4 +1,4 @@
-# NOREYO V5.83–V5.86 QA
+# NOREYO V5.83–V5.87 QA
 
 ## V5.83
 - JavaScript syntax: PASS.
@@ -26,6 +26,13 @@
 - Adult-intent guard matrix: 7/7 PASS.
 - Duration wording such as `für eine Woche` cannot silently overwrite the adult count.
 - Explicit forms such as `2 Erwachsene`, `zwei Personen`, or `zu zweit` remain allowed to update adults.
+
+## V5.87
+- JavaScript syntax: PASS.
+- Result-observer rebind assertions: 8/8 PASS.
+- Detects when `#results` is replaced after a view/render change and disconnects/rebinds the lifecycle observer.
+- Busy release still recognizes offers plus empty/error states after a rerender.
+- `pageshow` rebinds and `pagehide` disconnects to avoid stale Safari/BFCache observers.
 
 Basis: current V5.67 main.
 `site.zip` unchanged; no LiteAPI/Supabase service secrets added to frontend code.
