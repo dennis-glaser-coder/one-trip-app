@@ -1,0 +1,23 @@
+/* NOREYO V5.51 — unified product search architecture */
+#discover .search-card.noreyo-v551-search{padding-bottom:12px!important}
+#discover .search-card.noreyo-v551-search .booking-command-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}
+#discover .search-card.noreyo-v551-search .noreyo-v551-destination{grid-column:1/-1!important;min-height:64px!important;border-radius:18px!important;padding:10px 12px!important;order:-10!important}
+#discover .search-card.noreyo-v551-search .noreyo-v551-destination .command-icon{width:34px!important;height:34px!important;min-width:34px!important;border-radius:13px!important}
+#discover .search-card.noreyo-v551-search .noreyo-v551-destination small{font-size:7.4px!important;letter-spacing:1.45px!important}
+#discover .search-card.noreyo-v551-search .noreyo-v551-destination b{font-size:14.4px!important;line-height:1.12!important;-webkit-line-clamp:1!important}
+#discover .search-card.noreyo-v551-search .hotel-universal.noreyo-v551-hotel-destination{margin-bottom:8px!important;border-radius:18px!important;min-height:64px!important}
+#discover .search-card.noreyo-v551-search .hotel-universal.noreyo-v551-hotel-destination .hotel-query-row{min-height:64px!important;padding:0 13px!important}
+#discover .search-card.noreyo-v551-search .hotel-universal.noreyo-v551-hotel-destination input{font-size:14.4px!important;font-weight:760!important}
+#discover .search-card.noreyo-v551-search .noreyo-v551-filter-wide{grid-column:1/-1!important;min-height:44px!important}
+#discover .search-card.noreyo-v551-search .noreyo-v551-cta{grid-column:1/-1!important;width:100%!important;min-height:50px!important;margin:2px 0 0!important;border:0!important;border-radius:16px!important;background:linear-gradient(100deg,#073d51,#079a9a)!important;color:#fff!important;font-size:13.2px!important;font-weight:850!important;letter-spacing:.02px!important;display:flex!important;align-items:center!important;justify-content:center!important;gap:9px!important;box-shadow:0 10px 24px rgba(8,116,126,.18)!important;order:20!important}
+#discover .search-card.noreyo-v551-search .noreyo-v551-cta svg{width:17px!important;height:17px!important;color:#e7bd75!important}
+#discover .search-card.noreyo-v551-search .actions.noreyo-v551-empty-actions{display:none!important}
+#discover .search-card.noreyo-v551-search .noreyo-v551-flight-filter{grid-column:auto!important}
+#discover .search-card.noreyo-v551-search .noreyo-v551-flight-filter .noreyo-v551-filter-icon{width:34px;height:34px;min-width:34px;border-radius:13px;background:#fff;display:grid;place-items:center;color:#079095;font-size:18px;font-weight:800}
+#discover .search-card.noreyo-v551-search .mode-helper{display:none!important}
+@media(max-width:390px){
+ #discover .search-card.noreyo-v551-search .noreyo-v551-destination{min-height:60px!important;padding:9px 10px!important}
+ #discover .search-card.noreyo-v551-search .hotel-universal.noreyo-v551-hotel-destination,#discover .search-card.noreyo-v551-search .hotel-universal.noreyo-v551-hotel-destination .hotel-query-row{min-height:60px!important}
+ #discover .search-card.noreyo-v551-search .noreyo-v551-destination b,#discover .search-card.noreyo-v551-search .hotel-universal.noreyo-v551-hotel-destination input{font-size:13.7px!important}
+ #discover .search-card.noreyo-v551-search .noreyo-v551-cta{min-height:48px!important;font-size:12.6px!important}
+}
