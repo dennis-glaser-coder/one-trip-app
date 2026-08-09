@@ -2,7 +2,7 @@
 (function(){
 'use strict';
 const BUILD='5.85';
-let pendingFamily=null;
+let pendingFamily=null,travellerPlannerRequested=false;
 
 function norm(v){
   return String(v||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/ß/g,'ss');
@@ -127,14 +127,24 @@ function decorate(){
   const anchor=card.querySelector('.noreyo-v556-safe,.noreyo-v556-actions');
   anchor?card.insertBefore(block,anchor):card.appendChild(block);
 }
+function currentTravellersValid(){
+  const s=state();
+  if(!s)return false;
+  const adults=Math.round(Number(s.adults));
+  const ages=Array.isArray(s.childAges)?s.childAges.map(Number):[];
+  return Number.isInteger(adults)&&adults>=1&&adults<=9&&
+    adults+ages.length<=9&&
+    ages.every(v=>Number.isInteger(v)&&v>=0&&v<=17)&&
+    ages.filter(v=>v<=1).length<=adults;
+}
 function openTravellers(){
   try{
-    if(typeof openPlanner==='function'){openPlanner('travellers');return true;}
+    if(typeof openPlanner==='function'){travellerPlannerRequested=true;openPlanner('travellers');return true;}
   }catch(_){}
   const candidates=['.travellerInput','.travelerInput','[data-planner="travellers"]','[data-field="travellers"]'];
   for(const q of candidates){
     const el=document.querySelector(q);
-    if(el){el.click();return true;}
+    if(el){travellerPlannerRequested=true;el.click();return true;}
   }
   return false;
 }
@@ -162,19 +172,34 @@ function onApply(event){
 }
 function onAnalyze(event){
   if(!(event.target instanceof Element)||!event.target.closest('.noreyo-v556-analyze'))return;
-  pendingFamily=null;
+  pendingFamily=null;travellerPlannerRequested=false;
   setTimeout(decorate,0);
+}
+function onPlannerSave(event){
+  if(!pendingFamily||!travellerPlannerRequested||!(event.target instanceof Element))return;
+  const save=event.target.closest('.planner-save,.planner-apply,[data-planner-apply]');
+  if(!save)return;
+  setTimeout(()=>{
+    if(currentTravellersValid()){
+      pendingFamily=null;
+      travellerPlannerRequested=false;
+    }
+  },0);
 }
 function install(){
   window.addEventListener('click',blockPendingSearch,true);
   document.addEventListener('click',onApply,true);
   document.addEventListener('click',onAnalyze,true);
+  document.addEventListener('click',onPlannerSave,true);
   document.addEventListener('keydown',e=>{
     if((e.metaKey||e.ctrlKey)&&e.key==='Enter'&&e.target?.id==='noreyoAi556Text'){
       pendingFamily=null;setTimeout(decorate,0);
     }
   },true);
 }
-window.NOREYO_V585=Object.freeze({BUILD,parseAdults,noChildren,childCount,parseAges,parseFamily,applyFamily,decorate,get pendingFamily(){return pendingFamily;}});
+window.NOREYO_V585=Object.freeze({BUILD,parseAdults,noChildren,childCount,parseAges,parseFamily,applyFamily,decorate,currentTravellersValid,
+  clearPending(){pendingFamily=null;travellerPlannerRequested=false;},
+  get pendingFamily(){return pendingFamily;}
+});
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
 })();
