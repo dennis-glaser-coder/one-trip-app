@@ -1,0 +1,191 @@
+(function(){
+'use strict';
+const BUILD='5.60';
+let step=0,answers={},photoUrls=[],lockedY=0;
+const questions=[
+  {id:'hotel',title:'Was fühlt sich mehr nach dir an?',sub:'Nicht nachdenken – spontan wählen.',options:[
+    {value:'boutique',title:'Boutique & persönlich',copy:'Kleiner, individueller, besonderer.',theme:'boutique',tags:['Persönliche Hotels']},
+    {value:'resort',title:'Resort & alles vor Ort',copy:'Pool, Auswahl und maximal bequem.',theme:'resort',tags:['Resort-Komfort']}
+  ]},
+  {id:'location',title:'Wo willst du lieber aufwachen?',sub:'Die Umgebung prägt den ganzen Urlaub.',options:[
+    {value:'beach',title:'Direkt am Meer',copy:'Kurzer Weg zum Wasser. Am liebsten sofort.',theme:'beach',tags:['Direkt am Meer'],states:['Lage1']},
+    {value:'central',title:'Mittendrin',copy:'Restaurants, Orte und Leben zu Fuß.',theme:'central',tags:['Restaurants zu Fuß'],states:['Lage3']}
+  ]},
+  {id:'pace',title:'Wie soll sich Urlaub anfühlen?',sub:'Energie oder Ruhe – beides ist richtig.',options:[
+    {value:'quiet',title:'Ruhig & entspannt',copy:'Weniger Trubel, mehr Abschalten.',theme:'quiet',tags:['Ruhige Lage'],states:['Lage2']},
+    {value:'lively',title:'Lebendig & viel los',copy:'Atmosphäre, Menschen und Abwechslung.',theme:'lively',tags:['Lebendige Umgebung']}
+  ]},
+  {id:'wellbeing',title:'Was gehört für dich eher dazu?',sub:'Dein Hotel darf deinen Rhythmus unterstützen.',options:[
+    {value:'spa',title:'Spa & Wellness',copy:'Runterfahren, Pool, Sauna, Ruhe.',theme:'spa',tags:['Wellness'],states:['Hotel4']},
+    {value:'fitness',title:'Aktiv & Fitness',copy:'Training, Bewegung und Energie.',theme:'fitness',tags:['Aktiv & Fitness'],states:['Hotel5']}
+  ]},
+  {id:'room',title:'Wie wichtig ist dir das Zimmergefühl?',sub:'Ein Detail, das oft übersehen wird.',options:[
+    {value:'balcony',title:'Balkon & Aussicht',copy:'Draußen sitzen gehört für mich dazu.',theme:'balcony',tags:['Balkon & Aussicht'],states:['Zimmer0']},
+    {value:'simple',title:'Zimmer ist Nebensache',copy:'Hauptsache sauber – ich bin sowieso unterwegs.',theme:'simple',tags:['Zimmer zweitrangig']}
+  ]}
+];
+
+function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function mode(){
+  const active=document.querySelector('#discover .product-mode.on');
+  const t=(active?.textContent||'').toLowerCase();
+  if(t.includes('flug'))return'flight';
+  if(t.includes('kreuzfahrt'))return'cruise';
+  if(t.includes('hotel'))return'hotel';
+  return'package';
+}
+function loadProfile(){try{return JSON.parse(localStorage.getItem('noreyoTravelDNA')||'null');}catch(_){return null;}}
+function saveProfile(profile){try{localStorage.setItem('noreyoTravelDNA',JSON.stringify(profile));}catch(_){}}
+function clearPhotos(){photoUrls.forEach(u=>{try{URL.revokeObjectURL(u);}catch(_){}});photoUrls=[];}
+function lockPage(){lockedY=window.scrollY||0;document.body.classList.add('noreyo-v560-lock');document.body.style.top=(-lockedY)+'px';}
+function unlockPage(){document.body.classList.remove('noreyo-v560-lock');document.body.style.top='';window.scrollTo(0,lockedY);}
+function syncViewport(){const w=document.getElementById('noreyoDna560');if(!w||!w.classList.contains('show'))return;const vv=window.visualViewport;if(!vv)return;w.style.height=vv.height+'px';w.style.top=vv.offsetTop+'px';const s=w.querySelector('.noreyo-v560-sheet');if(s)s.style.maxHeight=Math.max(420,Math.min(860,vv.height-4))+'px';}
+
+function launcherHTML(profile){
+  const active=!!profile;
+  return '<button type="button" class="noreyo-v560-launch '+(active?'has-profile':'')+'" aria-label="NOREYO Travel DNA öffnen">'
+    +'<span class="noreyo-v560-dna-mark"><i></i><i></i><i></i></span>'
+    +'<span class="noreyo-v560-launch-copy"><small>'+(active?'DEINE TRAVEL DNA':'NEU · NOREYO TRAVEL DNA')+'</small><b>'+(active?esc(profile.title):'Lass NOREYO deinen Reisegeschmack lernen')+'</b><em>'+(active?'Profil aktiv · Antippen zum Ansehen':'5 Entscheidungen · ca. 60 Sekunden')+'</em></span>'
+    +'<span class="noreyo-v560-launch-go">→</span></button>';
+}
+function installLauncher(){
+  const card=document.querySelector('#discover .search-card');if(!card)return;
+  const m=mode();
+  let existing=card.querySelector('.noreyo-v560-launch');
+  if(m==='flight'||m==='cruise'){existing?.remove();return;}
+  const head=card.querySelector('.search-console-head,.noreyo-v552-search-head');if(!head)return;
+  const profile=loadProfile();
+  if(!existing){head.insertAdjacentHTML('afterend',launcherHTML(profile));existing=head.nextElementSibling;}
+  else existing.outerHTML=launcherHTML(profile);
+}
+
+function scene(theme){
+  const icons={
+    boutique:'<span class="sun"></span><span class="house h1"></span><span class="house h2"></span><span class="plant"></span>',
+    resort:'<span class="sun"></span><span class="tower"></span><span class="pool"></span><span class="palm p1"></span><span class="palm p2"></span>',
+    beach:'<span class="sun"></span><span class="sea s1"></span><span class="sea s2"></span><span class="shore"></span>',
+    central:'<span class="sun"></span><span class="city c1"></span><span class="city c2"></span><span class="city c3"></span><span class="road"></span>',
+    quiet:'<span class="moon"></span><span class="hill h1"></span><span class="hill h2"></span><span class="chair"></span>',
+    lively:'<span class="sun"></span><span class="umb u1"></span><span class="umb u2"></span><span class="spark sp1"></span><span class="spark sp2"></span>',
+    spa:'<span class="steam st1"></span><span class="steam st2"></span><span class="spa-pool"></span><span class="stone a"></span><span class="stone b"></span>',
+    fitness:'<span class="sun"></span><span class="mount m1"></span><span class="mount m2"></span><span class="path"></span>',
+    balcony:'<span class="sun"></span><span class="rail"></span><span class="sea s1"></span><span class="sea s2"></span><span class="glass"></span>',
+    simple:'<span class="window"></span><span class="bed"></span><span class="lamp"></span>'
+  };
+  return '<div class="noreyo-v560-scene" data-theme="'+theme+'">'+(icons[theme]||'')+'</div>';
+}
+
+function shell(){
+  let w=document.getElementById('noreyoDna560');if(w)return w;
+  w=document.createElement('div');w.id='noreyoDna560';w.className='noreyo-v560-backdrop';
+  w.innerHTML='<section class="noreyo-v560-sheet" role="dialog" aria-modal="true" aria-labelledby="noreyoDnaTitle"><div class="noreyo-v560-handle"></div><header class="noreyo-v560-head"><div><small>NOREYO · TRAVEL DNA</small><h2 id="noreyoDnaTitle">Dein Reisegeschmack.</h2></div><button type="button" class="noreyo-v560-close" aria-label="Schließen">×</button></header><div class="noreyo-v560-body" id="noreyoDnaBody"></div></section>';
+  document.body.appendChild(w);
+  w.addEventListener('click',e=>{if(e.target===w)closeDNA();});
+  w.querySelector('.noreyo-v560-close').addEventListener('click',closeDNA);
+  return w;
+}
+
+function introHTML(profile){
+  return '<div class="noreyo-v560-intro">'
+   +'<div class="noreyo-v560-orbit"><span></span><span></span><span></span><b>DNA</b></div>'
+   +'<p class="noreyo-v560-kicker">NICHT NOCH MEHR FILTER. EIN PROFIL, DAS DICH KENNT.</p>'
+   +'<h3>Dein Reisegeschmack.<br>In 60 Sekunden.</h3>'
+   +'<p class="noreyo-v560-copy">NOREYO merkt sich, was dir im Urlaub wirklich gefällt – und nutzt es später automatisch als Ausgangspunkt für passende Reisen.</p>'
+   +'<div class="noreyo-v560-proof"><span><b>5</b> spontane Entscheidungen</span><span><b>1</b> persönliches Reiseprofil</span><span><b>∞</b> Suchen mit deinem Geschmack</span></div>'
+   +(profile?'<button type="button" class="noreyo-v560-primary" data-dna-view-profile>Meine Travel DNA ansehen →</button><button type="button" class="noreyo-v560-secondary" data-dna-start>Neu erstellen</button>':'<button type="button" class="noreyo-v560-primary" data-dna-start>Travel DNA starten →</button>')
+   +'<label class="noreyo-v560-photo"><input type="file" accept="image/*" multiple data-dna-photos><span class="noreyo-v560-photo-icon">▧</span><span><b>Urlaubsfotos auswählen <em>optional</em></b><small>Du wählst einzelne Bilder aus. Im Prototyp bleiben sie nur lokal als Vorschau auf deinem Gerät.</small></span><i>+</i></label>'
+   +'<div class="noreyo-v560-photo-preview" data-dna-photo-preview></div>'
+   +'<p class="noreyo-v560-privacy">Echte Bildanalyse ist als nächster Schritt vorgesehen. Dieser Prototyp analysiert oder lädt deine Fotos noch nicht hoch.</p>'
+   +'</div>';
+}
+
+function renderIntro(){
+  step=0;answers={};clearPhotos();
+  const body=shell().querySelector('#noreyoDnaBody');body.innerHTML=introHTML(loadProfile());
+  bindBody();
+}
+function renderQuestion(){
+  const q=questions[step],body=shell().querySelector('#noreyoDnaBody');
+  body.innerHTML='<div class="noreyo-v560-test"><div class="noreyo-v560-progress"><span>FRAGE '+(step+1)+' VON '+questions.length+'</span><div><i style="width:'+(((step)/questions.length)*100)+'%"></i></div></div><h3>'+esc(q.title)+'</h3><p>'+esc(q.sub)+'</p><div class="noreyo-v560-choice-grid">'+q.options.map(o=>'<button type="button" class="noreyo-v560-choice" data-dna-choice="'+esc(o.value)+'">'+scene(o.theme)+'<span class="noreyo-v560-choice-copy"><b>'+esc(o.title)+'</b><small>'+esc(o.copy)+'</small></span><i class="noreyo-v560-pick">→</i></button>').join('')+'</div><button type="button" class="noreyo-v560-back" data-dna-back>← Zurück</button></div>';
+  bindBody();
+}
+function profileFromAnswers(){
+  const chosen=[];
+  questions.forEach(q=>{const v=answers[q.id];const o=q.options.find(x=>x.value===v);if(o)chosen.push(o);});
+  const vals=new Set(Object.values(answers));
+  let title='Dein persönlicher Reisestil',subtitle='NOREYO hat aus deinen Entscheidungen ein erstes Reiseprofil gebaut.';
+  if(vals.has('beach')&&vals.has('quiet')){title='Coastal Calm';subtitle='Meer, Ruhe und ein Hotel, in dem Abschalten leichtfällt.';}
+  else if(vals.has('boutique')&&vals.has('central')){title='Boutique Explorer';subtitle='Persönliche Hotels, gute Lage und Urlaub mit Charakter.';}
+  else if(vals.has('resort')&&vals.has('spa')){title='Resort Ease';subtitle='Komfort, Entspannung und möglichst wenig Organisationsstress.';}
+  else if(vals.has('central')&&vals.has('lively')){title='Local Energy';subtitle='Mittendrin, spontan und lieber Atmosphäre als Abgeschiedenheit.';}
+  const tags=[...new Set(chosen.flatMap(o=>o.tags||[]))];
+  const stateKeys=[...new Set(chosen.flatMap(o=>o.states||[]))];
+  return {title,subtitle,tags,stateKeys,answers:{...answers},photoCount:photoUrls.length,createdAt:new Date().toISOString()};
+}
+function resultHTML(profile,fresh){
+  return '<div class="noreyo-v560-result">'
+   +'<div class="noreyo-v560-dna-visual"><span></span><span></span><span></span><b>DNA</b></div>'
+   +'<p class="noreyo-v560-kicker">'+(fresh?'DEINE TRAVEL DNA IST BEREIT':'DEINE GESPEICHERTE TRAVEL DNA')+'</p>'
+   +'<h3>'+esc(profile.title)+'</h3><p class="noreyo-v560-result-sub">'+esc(profile.subtitle||'Dein persönlicher Reisegeschmack.')+'</p>'
+   +'<div class="noreyo-v560-tags">'+(profile.tags||[]).map(t=>'<span>✓ '+esc(t)+'</span>').join('')+'</div>'
+   +'<div class="noreyo-v560-explain"><b>Was NOREYO damit macht</b><p>Diese Vorlieben werden als <strong>Wünsche</strong> in deine Suche übernommen. Harte Kriterien wie Budget, Zeitraum oder Verpflegung bestimmst du weiterhin selbst.</p></div>'
+   +'<button type="button" class="noreyo-v560-primary" data-dna-apply>Für meine Suche verwenden →</button>'
+   +'<button type="button" class="noreyo-v560-secondary" data-dna-restart>Travel DNA neu erstellen</button>'
+   +'</div>';
+}
+function renderResult(fresh){
+  const profile=fresh?profileFromAnswers():loadProfile();if(!profile){renderIntro();return;}
+  if(fresh)saveProfile(profile);
+  shell().querySelector('#noreyoDnaBody').innerHTML=resultHTML(profile,fresh);bindBody();installLauncher();
+}
+function previewPhotos(files){
+  clearPhotos();
+  const arr=[...(files||[])].slice(0,8);photoUrls=arr.map(f=>URL.createObjectURL(f));
+  const host=shell().querySelector('[data-dna-photo-preview]');if(!host)return;
+  host.innerHTML=photoUrls.length?'<div class="noreyo-v560-photo-stack">'+photoUrls.slice(0,4).map((u,i)=>'<img src="'+u+'" alt="Ausgewähltes Urlaubsfoto '+(i+1)+'">').join('')+'</div><span>'+photoUrls.length+' Foto'+(photoUrls.length===1?'':'s')+' ausgewählt</span>':'';
+}
+function bindBody(){
+  const body=shell().querySelector('#noreyoDnaBody');
+  body.querySelector('[data-dna-start]')?.addEventListener('click',()=>{step=0;answers={};renderQuestion();});
+  body.querySelector('[data-dna-view-profile]')?.addEventListener('click',()=>renderResult(false));
+  body.querySelector('[data-dna-restart]')?.addEventListener('click',()=>{step=0;answers={};renderQuestion();});
+  body.querySelector('[data-dna-back]')?.addEventListener('click',()=>{if(step<=0)renderIntro();else{step--;renderQuestion();}});
+  body.querySelectorAll('[data-dna-choice]').forEach(btn=>btn.addEventListener('click',()=>{
+    const q=questions[step];answers[q.id]=btn.dataset.dnaChoice;
+    btn.classList.add('picked');
+    setTimeout(()=>{if(step<questions.length-1){step++;renderQuestion();}else renderResult(true);},170);
+  }));
+  body.querySelector('[data-dna-photos]')?.addEventListener('change',e=>previewPhotos(e.target.files));
+  body.querySelector('[data-dna-apply]')?.addEventListener('click',applyProfile);
+}
+function syncAfterApply(){
+  try{if(typeof refreshQuickStates==='function')refreshQuickStates();}catch(_){ }
+  try{if(typeof updateCounts==='function')updateCounts();}catch(_){ }
+  try{if(typeof updateSearchUI==='function')updateSearchUI();}catch(_){ }
+  try{if(typeof persistState==='function')persistState();}catch(_){ }
+}
+function applyProfile(){
+  const profile=loadProfile();if(!profile)return;
+  try{
+    if(typeof states!=='undefined'&&states){
+      (profile.stateKeys||[]).forEach(k=>{if(k in states&&(states[k]==='any'||!states[k]))states[k]='wish';});
+      syncAfterApply();
+    }
+  }catch(e){console.warn('NOREYO Travel DNA '+BUILD,e);}
+  closeDNA();installLauncher();
+  try{if(typeof showToast==='function')showToast('Travel DNA für deine Suche aktiviert');}catch(_){ }
+  setTimeout(()=>document.querySelector('#discover .search-card')?.scrollIntoView({behavior:'smooth',block:'start'}),180);
+}
+function openDNA(){const w=shell();renderIntro();lockPage();w.classList.add('show');requestAnimationFrame(syncViewport);}
+function closeDNA(){const w=document.getElementById('noreyoDna560');if(!w||!w.classList.contains('show'))return;w.classList.remove('show');w.style.height='';w.style.top='';clearPhotos();unlockPage();}
+
+function install(){installLauncher();}
+let raf=0;function schedule(){if(raf)return;raf=requestAnimationFrame(()=>{raf=0;install();});}
+install();setTimeout(install,80);setTimeout(install,260);setTimeout(install,650);
+const discover=document.getElementById('discover');if(discover&&typeof MutationObserver!=='undefined')new MutationObserver(schedule).observe(discover,{childList:true,subtree:true});
+document.addEventListener('click',e=>{const b=e.target?.closest?.('.noreyo-v560-launch');if(!b)return;e.preventDefault();openDNA();},true);
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeDNA();});
+window.visualViewport?.addEventListener('resize',syncViewport);window.visualViewport?.addEventListener('scroll',syncViewport);
+window.addEventListener('pageshow',schedule,{passive:true});
+window.NOREYO_V560=Object.freeze({open:openDNA,apply:applyProfile,version:BUILD});
+})();
