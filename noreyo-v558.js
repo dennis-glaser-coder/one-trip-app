@@ -51,16 +51,20 @@
     const unknown=checked.filter(x=>x.value===null);
     const must=checked.filter(x=>x.state==='must');
     const knownMust=must.filter(x=>x.value!==null);
-    const allKnownMustOk=knownMust.length>0&&knownMust.every(x=>x.value===true);
-    return {selected,checked,yes,no,unknown,must,knownMust,allKnownMustOk,counts,totalActive:counts.must+counts.wish};
+    const failedMust=must.filter(x=>x.value===false);
+    const unknownMust=must.filter(x=>x.value===null);
+    const allMustConfirmed=must.length>0&&failedMust.length===0&&unknownMust.length===0&&must.every(x=>x.value===true);
+    return {selected,checked,yes,no,unknown,must,knownMust,failedMust,unknownMust,allMustConfirmed,counts,totalActive:counts.must+counts.wish};
   }
   function labelFor(info,index){
     if(!info.selected.length){
       if(info.totalActive)return index===0?'Beste Auswahl':'Passend';
       return index===0?'Live Auswahl':'Live verfügbar';
     }
+    if(info.failedMust.length)return 'Muss-Kriterium fehlt';
+    if(info.unknownMust.length&&index===0)return 'Beste Auswahl';
     if(index===0&&info.yes.length)return 'Bester Treffer';
-    if(info.allKnownMustOk&&info.yes.length>=2)return 'Sehr passend';
+    if(info.allMustConfirmed&&info.yes.length>=2)return 'Sehr passend';
     if(info.yes.length>=2)return 'Gut passend';
     return 'Passend';
   }
