@@ -9,7 +9,7 @@ Base: current V5.73 main.
 - Local object URLs are revoked when photos change and on pagehide.
 - Only image MIME types are accepted for preview.
 - UI no longer implies that selected photos already affect the live search; it explicitly states that image analysis is not active yet.
-- V5.74 JS/CSS are loaded once from the existing V5.73 entry module.
+- No fallback runtime loader is used; V5.74 JS/CSS are loaded exactly once by the V5.74 outer loader.
 
 Checks:
 - JavaScript syntax PASS.
@@ -34,6 +34,12 @@ Checks:
 - Image and search actions are at least 48px tall on normal mobile widths.
 - <=360px layout stacks image + search actions to avoid cramped two-column controls.
 - Reduced-motion handling retained.
+
+## Loader / cache
+- Outer BUILD is V5.74.
+- All external enhancer assets use cache key 574.
+- `site.zip` request uses `noreyo-574`.
+- V5.74 JS/CSS are explicitly included in the generated document.
 
 ## Security
 - No LiteAPI API key in new browser modules.
