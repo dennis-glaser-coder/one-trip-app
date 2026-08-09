@@ -1,7 +1,7 @@
-/* NOREYO V5.76.1 — profile that explains itself + idempotent paint */
+/* NOREYO V5.79 — profile + resilient safety loader */
 (()=>{
 'use strict';
-let painting=false,paintQueued=false;
+let painting=false,paintQueued=false,safetyRetryTimer=0,safetyRetries=0;
 const PROFILE_KEY='noreyoTravelDNA';
 function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function readStyle(){try{return JSON.parse(localStorage.getItem(PROFILE_KEY)||'null');}catch(_){return null;}}
@@ -25,7 +25,7 @@ function markup(){
   +'<button type="button" class="noreyo-v576-row" data-v576-alert><i>'+icon('bell')+'</i><span><b>Preisalarm</b><small>'+esc(alert==='Keine aktive Beobachtung'?'Sag NOREYO Bescheid, wenn sich ein beobachteter Preis ändert.':alert)+'</small></span><em>Öffnen</em><strong>›</strong></button>'
   +'</section>'
   +'<p class="noreyo-v576-note">Du kannst diese Angaben jederzeit ändern. NOREYO nutzt sie nur, um deine Suche einfacher und persönlicher zu machen.</p>'
-  +'<div class="noreyo-v576-build">NOREYO · BUILD 5.78</div>'
+  +'<div class="noreyo-v576-build">NOREYO · BUILD 5.79</div>'
   +'</div>';
 }
 function install(){
@@ -43,13 +43,25 @@ function openStyle(){try{const launch=document.querySelector('#discover .noreyo-
 function paint(){if(painting)return;painting=true;try{install();}finally{painting=false;}}
 function schedulePaint(){if(paintQueued)return;paintQueued=true;requestAnimationFrame(()=>{paintQueued=false;paint();});}
 function relevant(records){for(const r of records){for(const n of r.addedNodes||[]){if(n.nodeType!==1)continue;if(n.matches?.('#profile,.profile-view,.app-head')||n.querySelector?.('#profile,.profile-view,.app-head'))return true;}}return false;}
+function scheduleSafetyRetry(){
+ if(window.NOREYO_V577||safetyRetries>=3)return;
+ clearTimeout(safetyRetryTimer);
+ safetyRetries++;
+ safetyRetryTimer=setTimeout(loadSafety,500*Math.pow(2,safetyRetries-1));
+}
 function loadSafety(){
  if(!window.NOREYO_V577&&!document.querySelector('script[data-noreyo-v577]')){
-  const s=document.createElement('script');s.src='./noreyo-v577.js?build=578';s.dataset.noreyoV577='1';document.head.appendChild(s);
+  const s=document.createElement('script');s.src='./noreyo-v577.js?build=579';s.dataset.noreyoV577='1';
+  s.onload=()=>{safetyRetries=0;clearTimeout(safetyRetryTimer);};
+  s.onerror=()=>{s.remove();scheduleSafetyRetry();};
+  document.head.appendChild(s);
  }
  if(!document.querySelector('link[data-noreyo-v578]')){
-  const l=document.createElement('link');l.rel='stylesheet';l.href='./noreyo-v578.css?build=578';l.dataset.noreyoV578='1';document.head.appendChild(l);
+  const l=document.createElement('link');l.rel='stylesheet';l.href='./noreyo-v578.css?build=579';l.dataset.noreyoV578='1';
+  l.onerror=()=>{l.remove();scheduleSafetyRetry();};
+  document.head.appendChild(l);
  }
+ if(!window.NOREYO_V577)scheduleSafetyRetry();
 }
 document.addEventListener('click',e=>{
  if(e.target.closest?.('[data-v576-prefs]')){e.preventDefault();openPrefs();return;}
@@ -58,5 +70,6 @@ document.addEventListener('click',e=>{
 });
 const mo=new MutationObserver(records=>{if(relevant(records))schedulePaint();});mo.observe(document.documentElement,{childList:true,subtree:true});
 setTimeout(paint,100);setTimeout(paint,350);setTimeout(paint,900);setTimeout(loadSafety,120);
+window.addEventListener('pagehide',()=>{clearTimeout(safetyRetryTimer);},{passive:true});
 window.NOREYO_V576={paint,relevant,loadSafety};
 })();
