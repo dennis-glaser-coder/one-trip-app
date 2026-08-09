@@ -8,20 +8,30 @@
     catch(_){return false;}
   }
 
-  function syncVisualViewport(){
+  function viewportMetrics(){
     const vv=window.visualViewport;
-    const h=Math.max(280,Math.round(vv?.height||window.innerHeight||700));
-    document.documentElement.style.setProperty('--noreyo-vv-height',h+'px');
+    return {
+      height:Math.max(260,Math.round(vv?.height||window.innerHeight||700)),
+      top:Math.max(0,Math.round(vv?.offsetTop||0)),
+      left:Math.max(0,Math.round(vv?.offsetLeft||0))
+    };
+  }
+
+  function syncVisualViewport(){
+    const m=viewportMetrics();
+    const root=document.documentElement;
+    root.style.setProperty('--noreyo-vv-height',m.height+'px');
+    root.style.setProperty('--noreyo-vv-top',m.top+'px');
+    root.style.setProperty('--noreyo-vv-left',m.left+'px');
     if(!destinationOpen())return;
+
+    const keyboardOpen=document.activeElement?.matches?.('#plannerSheet .planner-search input')||m.height<(window.innerHeight||m.height)-100;
+    document.body.classList.toggle('noreyo-planner-keyboard',!!keyboardOpen);
+
     const body=document.getElementById('plannerBody');
-    const sheet=document.getElementById('plannerSheet');
-    if(body&&document.activeElement?.closest?.('.planner-search')){
+    if(keyboardOpen&&body){
       clearTimeout(vvTimer);
-      vvTimer=setTimeout(()=>{
-        body.scrollTop=0;
-        if(sheet)sheet.scrollTop=0;
-        window.scrollTo(0,plannerScrollY);
-      },35);
+      vvTimer=setTimeout(()=>{body.scrollTop=0;},30);
     }
   }
 
@@ -42,7 +52,7 @@
     document.body.classList.remove('noreyo-planner-lock','noreyo-planner-keyboard');
     document.body.style.top='';
     document.getElementById('plannerSheet')?.classList.remove('noreyo-destination-sheet');
-    window.scrollTo(0,plannerScrollY);
+    requestAnimationFrame(()=>window.scrollTo(0,plannerScrollY));
   }
 
   function stabilizeDestinationSheet(){
@@ -56,39 +66,31 @@
   }
 
   function installPlannerHooks(){
-    if(typeof openPlanner==='function'&&!openPlanner.__noreyo544){
+    if(typeof openPlanner==='function'&&!openPlanner.__noreyo545){
       const baseOpen=openPlanner;
       const wrapped=function(mode){
         const r=baseOpen.apply(this,arguments);
         if(mode==='destination'){
           requestAnimationFrame(()=>{stabilizeDestinationSheet();requestAnimationFrame(stabilizeDestinationSheet);});
-          setTimeout(stabilizeDestinationSheet,90);
+          setTimeout(stabilizeDestinationSheet,80);
         }
         return r;
       };
-      wrapped.__noreyo544=true;
+      wrapped.__noreyo545=true;
       openPlanner=wrapped;
     }
 
-    if(typeof closePlanner==='function'&&!closePlanner.__noreyo544){
+    if(typeof closePlanner==='function'&&!closePlanner.__noreyo545){
       const baseClose=closePlanner;
-      const wrapped=function(){
-        const r=baseClose.apply(this,arguments);
-        unlockPlannerPage();
-        return r;
-      };
-      wrapped.__noreyo544=true;
+      const wrapped=function(){const r=baseClose.apply(this,arguments);unlockPlannerPage();return r;};
+      wrapped.__noreyo545=true;
       closePlanner=wrapped;
     }
 
-    if(typeof chooseDestination==='function'&&!chooseDestination.__noreyo544){
+    if(typeof chooseDestination==='function'&&!chooseDestination.__noreyo545){
       const baseChoose=chooseDestination;
-      const wrapped=function(){
-        const r=baseChoose.apply(this,arguments);
-        unlockPlannerPage();
-        return r;
-      };
-      wrapped.__noreyo544=true;
+      const wrapped=function(){const r=baseChoose.apply(this,arguments);unlockPlannerPage();return r;};
+      wrapped.__noreyo545=true;
       chooseDestination=wrapped;
     }
   }
@@ -98,24 +100,36 @@
     if(!input||!destinationOpen())return;
     document.body.classList.add('noreyo-planner-keyboard');
     syncVisualViewport();
+
+    /* Important on iOS: do NOT call scrollIntoView here. Safari would pan the
+       visual viewport again and move the complete bottom sheet. */
     const body=document.getElementById('plannerBody');
-    requestAnimationFrame(()=>{
-      if(body)body.scrollTop=0;
-      window.scrollTo(0,plannerScrollY);
-      try{input.scrollIntoView({block:'start',inline:'nearest',behavior:'instant'});}catch(_){input.scrollIntoView(true);}
-      if(body)body.scrollTop=0;
-    });
-    setTimeout(()=>{if(body)body.scrollTop=0;syncVisualViewport();},120);
+    requestAnimationFrame(()=>{if(body)body.scrollTop=0;syncVisualViewport();});
+    setTimeout(()=>{if(body)body.scrollTop=0;syncVisualViewport();},80);
+    setTimeout(()=>{if(body)body.scrollTop=0;syncVisualViewport();},260);
   },true);
 
   document.addEventListener('focusout',e=>{
     if(!e.target?.closest?.('#plannerSheet .planner-search input'))return;
-    setTimeout(()=>{if(!document.activeElement?.closest?.('#plannerSheet .planner-search input'))document.body.classList.remove('noreyo-planner-keyboard');},30);
+    setTimeout(()=>{
+      if(!document.activeElement?.closest?.('#plannerSheet .planner-search input')){
+        document.body.classList.remove('noreyo-planner-keyboard');
+        syncVisualViewport();
+      }
+    },80);
   },true);
 
-  window.visualViewport?.addEventListener('resize',syncVisualViewport);
-  window.visualViewport?.addEventListener('scroll',syncVisualViewport);
-  window.addEventListener('resize',syncVisualViewport);
+  const onViewportChange=()=>{
+    syncVisualViewport();
+    if(destinationOpen()&&document.activeElement?.closest?.('#plannerSheet .planner-search input')){
+      const body=document.getElementById('plannerBody');
+      if(body)body.scrollTop=0;
+    }
+  };
+
+  window.visualViewport?.addEventListener('resize',onViewportChange);
+  window.visualViewport?.addEventListener('scroll',onViewportChange);
+  window.addEventListener('resize',onViewportChange);
   window.addEventListener('pageshow',()=>{installPlannerHooks();syncVisualViewport();});
 
   installPlannerHooks();
