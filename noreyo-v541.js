@@ -16,6 +16,17 @@
     return trust;
   }
 
+  function productModeValue(){
+    try{return typeof productMode!=='undefined'?productMode:'package';}catch{return 'package';}
+  }
+
+  function bookingCtaLabel(){
+    const mode=productModeValue();
+    if(mode==='hotel')return 'Live-Hotels finden';
+    if(mode==='flight')return 'Live-Flüge finden';
+    return 'Pauschalreise suchen';
+  }
+
   function findNativeSearchButton(card){
     const buttons=[...card.querySelectorAll('button')].filter(b=>!b.classList.contains('noreyo-v541-booking-cta'));
     const exact=buttons.find(b=>/reise.*(finden|suchen)|angebote.*(finden|suchen)|jetzt.*suchen|suchen/i.test((b.textContent||'').trim())&&!/muss|wunsch/i.test((b.textContent||'').trim()));
@@ -29,17 +40,14 @@
       if(btn.parentElement!==card)card.appendChild(btn);
       return;
     }
-
     const cellItems=[...grid.children].filter(el=>{
       if(!el||!el.classList)return false;
       return el.classList.contains('command-cell')||!!el.querySelector('.command-cell');
     });
-
     cellItems.forEach((item,index)=>{
       item.classList.remove('noreyo-v541-main-cell','noreyo-v541-extra-cell');
       item.classList.add(index<4?'noreyo-v541-main-cell':'noreyo-v541-extra-cell');
     });
-
     if(btn.parentElement!==grid)grid.appendChild(btn);
     btn.classList.add('noreyo-v541-cta-grid-item');
   }
@@ -52,18 +60,22 @@
       btn=document.createElement('button');
       btn.type='button';
       btn.className='noreyo-v541-booking-cta';
-      btn.innerHTML='<span>Passende Reisen finden</span><span aria-hidden="true">→</span>';
     }
     placeBookingCTA(card,btn);
+    btn.innerHTML=`<span>${bookingCtaLabel()}</span><span aria-hidden="true">→</span>`;
     if(!btn.dataset.bound){
       btn.dataset.bound='1';
       btn.addEventListener('click',()=>{
         const native=findNativeSearchButton(card);
         if(native){native.click();return;}
         const bottom=card.lastElementChild||card;
-        bottom.scrollIntoView({behavior:'smooth',block:'center'});
+        bottom.scrollIntoView({behavior:reduceMotion()?'auto':'smooth',block:'center'});
       });
     }
+  }
+
+  function reduceMotion(){
+    return !!window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
   }
 
   function enforce(){
@@ -72,33 +84,95 @@
     try{
       const discover=document.getElementById('discover');if(!discover)return;
       const hero=discover.querySelector('.hero');if(!hero)return;
-      const isFlight=typeof productMode!=='undefined'&&productMode==='flight';
+      const isFlight=productModeValue()==='flight';
       if(isFlight){
         hero.classList.remove('noreyo-v541-hero');
         hero.querySelector('.noreyo-v541-trust')?.remove();
-        return;
-      }
-
-      cleanHero(hero);
-      const signet=hero.querySelector('.hero-signet');
-      if(signet&&signet.textContent.trim()!=='NOREYO MATCH')signet.innerHTML='<span></span>NOREYO MATCH';
-      const copy=hero.querySelector('.hero-copy');
-      if(copy){
-        setText(copy.querySelector('.hero-kicker'),'TRAVEL MADE FOR YOU');
-        setText(copy.querySelector('h1'),'Dein Urlaub. Nach deinen Regeln.');
-        setText(copy.querySelector('p'),'Sag uns, was wirklich zählt. NOREYO zeigt dir zuerst die Reisen, die wirklich zu dir passen.');
+      }else{
+        cleanHero(hero);
+        const signet=hero.querySelector('.hero-signet');
+        if(signet&&signet.textContent.trim()!=='NOREYO MATCH')signet.innerHTML='<span></span>NOREYO MATCH';
+        const copy=hero.querySelector('.hero-copy');
+        if(copy){
+          setText(copy.querySelector('.hero-kicker'),'TRAVEL MADE FOR YOU');
+          setText(copy.querySelector('h1'),'Dein Urlaub. Nach deinen Regeln.');
+          setText(copy.querySelector('p'),'Sag uns, was wirklich zählt. NOREYO zeigt dir zuerst die Reisen, die wirklich zu dir passen.');
+        }
       }
 
       discover.querySelectorAll('.search-console-head').forEach(head=>{
         setText(head.querySelector('span'),'DEINE REISE');
         setText(head.querySelector('b'),'Ziel, Zeitraum & Reisende festlegen');
       });
-      const card=discover.querySelector('.search-card');
-      ensureBookingCTA(card);
+      ensureBookingCTA(discover.querySelector('.search-card'));
     }finally{lock=false;}
   }
 
-  function schedule(){if(raf)return;raf=requestAnimationFrame(()=>{raf=0;enforce();});}
+  function schedule(){if(raf)return;raf=requestAnimationFrame(()=>{raf=0;enforce();syncModalState();});}
+
+  let modalReturnFocus=null,activeModal=null,modalObserver=null;
+
+  function focusable(root){
+    return [...root.querySelectorAll('button:not([disabled]),a[href],input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])')]
+      .filter(el=>!el.hidden&&el.getClientRects().length!==0);
+  }
+  function visibleModal(){return document.querySelector('.planner-sheet.show,.sheet.show,[role="dialog"].show');}
+  function modalLabel(modal){return (modal.querySelector('h1,h2,h3')?.textContent||'Auswahl').trim();}
+
+  function syncModalState(){
+    const modal=visibleModal();
+    if(modal===activeModal)return;
+    if(activeModal&&!modal){
+      document.body.classList.remove('noreyo-modal-open');
+      document.querySelector('.nav')?.classList.remove('noreyo-modal-hidden');
+      activeModal=null;
+      const target=modalReturnFocus;modalReturnFocus=null;
+      if(target&&document.contains(target))setTimeout(()=>target.focus?.({preventScroll:true}),0);
+      return;
+    }
+    if(modal){
+      if(!activeModal)modalReturnFocus=document.activeElement instanceof HTMLElement?document.activeElement:null;
+      activeModal=modal;
+      document.body.classList.add('noreyo-modal-open');
+      document.querySelector('.nav')?.classList.add('noreyo-modal-hidden');
+      modal.setAttribute('role','dialog');modal.setAttribute('aria-modal','true');
+      if(!modal.getAttribute('aria-label')&&!modal.getAttribute('aria-labelledby'))modal.setAttribute('aria-label',modalLabel(modal));
+      const items=focusable(modal);
+      if(items.length&&!modal.contains(document.activeElement))setTimeout(()=>items[0].focus?.({preventScroll:true}),0);
+    }
+  }
+
+  function handleModalKeydown(event){
+    const modal=activeModal||visibleModal();if(!modal)return;
+    if(event.key==='Escape'){
+      const close=modal.querySelector('.planner-close,.close,[data-close],button[aria-label*="schließ" i],button[aria-label*="close" i]');
+      if(close){event.preventDefault();close.click();}return;
+    }
+    if(event.key!=='Tab')return;
+    const items=focusable(modal);if(!items.length)return;
+    const first=items[0],last=items[items.length-1];
+    if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}
+    else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}
+  }
+
+  function updateVisualViewport(){
+    const vv=window.visualViewport;
+    const height=Math.max(320,Math.round(vv?.height||window.innerHeight||800));
+    document.documentElement.style.setProperty('--noreyo-visual-height',`${height}px`);
+    document.body.classList.toggle('noreyo-keyboard-open',!!vv&&window.innerHeight-vv.height>120);
+  }
+
+  function installModalSafety(){
+    document.addEventListener('keydown',handleModalKeydown,true);
+    updateVisualViewport();
+    window.visualViewport?.addEventListener('resize',updateVisualViewport,{passive:true});
+    window.visualViewport?.addEventListener('scroll',updateVisualViewport,{passive:true});
+    window.addEventListener('orientationchange',()=>setTimeout(updateVisualViewport,60),{passive:true});
+    modalObserver=new MutationObserver(syncModalState);
+    modalObserver.observe(document.body,{subtree:true,attributes:true,attributeFilter:['class'],childList:true});
+    syncModalState();
+  }
+
   try{
     if(typeof renderProductControls==='function'){
       const baseControls=renderProductControls;
@@ -110,13 +184,13 @@
     }
     if(typeof go==='function'){
       const baseGo=go;
-      go=function(id){const r=baseGo(id);if(id==='discover')schedule();return r;};
+      go=function(id){const r=baseGo(id);if(id==='discover')schedule();syncModalState();return r;};
     }
-  }catch(e){console.warn('NOREYO V5.41 hooks',e)}
+  }catch(e){console.warn('NOREYO V5.68 hooks',e)}
 
-  enforce();
+  enforce();installModalSafety();
   setTimeout(enforce,80);setTimeout(enforce,220);setTimeout(enforce,500);
   const discover=document.getElementById('discover');
   if(discover&&typeof MutationObserver!=='undefined')new MutationObserver(()=>{if(!lock)schedule();}).observe(discover,{childList:true,subtree:true});
-  window.addEventListener('pageshow',schedule);
+  window.addEventListener('pageshow',()=>{updateVisualViewport();schedule();});
 })();
