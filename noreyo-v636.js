@@ -1,9 +1,9 @@
-/* NOREYO V6.36 — German 7–9 party wording reconciliation.
+/* NOREYO V6.37 — German 7–9 party wording reconciliation.
    Extends the AI safety layer for ausgeschriebene Gruppen ("sieben/acht/neun Personen")
    and prevents invalid >6-adult wording from leaking into the search state. */
 (function(){
 'use strict';
-const BUILD='6.36';
+const BUILD='6.37';
 const MAX_ADULTS=6,MAX_CHILDREN=4,MAX_TRAVELLERS=9;
 
 function norm(v){return String(v||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/ß/g,'ss');}
@@ -101,7 +101,8 @@ function applyReconciliation(t,snapshot){
       if(Array.isArray(ages)&&ages.length===party.children){
         const old=Array.isArray(searchState.childAges)?searchState.childAges.map(Number):[];
         if(old.length!==ages.length||old.some((v,i)=>v!==ages[i])){searchState.childAges=ages.slice();changed=true;}
-      }else if(party.children===0&&Array.isArray(searchState.childAges)&&searchState.childAges.length){
+      }else if(Array.isArray(searchState.childAges)&&searchState.childAges.length){
+        // Explicit child count without fresh ages must never inherit ages from an older search.
         searchState.childAges=[];changed=true;
       }
     }
