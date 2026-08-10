@@ -4,7 +4,7 @@
 'use strict';
 const BUILD='5.85';
 const LEGACY_FAV_KEY='noreyoLegacyFavoriteIds584';
-let syncingCruise=false;
+let syncingCruise=false,searchCardBaselineNode=null;
 
 function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function decodeKey(v){try{return decodeURIComponent(String(v||''));}catch(_){return String(v||'');}}
@@ -126,20 +126,36 @@ function bindCruiseMirror(card){
     });
   }
 }
+function restoreSearchView(){
+  const mirror=document.querySelector('#searchView .noreyo-v584-cruise-mirror');
+  if(!mirror||!searchCardBaselineNode)return false;
+  mirror.replaceWith(searchCardBaselineNode);
+  const restored=searchCardBaselineNode;
+  searchCardBaselineNode=null;
+  try{if(typeof updateSearchUI==='function')updateSearchUI();}catch(_){ }
+  return !!restored;
+}
 function syncCruiseSearchView(){
   if(syncingCruise||mode()!=='cruise')return;
   const source=document.querySelector('#discover .search-card.noreyo-v552-cruise-search');
-  const target=document.querySelector('#searchView .search-card');
+  let target=document.querySelector('#searchView .search-card');
   if(!source||!target)return;
   syncingCruise=true;
   try{
     enhanceCruiseCard(source);
-    target.className='search-card noreyo-v552-cruise-search noreyo-v584-cruise-mirror';
-    target.innerHTML=source.innerHTML;
+    if(!target.classList.contains('noreyo-v584-cruise-mirror')){
+      if(!searchCardBaselineNode)searchCardBaselineNode=target;
+      const mirror=source.cloneNode(true);
+      mirror.className='search-card noreyo-v552-cruise-search noreyo-v584-cruise-mirror';
+      target.replaceWith(mirror);
+      target=mirror;
+    }else{
+      target.innerHTML=source.innerHTML;
+    }
     enhanceCruiseCard(target);bindCruiseMirror(target);
   }finally{syncingCruise=false;}
 }
-function syncCruiseValues(){if(mode()==='cruise')syncCruiseSearchView();}
+function syncCruiseValues(){if(mode()==='cruise')syncCruiseSearchView();else restoreSearchView();}
 
 /* v557 sends cruise to a non-existent core filter tab. Stop that path cleanly. */
 try{
@@ -160,7 +176,7 @@ try{
 try{
   if(typeof setProductMode==='function'&&!setProductMode.__noreyoV584){
     const priorSetProductMode=setProductMode;
-    const wrapped=function(next){const r=priorSetProductMode.apply(this,arguments);setTimeout(()=>{if(next==='cruise'||mode()==='cruise')syncCruiseSearchView();},0);return r;};
+    const wrapped=function(next){const r=priorSetProductMode.apply(this,arguments);setTimeout(()=>{if(next==='cruise'||mode()==='cruise')syncCruiseSearchView();else restoreSearchView();},0);return r;};
     wrapped.__noreyoV584=true;setProductMode=wrapped;
   }
 }catch(_){ }
@@ -181,7 +197,7 @@ afterFunction('removeFavorite',refreshFavorites);
 try{
   if(typeof go==='function'&&!go.__noreyoV584){
     const priorGo=go;
-    const wrapped=function(view){const r=priorGo.apply(this,arguments);if(view==='favorites')refreshFavorites();if(view==='profile')polishProfile();if(view==='searchView'&&mode()==='cruise')setTimeout(syncCruiseSearchView,0);return r;};
+    const wrapped=function(view){const r=priorGo.apply(this,arguments);if(view==='favorites')refreshFavorites();if(view==='profile')polishProfile();if(view==='searchView')setTimeout(()=>{if(mode()==='cruise')syncCruiseSearchView();else restoreSearchView();},0);return r;};
     wrapped.__noreyoV584=true;go=wrapped;
   }
 }catch(_){ }
@@ -206,5 +222,5 @@ document.addEventListener('click',e=>{
 
 rememberLegacyFavoriteIds();recoverFavoriteSnapshots();polishProfile();
 if(mode()==='cruise')setTimeout(syncCruiseSearchView,0);
-window.NOREYO_V584=Object.freeze({refreshFavorites,syncCruiseSearchView,decodeKey,version:BUILD});
+window.NOREYO_V584=Object.freeze({refreshFavorites,syncCruiseSearchView,restoreSearchView,decodeKey,version:BUILD});
 })();
