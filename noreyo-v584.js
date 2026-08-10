@@ -3,6 +3,7 @@
 'use strict';
 const BUILD='5.84';
 let busy=false,busyButton=null,busyTimer=0,observer=null,rootObserver=null,observedRoot=null,baseline='';
+let safetyAttempts=0,safetyTimer=0;
 
 function norm(v){return String(v||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/ß/g,'ss');}
 function notify(msg){try{if(typeof showToast==='function')showToast(msg);else if(typeof window.toast==='function')window.toast(msg);}catch(_){ }}
@@ -15,7 +16,24 @@ function beginBusy(btn){busy=true;baseline=offerSignature();busyButton=btn||null
 function settled(){if(!busy)return;if(offerSignature()!==baseline||terminalResult())releaseBusy();}
 function bindResults(){const r=resultRoot();if(!r||r===observedRoot)return;if(observer)observer.disconnect();observedRoot=r;r.setAttribute('aria-live','polite');r.setAttribute('aria-busy',busy?'true':'false');observer=new MutationObserver(settled);observer.observe(r,{childList:true,subtree:true,characterData:true});}
 function nativeCTA(target){return target instanceof Element?target.closest('.noreyo-v541-booking-cta'):null;}
-function ensureFamilySafety(){try{window.NOREYO_V576?.loadSafetyJs?.();}catch(_){ }}
+function scheduleSafetyRetry(){
+ if(window.NOREYO_V577||safetyAttempts>=3)return;
+ clearTimeout(safetyTimer);
+ safetyTimer=setTimeout(ensureFamilySafety,300*Math.pow(2,Math.max(0,safetyAttempts-1)));
+}
+function ensureFamilySafety(){
+ if(window.NOREYO_V577){safetyAttempts=0;clearTimeout(safetyTimer);safetyTimer=0;return;}
+ try{window.NOREYO_V576?.loadSafetyJs?.();}catch(_){ }
+ if(window.NOREYO_V577||document.querySelector('script[data-noreyo-v577]'))return;
+ if(safetyAttempts>=3)return;
+ safetyAttempts++;
+ const s=document.createElement('script');
+ s.src='./noreyo-v577.js?build=584';
+ s.dataset.noreyoV577='1';
+ s.onload=()=>{safetyAttempts=0;clearTimeout(safetyTimer);safetyTimer=0;};
+ s.onerror=()=>{s.remove();scheduleSafetyRetry();};
+ document.head.appendChild(s);
+}
 function validateFamily(){
  const api=window.NOREYO_V577;
  if(!api){ensureFamilySafety();return{error:'Reisendenprüfung wird geladen. Bitte gleich noch einmal suchen.',unavailable:true};}
@@ -31,9 +49,9 @@ function onClick(e){
 }
 function rootRelevant(records){for(const r of records){for(const n of r.addedNodes||[]){if(n.nodeType!==1)continue;if(n.id==='results'||n.querySelector?.('#results'))return true;}for(const n of r.removedNodes||[]){if(n===observedRoot||n.nodeType===1&&(n.id==='results'||n.querySelector?.('#results')))return true;}}return false;}
 function attachRootObserver(){if(rootObserver||typeof MutationObserver==='undefined'||!document.body)return;rootObserver=new MutationObserver(records=>{if(rootRelevant(records)){observedRoot=null;bindResults();}});rootObserver.observe(document.body,{childList:true,subtree:true});}
-function cleanup(){releaseBusy();if(observer){observer.disconnect();observer=null;}if(rootObserver){rootObserver.disconnect();rootObserver=null;}observedRoot=null;}
-function restore(){releaseBusy();bindResults();attachRootObserver();}
-function install(){bindResults();attachRootObserver();document.addEventListener('click',onClick,true);window.addEventListener('pagehide',cleanup,{passive:true});window.addEventListener('pageshow',restore,{passive:true});}
-window.NOREYO_V584=Object.freeze({BUILD,validateFamily,releaseBusy,rootRelevant,get busy(){return busy;}});
+function cleanup(){releaseBusy();clearTimeout(safetyTimer);safetyTimer=0;if(observer){observer.disconnect();observer=null;}if(rootObserver){rootObserver.disconnect();rootObserver=null;}observedRoot=null;}
+function restore(){releaseBusy();ensureFamilySafety();bindResults();attachRootObserver();}
+function install(){ensureFamilySafety();bindResults();attachRootObserver();document.addEventListener('click',onClick,true);window.addEventListener('pagehide',cleanup,{passive:true});window.addEventListener('pageshow',restore,{passive:true});}
+window.NOREYO_V584=Object.freeze({BUILD,validateFamily,ensureFamilySafety,releaseBusy,rootRelevant,get busy(){return busy;}});
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
 })();
