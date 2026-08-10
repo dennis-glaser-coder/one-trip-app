@@ -1,7 +1,7 @@
-/* NOREYO V5.88 — provider occupancy alignment + safety guard loaders */
+/* NOREYO V5.89 — provider occupancy alignment + minimal Safari guard loader */
 (function(){
 'use strict';
-const BUILD='5.88';
+const BUILD='5.89';
 const MAX_ADULTS=6;
 const MAX_TRAVELLERS=9;
 let v582Attempts=0,v582Timer=0,v587Attempts=0,v587Timer=0;
@@ -34,7 +34,7 @@ function loadGuard(key,globalName,src,attemptKey){
  s.onerror=()=>{s.remove();const current=is582?v582Attempts:v587Attempts;if(current<3){const delay=350*Math.pow(2,current-1);if(is582){clearTimeout(v582Timer);v582Timer=setTimeout(loadV582,delay);}else{clearTimeout(v587Timer);v587Timer=setTimeout(loadV587,delay);}}};
  document.head.appendChild(s);
 }
-function loadV582(){loadGuard('582','NOREYO_V582','./noreyo-v582.js?build=588','582');}
+function loadV582(){loadGuard('582','NOREYO_V582','./noreyo-v582.js?build=589','582');}
 function loadV587(){loadGuard('587','NOREYO_V587','./noreyo-v587.js?build=588','587');}
 function cleanup(){clearTimeout(v582Timer);clearTimeout(v587Timer);v582Timer=0;v587Timer=0;}
 function install(){document.addEventListener('click',onSearch,true);syncBuildLabel();loadV582();loadV587();if(typeof MutationObserver!=='undefined'){const mo=new MutationObserver(records=>{if(relevant(records))syncBuildLabel();});mo.observe(document.body,{childList:true,subtree:true});}window.addEventListener('pageshow',()=>{syncBuildLabel();loadV582();loadV587();},{passive:true});window.addEventListener('pagehide',cleanup,{passive:true});}
