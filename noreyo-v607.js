@@ -1,10 +1,9 @@
-/* NOREYO V6.32 — authoritative search completion/network lifecycle guard.
+/* NOREYO V6.34 — authoritative search completion/network lifecycle guard.
    A package/hotel search can only be released by result states that belong to
-   the active request. Stale offer cards and stale terminal messages cannot
-   unlock a newly started search. */
+   the active request. Parallel search-travel calls are also completion-safe. */
 (function(){
 'use strict';
-const BUILD='6.32';
+const BUILD='6.34';
 let observer=null,root=null,raf=0;
 let guardActive=false,guardButton=null,buttonObserver=null,guardTimer=0,lockTimer=0;
 let networkSuccess=false,renderSequence=0,guardRenderSequence=0,targetRequests=0;
@@ -132,9 +131,23 @@ function isSearchTravel(input){
   const url=typeof input==='string'?input:String(input?.url||'');
   return url.includes('/functions/v1/search-travel');
 }
+function hasRenderedOffers(){
+  const results=document.getElementById('results');
+  return !!results?.querySelector?.('#offers .offer,.offer');
+}
+function completionReady(){
+  if(!guardActive||!networkSuccess||targetRequests>0)return false;
+  if(renderSequence<=guardRenderSequence)return false;
+  return hasRenderedOffers();
+}
+function completeAfterNetwork(){
+  if(completionReady())return releaseGuard('rendered-after-network');
+  scheduleTerminal();
+  return false;
+}
 function installFetchHook(){
   try{
-    if(typeof window.fetch!=='function'||window.fetch.__noreyoV632)return;
+    if(typeof window.fetch!=='function'||window.fetch.__noreyoV634)return;
     const prior=window.fetch.bind(window);
     const wrapped=async function(input,init){
       const target=isSearchTravel(input)&&guardActive;
@@ -146,7 +159,7 @@ function installFetchHook(){
           if(response&&response.ok===false){releaseGuard('http-error');}
           else if(response?.ok===true){
             networkSuccess=true;
-            scheduleTerminal();
+            completeAfterNetwork();
           }
         }
         return response;
@@ -155,22 +168,13 @@ function installFetchHook(){
         throw error;
       }
     };
-    wrapped.__noreyoV632=true;
+    wrapped.__noreyoV634=true;
     window.fetch=wrapped;
   }catch(_){ }
 }
-function hasRenderedOffers(){
-  const results=document.getElementById('results');
-  return !!results?.querySelector?.('#offers .offer,.offer');
-}
-function completionReady(){
-  if(!guardActive||!networkSuccess||targetRequests>0)return false;
-  if(renderSequence<=guardRenderSequence)return false;
-  return hasRenderedOffers();
-}
 function installRenderHook(){
   try{
-    if(typeof renderOffers!=='function'||renderOffers.__noreyoV632)return;
+    if(typeof renderOffers!=='function'||renderOffers.__noreyoV634)return;
     const prior=renderOffers;
     const wrapped=function(){
       let result;
@@ -178,21 +182,20 @@ function installRenderHook(){
       catch(error){releaseGuard('render-error');throw error;}
       const done=()=>{
         renderSequence++;
-        if(completionReady())releaseGuard('rendered-after-network');
-        else scheduleTerminal();
+        completeAfterNetwork();
       };
       const failed=()=>{releaseGuard('render-rejected');};
       if(result&&typeof result.then==='function')result.then(done,failed);
       else setTimeout(done,0);
       return result;
     };
-    wrapped.__noreyoV632=true;
+    wrapped.__noreyoV634=true;
     renderOffers=wrapped;
   }catch(_){ }
 }
 function installNavigationHook(){
   try{
-    if(typeof go!=='function'||go.__noreyoV632)return;
+    if(typeof go!=='function'||go.__noreyoV634)return;
     const prior=go;
     const wrapped=function(view){
       const result=prior.apply(this,arguments);
@@ -200,14 +203,14 @@ function installNavigationHook(){
       setTimeout(bind,0);
       return result;
     };
-    wrapped.__noreyoV632=true;
+    wrapped.__noreyoV634=true;
     go=wrapped;
   }catch(_){ }
 }
 function install(){
   bind();installFetchHook();installRenderHook();installNavigationHook();
-  if(!window.__noreyoV632SearchCapture){
-    window.__noreyoV632SearchCapture=true;
+  if(!window.__noreyoV634SearchCapture){
+    window.__noreyoV634SearchCapture=true;
     window.addEventListener('click',onSearchCapture,true);
   }
 }
@@ -223,7 +226,7 @@ window.addEventListener('pagehide',cleanup,{passive:true});
 window.addEventListener('pageshow',()=>{installFetchHook();installRenderHook();installNavigationHook();bind();},{passive:true});
 window.NOREYO_V607=Object.freeze({
   BUILD,currentMode,authoritativeMode,terminalText,isSearchTravel,hasRenderedOffers,completionReady,terminalCompletionReady,
-  releaseTerminalIfVisible,bind,startGuard,releaseGuard,
+  releaseTerminalIfVisible,completeAfterNetwork,bind,startGuard,releaseGuard,
   get active(){return guardActive;},get networkSuccess(){return networkSuccess;},get targetRequests(){return targetRequests;},
   get resultSequence(){return resultSequence;}
 });
