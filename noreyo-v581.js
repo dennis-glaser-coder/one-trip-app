@@ -1,7 +1,7 @@
-/* NOREYO V5.81 — provider occupancy alignment + build sync */
+/* NOREYO V5.82 — provider occupancy alignment + mutation-loop guard loader */
 (function(){
 'use strict';
-const BUILD='5.81';
+const BUILD='5.82';
 const MAX_ADULTS=6;
 const MAX_TRAVELLERS=9;
 function state(){try{return typeof searchState!=='undefined'&&searchState?searchState:null;}catch(_){return null;}}
@@ -21,7 +21,13 @@ function openTravellers(){try{if(typeof openPlanner==='function'){openPlanner('t
 function onSearch(e){const btn=e.target instanceof Element?e.target.closest('.liveSearchButton,.noreyo-v541-booking-cta'):null;if(!btn)return;const error=occupancyError();if(!error)return;e.preventDefault();e.stopImmediatePropagation();notify(error);setTimeout(openTravellers,0);}
 function syncBuildLabel(){const el=document.querySelector('.noreyo-v576-build');if(el&&el.textContent!=='NOREYO · BUILD '+BUILD)el.textContent='NOREYO · BUILD '+BUILD;}
 function relevant(records){for(const r of records){for(const n of r.addedNodes||[]){if(n.nodeType!==1)continue;if(n.matches?.('#profile,.noreyo-v576-build')||n.querySelector?.('#profile,.noreyo-v576-build'))return true;}}return false;}
-function install(){document.addEventListener('click',onSearch,true);syncBuildLabel();if(typeof MutationObserver!=='undefined'){const mo=new MutationObserver(records=>{if(relevant(records))syncBuildLabel();});mo.observe(document.body,{childList:true,subtree:true});}window.addEventListener('pageshow',syncBuildLabel,{passive:true});}
-window.NOREYO_V581=Object.freeze({BUILD,MAX_ADULTS,MAX_TRAVELLERS,occupancyError,syncBuildLabel});
+function loadV582(){
+ if(window.NOREYO_V582||document.querySelector('script[data-noreyo-v582]'))return;
+ const s=document.createElement('script');s.src='./noreyo-v582.js?build=582';s.dataset.noreyoV582='1';
+ s.onerror=()=>{s.remove();setTimeout(loadV582,700);};
+ document.head.appendChild(s);
+}
+function install(){document.addEventListener('click',onSearch,true);syncBuildLabel();loadV582();if(typeof MutationObserver!=='undefined'){const mo=new MutationObserver(records=>{if(relevant(records))syncBuildLabel();});mo.observe(document.body,{childList:true,subtree:true});}window.addEventListener('pageshow',()=>{syncBuildLabel();loadV582();},{passive:true});}
+window.NOREYO_V581=Object.freeze({BUILD,MAX_ADULTS,MAX_TRAVELLERS,occupancyError,syncBuildLabel,loadV582});
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
 })();
