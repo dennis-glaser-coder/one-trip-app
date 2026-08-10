@@ -1,6 +1,6 @@
 (function(){
   'use strict';
-  const BUILD='6.11';
+  const BUILD='6.57';
   let plannerScrollY=0;
   let plannerLocked=false;
 
@@ -12,6 +12,7 @@
   function viewportMetrics(){
     const vv=window.visualViewport;
     return {
+      width:Math.max(260,Math.round(vv?.width||window.innerWidth||390)),
       height:Math.max(260,Math.round(vv?.height||window.innerHeight||700)),
       top:Math.max(0,Math.round(vv?.offsetTop||0)),
       left:Math.max(0,Math.round(vv?.offsetLeft||0))
@@ -21,6 +22,7 @@
   function syncVisualViewport(){
     const m=viewportMetrics();
     const root=document.documentElement;
+    root.style.setProperty('--noreyo-vv-width',m.width+'px');
     root.style.setProperty('--noreyo-vv-height',m.height+'px');
     root.style.setProperty('--noreyo-vv-top',m.top+'px');
     root.style.setProperty('--noreyo-vv-left',m.left+'px');
@@ -131,5 +133,5 @@
   installPlannerHooks();
   syncVisualViewport();
   setTimeout(installPlannerHooks,120);
-  window.NOREYO_V544=Object.freeze({BUILD,destinationOpen,stabilizeDestinationSheet,clearPlannerLock});
+  window.NOREYO_V544=Object.freeze({BUILD,destinationOpen,viewportMetrics,stabilizeDestinationSheet,clearPlannerLock});
 })();
