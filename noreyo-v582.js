@@ -18,64 +18,72 @@ function patchBookingCTA(){
   const btn=document.querySelector('#discover .noreyo-v541-booking-cta[data-noreyo-native="1"]');
   if(!btn||btn===patchedButton||btn.dataset.noreyoV582Innerhtml==='1')return false;
   const d=prototypeInnerHTMLDescriptor();if(!d)return false;
-  Object.defineProperty(btn,'innerHTML',{
-    configurable:true,
-    enumerable:d.enumerable,
-    get(){return d.get.call(this);},
-    set(value){
-      const next=String(value);
-      if(d.get.call(this)===next)return;
-      d.set.call(this,next);
-    }
-  });
+  try{
+    Object.defineProperty(btn,'innerHTML',{
+      configurable:true,
+      enumerable:d.enumerable,
+      get(){return d.get.call(this);},
+      set(value){
+        const next=String(value);
+        if(d.get.call(this)===next)return;
+        d.set.call(this,next);
+      }
+    });
+  }catch(_){return false;}
   btn.dataset.noreyoV582Innerhtml='1';
   patchedButton=btn;
   return true;
 }
 
-function gridRole(el){
-  if(!(el instanceof Element))return'';
-  const grid=el.parentElement;
-  if(!grid?.classList.contains('booking-command-grid'))return'';
-  const items=[...grid.children].filter(x=>x?.classList&&(x.classList.contains('command-cell')||!!x.querySelector?.('.command-cell')));
-  const index=items.indexOf(el);
-  if(index<0)return'';
+function expectedRole(item,index){
   return index<4?'noreyo-v541-main-cell':'noreyo-v541-extra-cell';
 }
 
-function installClassGuard(){
-  if(DOMTokenList.prototype.remove.__noreyoV582)return;
-  const nativeRemove=DOMTokenList.prototype.remove;
-  const guarded=function(...tokens){
-    const owner=this.ownerElement||this._element||null;
-    if(owner instanceof Element){
-      const role=gridRole(owner);
-      if(role)tokens=tokens.filter(token=>token!==role);
-    }
-    if(tokens.length)return nativeRemove.apply(this,tokens);
-  };
-  Object.defineProperty(guarded,'__noreyoV582',{value:true});
-  try{DOMTokenList.prototype.remove=guarded;}catch(_){}
+function patchGridItems(){
+  const grid=document.querySelector('#discover .booking-command-grid');if(!grid)return 0;
+  const items=[...grid.children].filter(el=>el?.classList&&(el.classList.contains('command-cell')||!!el.querySelector?.('.command-cell')));
+  let changed=0;
+  items.forEach((item,index)=>{
+    const list=item.classList;
+    if(list.__noreyoV582Remove)return;
+    const nativeRemove=list.remove.bind(list);
+    const role=expectedRole(item,index);
+    const guarded=(...tokens)=>{
+      const currentItems=item.parentElement===grid?[...grid.children].filter(el=>el?.classList&&(el.classList.contains('command-cell')||!!el.querySelector?.('.command-cell'))):[];
+      const currentIndex=currentItems.indexOf(item);
+      const keep=currentIndex>=0?expectedRole(item,currentIndex):role;
+      const filtered=tokens.filter(token=>token!==keep);
+      if(filtered.length)return nativeRemove(...filtered);
+    };
+    try{
+      Object.defineProperty(guarded,'__noreyoV582',{value:true});
+      Object.defineProperty(list,'remove',{configurable:true,value:guarded});
+      Object.defineProperty(list,'__noreyoV582Remove',{configurable:true,value:true});
+      changed++;
+    }catch(_){}
+  });
+  return changed;
 }
+
+function patchAll(){patchBookingCTA();patchGridItems();}
 
 function relevant(records){
   for(const r of records)for(const n of r.addedNodes||[]){
     if(n.nodeType!==1)continue;
-    if(n.matches?.('.noreyo-v541-booking-cta,.booking-command-grid')||n.querySelector?.('.noreyo-v541-booking-cta,.booking-command-grid'))return true;
+    if(n.matches?.('.noreyo-v541-booking-cta,.booking-command-grid,.command-cell')||n.querySelector?.('.noreyo-v541-booking-cta,.booking-command-grid,.command-cell'))return true;
   }
   return false;
 }
 
 function install(){
-  installClassGuard();
-  patchBookingCTA();
+  patchAll();
   if(typeof MutationObserver!=='undefined'){
-    const mo=new MutationObserver(records=>{if(relevant(records))patchBookingCTA();});
+    const mo=new MutationObserver(records=>{if(relevant(records))patchAll();});
     mo.observe(document.body,{childList:true,subtree:true});
   }
-  window.addEventListener('pageshow',patchBookingCTA,{passive:true});
+  window.addEventListener('pageshow',patchAll,{passive:true});
 }
 
-window.NOREYO_V582=Object.freeze({BUILD,gridRole,patchBookingCTA,relevant});
+window.NOREYO_V582=Object.freeze({BUILD,expectedRole,patchBookingCTA,patchGridItems,relevant});
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
 })();
