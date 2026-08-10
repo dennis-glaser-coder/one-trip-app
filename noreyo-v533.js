@@ -1,16 +1,30 @@
 (function(){
   'use strict';
-  const BUILD='6.42';
+  const BUILD='6.43';
   if(!document.querySelector('link[data-noreyo-v534]')){
     const link=document.createElement('link');link.rel='stylesheet';link.href='./noreyo-v534.css?build=534';link.dataset.noreyoV534='1';document.head.appendChild(link);
   }
   const checks=[
     ['Zimmer0','Balkon',o=>o.confirmed?.balcony===true],['Zimmer1','Meerblick',o=>o.confirmed?.seaView===true],['Zimmer2','Terrasse',o=>o.confirmed?.terrace===true],['Hotel0','4★+',o=>Number(o.stars||0)>=4],['Hotel4','Spa',o=>o.confirmed?.spa===true],['Hotel5','Fitness',o=>o.confirmed?.fitness===true],['Hotel6','Frühstück',o=>o.confirmed?.breakfast===true],['Hotel7','All Inclusive',o=>o.confirmed?.allInclusive===true],['Preis2','Stornierbar',o=>o.refundable===true]
   ];
+  function mealCode(board){
+    try{if(window.NOREYO_V548?.codeFromBoard)return String(window.NOREYO_V548.codeFromBoard(board)||'ANY').toUpperCase();}catch(_){ }
+    const b=String(board||'').toLowerCase();
+    if(/all\s*[- ]?inclusive|\bai\d*\b|\bti\b/.test(b))return'AI';
+    if(/vollpension|full\s*board|\bfb\d*\b/.test(b))return'FB';
+    if(/halbpension|half\s*board|\bhb\d*\b|\bbd\b/.test(b))return'HB';
+    if(/frühstück|fruhstuck|breakfast|\bbb\d*\b|\bbi\b/.test(b))return'BB';
+    if(/nur\s*übernachtung|nur\s*ubernachtung|room\s*only|\bro\d*\b/.test(b))return'RO';
+    return'ANY';
+  }
+  function mealMatches(o){
+    const wanted=String(mealPlanFilter||'ANY').toUpperCase();
+    return wanted==='ANY'||mealCode(o?.board)===wanted;
+  }
   function matchData(o){
     let points=0;const items=[];
     for(const [key,label,test] of checks){const state=states[key]||'any';if(state==='any')continue;const ok=!!test(o);if(ok)points+=state==='must'?6:2;items.push({label,state,ok});}
-    if(mealPlanFilter&&mealPlanFilter!=='ANY'){points+=6;items.push({label:mealPlanLabel(),state:'must',ok:true});}
+    if(mealPlanFilter&&mealPlanFilter!=='ANY'){const ok=mealMatches(o);if(ok)points+=6;items.push({label:mealPlanLabel(),state:'must',ok});}
     return{points,items,confirmed:items.filter(x=>x.ok).length,active:items.length};
   }
   function detailMatchLabel(m){if(!m.active)return'LIVE';if(m.confirmed>=4)return'SEHR PASSEND';if(m.confirmed>=2)return'GUT PASSEND';return'PASSEND';}
@@ -74,5 +88,5 @@
   const baseControls=renderProductControls;renderProductControls=function(){const r=baseControls.apply(this,arguments);return afterResult(r,decorateSearch);};
   const baseCounts=updateCounts;updateCounts=function(){const r=baseCounts.apply(this,arguments);return afterResult(r,()=>{decorateSearch();decorateResultPrinciple();});};
   decorateSearch();decorateOffers();decorateResultPrinciple();
-  window.NOREYO_V533=Object.freeze({BUILD,decorateOffers,decorateDetail,matchData,afterResult});
+  window.NOREYO_V533=Object.freeze({BUILD,decorateOffers,decorateDetail,matchData,mealCode,mealMatches,afterResult});
 })();
