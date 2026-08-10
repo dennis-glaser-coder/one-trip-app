@@ -3,7 +3,7 @@
    numeric and string representations across old storage and live offers. */
 (function(){
 'use strict';
-const BUILD='6.26';
+const BUILD='6.27';
 const LEGACY_FAV_KEY='noreyoLegacyFavoriteIds584';
 const TOMBSTONE_KEY='noreyoLegacyFavoriteTombstones589';
 
@@ -29,6 +29,20 @@ function favoriteIdActive(id){
   }catch(_){ }
   return false;
 }
+function normalizeCoreFavoriteId(id,active){
+  if(!active)return false;
+  const s=sid(id);if(!s)return false;
+  try{
+    if(!favs||typeof favs.has!=='function'||typeof favs.add!=='function'||typeof favs.delete!=='function')return false;
+    if(favs.has(id))return false;
+    let matched=false;
+    for(const value of [...favs]){
+      if(sid(value)===s){favs.delete(value);matched=true;}
+    }
+    if(matched){favs.add(id);return true;}
+  }catch(_){ }
+  return false;
+}
 function prepareIdToggle(id,removing){
   const key=snapshotKeyForId(id);
   if(removing){markId(id,false);if(key)window.NOREYO_V584?.scrubLegacySnapshotKey?.(key);}
@@ -44,7 +58,9 @@ function install(){
     if(typeof toggleFav==='function'&&!toggleFav.__noreyoV606){
       const prior=toggleFav;
       const wrapped=function(id){
-        prepareIdToggle(id,favoriteIdActive(id));
+        const removing=favoriteIdActive(id);
+        prepareIdToggle(id,removing);
+        normalizeCoreFavoriteId(id,removing);
         return prior.apply(this,arguments);
       };
       wrapped.__noreyoV606=true;toggleFav=wrapped;
@@ -60,5 +76,5 @@ function install(){
 }
 install();
 window.addEventListener('pageshow',install,{passive:true});
-window.NOREYO_V606=Object.freeze({BUILD,sid,favoriteIdActive,prepareIdToggle,prepareSnapshotToggle,clearTombstone,markId});
+window.NOREYO_V606=Object.freeze({BUILD,sid,favoriteIdActive,normalizeCoreFavoriteId,prepareIdToggle,prepareSnapshotToggle,clearTombstone,markId});
 })();
