@@ -1,0 +1,117 @@
+/* NOREYO V5.83 — pure CSS premium pass on stable V5.82. No JS, overlays, z-index or pointer-event changes. */
+
+/* First screen: stronger imagery, calmer spacing. */
+#discover .hero{
+  margin-left:14px!important;
+  margin-right:14px!important;
+  margin-bottom:12px!important;
+  min-height:228px!important;
+  border-radius:28px!important;
+  overflow:hidden!important;
+  box-shadow:0 22px 54px rgba(7,31,45,.15), inset 0 -86px 90px rgba(6,29,42,.18)!important;
+}
+
+/* Four travel modes become one compact premium control. */
+#discover .product-switch-host{margin:0 14px 10px!important}
+#discover .product-switch.noreyo-v552-products{
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  gap:4px!important;
+  padding:5px!important;
+  border-radius:19px!important;
+  background:#fff!important;
+  border:1px solid rgba(10,47,61,.07)!important;
+  box-shadow:0 10px 28px rgba(7,31,45,.07)!important;
+}
+#discover .noreyo-v552-products .product-mode{
+  min-height:45px!important;
+  height:45px!important;
+  padding:0 4px!important;
+  gap:4px!important;
+  border-radius:14px!important;
+  font-size:8.6px!important;
+  font-weight:820!important;
+  letter-spacing:-.08px!important;
+  background:#f7f6f3!important;
+  color:#31515c!important;
+  box-shadow:none!important;
+}
+#discover .noreyo-v552-products .product-mode svg{
+  width:15px!important;
+  height:15px!important;
+  flex-basis:15px!important;
+}
+#discover .noreyo-v552-products .product-mode.on{
+  background:linear-gradient(135deg,#073d51,#096775)!important;
+  color:#fff!important;
+  box-shadow:0 8px 18px rgba(7,61,81,.16)!important;
+}
+#discover .noreyo-v552-products .product-mode.on svg{color:#e8c27e!important}
+
+/* One clean premium search surface. */
+#discover .search-card.noreyo-v551-search,
+#discover .search-card.noreyo-v552-cruise-search{
+  margin-left:14px!important;
+  margin-right:14px!important;
+  padding:14px!important;
+  border-radius:26px!important;
+  background:#fff!important;
+  border:1px solid rgba(10,47,61,.065)!important;
+  box-shadow:0 18px 44px rgba(7,31,45,.085)!important;
+}
+#discover .search-card.noreyo-v551-search .booking-command-grid,
+#discover .noreyo-v552-cruise-grid{gap:8px!important}
+
+/* Search fields: tactile and expensive-looking, without changing hit areas. */
+#discover .search-card .command-cell,
+#discover .noreyo-v552-cruise-grid .command-cell{
+  border-radius:17px!important;
+  border:1px solid rgba(10,47,61,.065)!important;
+  background:#f7f6f3!important;
+  box-shadow:0 5px 15px rgba(7,31,45,.025)!important;
+}
+#discover .search-card .command-icon,
+#discover .noreyo-v552-cruise-grid .command-icon{
+  background:#fff!important;
+  color:#078f91!important;
+  box-shadow:0 5px 13px rgba(7,31,45,.05)!important;
+}
+#discover .search-card .command-cell small,
+#discover .noreyo-v552-cruise-grid .command-copy small{
+  color:#8a999e!important;
+  letter-spacing:1.2px!important;
+}
+#discover .search-card .command-cell b,
+#discover .noreyo-v552-cruise-grid .command-copy b{color:#0b3544!important}
+
+/* Destination gets a subtle priority treatment. */
+#discover .search-card.noreyo-v551-search .noreyo-v551-destination,
+#discover .search-card.noreyo-v551-search .hotel-universal.noreyo-v551-hotel-destination,
+#discover .noreyo-v552-cruise-main{
+  background:linear-gradient(135deg,#f4faf8,#f8f6f1)!important;
+  border-color:rgba(7,143,145,.10)!important;
+}
+
+/* Primary CTA stays unmistakable. */
+#discover .search-card.noreyo-v551-search .noreyo-v551-cta,
+#discover .noreyo-v552-cruise-cta{
+  min-height:51px!important;
+  border-radius:15px!important;
+  background:linear-gradient(105deg,#073d51 0%,#087986 52%,#079f97 100%)!important;
+  box-shadow:0 11px 24px rgba(7,111,122,.17)!important;
+  font-weight:880!important;
+}
+
+/* Keep lower content visually quiet so search remains the focus. */
+#discover .search-console-head,
+#discover .noreyo-v552-search-head{margin-bottom:11px!important}
+#discover .search-console-head small,
+#discover .noreyo-v552-search-head span{color:#a77b42!important}
+
+@media(max-width:390px){
+  #discover .hero{margin-left:10px!important;margin-right:10px!important;min-height:216px!important;border-radius:25px!important}
+  #discover .product-switch-host{margin-left:10px!important;margin-right:10px!important}
+  #discover .noreyo-v552-products .product-mode{font-size:8px!important;min-height:44px!important;height:44px!important;padding-left:2px!important;padding-right:2px!important}
+  #discover .noreyo-v552-products .product-mode svg{width:14px!important;height:14px!important;flex-basis:14px!important}
+  #discover .search-card.noreyo-v551-search,
+  #discover .search-card.noreyo-v552-cruise-search{margin-left:10px!important;margin-right:10px!important;padding:12px!important;border-radius:24px!important}
+}
