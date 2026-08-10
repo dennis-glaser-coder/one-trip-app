@@ -1,9 +1,9 @@
-/* NOREYO V6.37 — German 7–9 party wording reconciliation.
+/* NOREYO V6.38 — German 7–9 party wording reconciliation.
    Extends the AI safety layer for ausgeschriebene Gruppen ("sieben/acht/neun Personen")
    and prevents invalid >6-adult wording from leaking into the search state. */
 (function(){
 'use strict';
-const BUILD='6.37';
+const BUILD='6.38';
 const MAX_ADULTS=6,MAX_CHILDREN=4,MAX_TRAVELLERS=9;
 
 function norm(v){return String(v||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/ß/g,'ss');}
@@ -42,23 +42,23 @@ function resolvedParty(t){
   const explicit=explicitAdultCount(t);
   const children=childCount(t);
   if(explicit!==null){
-    if(explicit<1||explicit>MAX_ADULTS)return {valid:false,reason:'adults',adults:explicit,children,total:null};
-    const c=children===null?0:children;
-    const total=explicit+c;
-    if(c>MAX_CHILDREN||total>MAX_TRAVELLERS)return {valid:false,reason:'party',adults:explicit,children:c,total};
-    return {valid:true,adults:explicit,children:c,total};
+    if(explicit<1||explicit>MAX_ADULTS)return {valid:false,reason:'adults',source:'adults',adults:explicit,children,total:null};
+    if(children===null)return {valid:true,source:'adults',adults:explicit,children:null,total:null};
+    const total=explicit+children;
+    if(children>MAX_CHILDREN||total>MAX_TRAVELLERS)return {valid:false,reason:'party',source:'adults',adults:explicit,children,total};
+    return {valid:true,source:'adults',adults:explicit,children,total};
   }
   const party=partySize(t);
   if(party===null)return null;
-  if(party<1||party>MAX_TRAVELLERS)return {valid:false,reason:'party',adults:null,children,total:party};
+  if(party<1||party>MAX_TRAVELLERS)return {valid:false,reason:'party',source:'party',adults:null,children,total:party};
   if(children===null){
-    if(party>MAX_ADULTS)return {valid:false,reason:'children-required',adults:null,children:null,total:party};
-    return {valid:true,adults:party,children:0,total:party};
+    if(party>MAX_ADULTS)return {valid:false,reason:'children-required',source:'party',adults:null,children:null,total:party};
+    return {valid:true,source:'party',adults:party,children:0,total:party};
   }
-  if(children<0||children>MAX_CHILDREN)return {valid:false,reason:'children',adults:null,children,total:party};
+  if(children<0||children>MAX_CHILDREN)return {valid:false,reason:'children',source:'party',adults:null,children,total:party};
   const adults=party-children;
-  if(adults<1||adults>MAX_ADULTS)return {valid:false,reason:'adults',adults,children,total:party};
-  return {valid:true,adults,children,total:party};
+  if(adults<1||adults>MAX_ADULTS)return {valid:false,reason:'adults',source:'party',adults,children,total:party};
+  return {valid:true,source:'party',adults,children,total:party};
 }
 function ppBudget(t){
   try{return Number(window.NOREYO_V591?.perPersonBudget?.(t))||null;}catch(_){return null;}
@@ -98,11 +98,11 @@ function applyReconciliation(t,snapshot){
     if(typeof searchState!=='undefined'&&searchState){
       if(Math.round(Number(searchState.adults))!==party.adults){searchState.adults=party.adults;changed=true;}
       const ages=childAges(t);
-      if(Array.isArray(ages)&&ages.length===party.children){
+      if(party.children!==null&&Array.isArray(ages)&&ages.length===party.children){
         const old=Array.isArray(searchState.childAges)?searchState.childAges.map(Number):[];
         if(old.length!==ages.length||old.some((v,i)=>v!==ages[i])){searchState.childAges=ages.slice();changed=true;}
-      }else if(Array.isArray(searchState.childAges)&&searchState.childAges.length){
-        // Explicit child count without fresh ages must never inherit ages from an older search.
+      }else if(party.children!==null&&Array.isArray(searchState.childAges)&&searchState.childAges.length){
+        // A fresh explicit child count without fresh ages must never inherit ages from an older search.
         searchState.childAges=[];changed=true;
       }
     }
@@ -110,8 +110,12 @@ function applyReconciliation(t,snapshot){
   const pp=ppBudget(t);
   try{
     if(pp&&typeof limits!=='undefined'&&limits){
-      const total=pp*party.total;
-      if(Number(limits.maxHotelPrice)!==total){limits.maxHotelPrice=total;changed=true;}
+      const selectedChildren=snapshot?.childAges?.length||0;
+      const travellers=party.total!==null?party.total:party.adults+selectedChildren;
+      if(travellers>=1&&travellers<=MAX_TRAVELLERS){
+        const total=pp*travellers;
+        if(Number(limits.maxHotelPrice)!==total){limits.maxHotelPrice=total;changed=true;}
+      }
     }
   }catch(_){ }
   if(changed)refresh();
@@ -122,9 +126,11 @@ function repairAnalysis(t){
   if(!party||!result)return false;
   const chips=[...result.querySelectorAll('.noreyo-v556-chip')].filter(chip=>/reisende\s*·/i.test(String(chip.textContent||'')));
   if(!party.valid){chips.forEach(chip=>chip.remove());return !!chips.length;}
-  const label=party.children>0
-    ?`${party.adults} ${party.adults===1?'Erwachsener':'Erwachsene'} · ${party.children} ${party.children===1?'Kind':'Kinder'}`
-    :`${party.total} ${party.total===1?'Person':'Personen'}`;
+  const label=party.source==='adults'
+    ?`${party.adults} ${party.adults===1?'Erwachsener':'Erwachsene'}${party.children>0?` · ${party.children} ${party.children===1?'Kind':'Kinder'}`:''}`
+    :(party.children>0
+      ?`${party.adults} ${party.adults===1?'Erwachsener':'Erwachsene'} · ${party.children} ${party.children===1?'Kind':'Kinder'}`
+      :`${party.total} ${party.total===1?'Person':'Personen'}`);
   chips.forEach(chip=>{chip.innerHTML='<i>✓</i>Reisende · '+label;});
   return !!chips.length;
 }
