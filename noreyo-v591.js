@@ -2,7 +2,7 @@
    Repairs legacy V5.56 ambiguity after explicit AI apply without disturbing manual search edits. */
 (function(){
 'use strict';
-const BUILD='5.95';
+const BUILD='5.99';
 
 function norm(v){return String(v||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/ß/g,'ss');}
 function naturalText(){return document.getElementById('noreyoAi556Text')?.value||'';}
@@ -56,6 +56,44 @@ function childAges(text){
   if(count!==null&&ages.length!==count)return null;
   return ages;
 }
+
+const monthMap={januar:0,februar:1,maerz:2,marz:2,april:3,mai:4,juni:5,juli:6,august:7,september:8,oktober:9,november:10,dezember:11};
+function isoDate(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function validDateParts(y,m,d){const x=new Date(y,m,d,12);return x.getFullYear()===y&&x.getMonth()===m&&x.getDate()===d;}
+function implicitDayMonth(text,now=new Date()){
+  const t=norm(text);
+  const m=t.match(/\b(?:ab|vom)?\s*(\d{1,2})[.\s]+(januar|februar|maerz|marz|april|mai|juni|juli|august|september|oktober|november|dezember)(?:\s*(20\d{2}))?/);
+  if(!m||m[3])return null;
+  const day=Number(m[1]),month=monthMap[m[2]];
+  let year=now.getFullYear();
+  if(!validDateParts(year,month,day))return null;
+  const candidate=new Date(year,month,day,12);
+  const today=new Date(now.getFullYear(),now.getMonth(),now.getDate(),12);
+  if(candidate<today){
+    year++;
+    if(!validDateParts(year,month,day))return null;
+  }
+  return isoDate(new Date(year,month,day,12));
+}
+function dayDelta(a,b){
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(String(a||''))||!/^\d{4}-\d{2}-\d{2}$/.test(String(b||'')))return 7;
+  const x=new Date(String(a)+'T12:00:00'),y=new Date(String(b)+'T12:00:00');
+  const n=Math.round((y-x)/86400000);
+  return Number.isFinite(n)&&n>=1&&n<=30?n:7;
+}
+function repairImplicitDate(text){
+  const checkin=implicitDayMonth(text);if(!checkin)return false;
+  try{
+    if(typeof searchState==='undefined'||!searchState)return false;
+    const oldIn=String(searchState.checkin||''),oldOut=String(searchState.checkout||'');
+    const days=dayDelta(oldIn,oldOut);
+    if(oldIn===checkin)return false;
+    const out=new Date(checkin+'T12:00:00');out.setDate(out.getDate()+days);
+    searchState.checkin=checkin;searchState.checkout=isoDate(out);
+    return true;
+  }catch(_){return false;}
+}
+
 function money(v){
   const n=Number(String(v||'').replace(/[.\s]/g,'').replace(',','.'));
   return Number.isFinite(n)&&n>=100&&n<=50000?n:null;
@@ -122,6 +160,7 @@ function onApplyCapture(e){
         const old=Array.isArray(searchState.childAges)?searchState.childAges.map(Number):[];
         if(old.length!==ages.length||old.some((v,i)=>v!==ages[i])){searchState.childAges=ages.slice();changed=true;}
       }
+      if(repairImplicitDate(text))changed=true;
     }catch(_){ }
     try{
       if(pp&&effective&&typeof limits!=='undefined'&&limits){
@@ -135,5 +174,5 @@ function onApplyCapture(e){
 
 document.addEventListener('click',onAnalyzeCapture,true);
 document.addEventListener('click',onApplyCapture,true);
-window.NOREYO_V591=Object.freeze({BUILD,adultCount,explicitAdults,childCount,childAges,perPersonBudget,currentAdults,repairAnalysis});
+window.NOREYO_V591=Object.freeze({BUILD,adultCount,explicitAdults,childCount,childAges,perPersonBudget,currentAdults,implicitDayMonth,repairImplicitDate,repairAnalysis});
 })();
