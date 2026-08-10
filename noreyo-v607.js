@@ -1,9 +1,9 @@
-/* NOREYO V6.10 — scoped search completion/network lifecycle guard.
-   Releases disabled search CTAs on terminal states, completed offer renders and
-   search-travel network failures without swallowing provider errors. */
+/* NOREYO V6.13 — race-safe search completion/network lifecycle guard.
+   Terminal observer only releases on terminal text. Successful searches release
+   only after renderOffers completes, so stale cards cannot end a new search early. */
 (function(){
 'use strict';
-const BUILD='6.10';
+const BUILD='6.13';
 let observer=null,root=null,raf=0;
 
 function norm(v){
@@ -14,12 +14,6 @@ function terminalText(text){
   const t=norm(text);
   return /keine (?:angebote|hotels|fluge|reisen|ergebnisse)|nichts gefunden|suche fehlgeschlagen|fehler bei der suche|erneut versuchen|keine vollstandige ubereinstimmung|keine verfugbarkeit gefunden|aktive filter ohne treffer|aktuell keine bestatigte .*rate|in den aktuellen daten nicht bestatigt/.test(t);
 }
-function settledResultVisible(){
-  const results=document.getElementById('results');
-  if(!results)return false;
-  if(results.querySelector?.('#offers .offer,.offer'))return true;
-  return terminalText(results.textContent||'');
-}
 function releaseBusy(){
   try{
     const api=window.NOREYO_V585;
@@ -27,14 +21,15 @@ function releaseBusy(){
   }catch(_){ }
   return false;
 }
-function releaseIfSettled(){
+function releaseTerminalIfVisible(){
   raf=0;
-  if(!window.NOREYO_V585?.busy||!settledResultVisible())return false;
+  const results=document.getElementById('results');
+  if(!window.NOREYO_V585?.busy||!results||!terminalText(results.textContent||''))return false;
   return releaseBusy();
 }
-function schedule(){
+function scheduleTerminal(){
   if(raf)return;
-  raf=requestAnimationFrame(releaseIfSettled);
+  raf=requestAnimationFrame(releaseTerminalIfVisible);
 }
 function bind(){
   const next=document.getElementById('results');
@@ -42,9 +37,9 @@ function bind(){
   if(observer){observer.disconnect();observer=null;}
   root=next;
   if(!root||typeof MutationObserver==='undefined')return;
-  observer=new MutationObserver(schedule);
+  observer=new MutationObserver(scheduleTerminal);
   observer.observe(root,{childList:true,subtree:true,characterData:true});
-  schedule();
+  scheduleTerminal();
 }
 function isSearchTravel(input){
   const url=typeof input==='string'?input:String(input?.url||'');
@@ -52,7 +47,7 @@ function isSearchTravel(input){
 }
 function installFetchHook(){
   try{
-    if(typeof window.fetch!=='function'||window.fetch.__noreyoV610)return;
+    if(typeof window.fetch!=='function'||window.fetch.__noreyoV613)return;
     const prior=window.fetch.bind(window);
     const wrapped=async function(input,init){
       const target=isSearchTravel(input);
@@ -65,35 +60,42 @@ function installFetchHook(){
         throw error;
       }
     };
-    wrapped.__noreyoV610=true;
+    wrapped.__noreyoV613=true;
     window.fetch=wrapped;
   }catch(_){ }
 }
+function hasRenderedOffers(){
+  const results=document.getElementById('results');
+  return !!results?.querySelector?.('#offers .offer,.offer');
+}
 function installRenderHook(){
   try{
-    if(typeof renderOffers!=='function'||renderOffers.__noreyoV610)return;
+    if(typeof renderOffers!=='function'||renderOffers.__noreyoV613)return;
     const prior=renderOffers;
     const wrapped=function(){
       const result=prior.apply(this,arguments);
-      const done=()=>{if(window.NOREYO_V585?.busy&&settledResultVisible())releaseBusy();};
+      const done=()=>{
+        if(!window.NOREYO_V585?.busy)return;
+        if(hasRenderedOffers()||terminalText(document.getElementById('results')?.textContent||''))releaseBusy();
+      };
       if(result&&typeof result.then==='function')result.then(done,done);
       else setTimeout(done,0);
       return result;
     };
-    wrapped.__noreyoV610=true;
+    wrapped.__noreyoV613=true;
     renderOffers=wrapped;
   }catch(_){ }
 }
 function installNavigationHook(){
   try{
-    if(typeof go!=='function'||go.__noreyoV610)return;
+    if(typeof go!=='function'||go.__noreyoV613)return;
     const prior=go;
     const wrapped=function(){
       const result=prior.apply(this,arguments);
       setTimeout(bind,0);
       return result;
     };
-    wrapped.__noreyoV610=true;
+    wrapped.__noreyoV613=true;
     go=wrapped;
   }catch(_){ }
 }
@@ -106,5 +108,5 @@ function cleanup(){
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
 window.addEventListener('pagehide',cleanup,{passive:true});
 window.addEventListener('pageshow',install,{passive:true});
-window.NOREYO_V607=Object.freeze({BUILD,terminalText,settledResultVisible,isSearchTravel,releaseIfSettled,bind});
+window.NOREYO_V607=Object.freeze({BUILD,terminalText,isSearchTravel,hasRenderedOffers,releaseTerminalIfVisible,bind});
 })();
