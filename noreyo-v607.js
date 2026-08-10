@@ -3,7 +3,7 @@
    cannot re-enable or double-submit while a newer search is still unresolved. */
 (function(){
 'use strict';
-const BUILD='6.16';
+const BUILD='6.17';
 let observer=null,root=null,raf=0;
 let guardActive=false,guardButton=null,buttonObserver=null,guardTimer=0;
 
@@ -139,8 +139,9 @@ function installNavigationHook(){
   try{
     if(typeof go!=='function'||go.__noreyoV616)return;
     const prior=go;
-    const wrapped=function(){
+    const wrapped=function(view){
       const result=prior.apply(this,arguments);
+      if(guardActive&&['favorites','trips','profile','discover'].includes(String(view||'')))releaseGuard('navigation-away');
       setTimeout(bind,0);
       return result;
     };
