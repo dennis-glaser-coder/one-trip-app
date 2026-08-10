@@ -3,7 +3,7 @@
    already selected adult count, and blocks searches until fresh child ages exist. */
 (function(){
 'use strict';
-const BUILD='6.44';
+const BUILD='6.46';
 const MAX_ADULTS=6,MAX_CHILDREN=4,MAX_TRAVELLERS=9;
 let pending=null;
 
@@ -26,7 +26,7 @@ function descendantAges(t){
   let m;
   const hyphen=/(\d{1,2})\s*[- ]?\s*jahrig(?:e|er|en|es)?\s+(?:sohn|tochter)\b/g;
   while((m=hyphen.exec(s)))add(m[1]);
-  const direct=/\b(?:sohn|tochter)\b[^;.!?]{0,24}?(\d{1,2})(?:\s*(?:jahre?|jahr|j\.))?\b/g;
+  const direct=/\b(?:sohn|tochter)\b\s*(?:ist\s+|:\s*)?(\d{1,2})(?=\s*(?:,|und\b|$|jahre?\b|jahr\b|j\.))/g;
   while((m=direct.exec(s)))add(m[1]);
   return out.length?out:null;
 }
