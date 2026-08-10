@@ -2,11 +2,12 @@
    No MutationObserver, no full-screen UI layer, no pointer-event or z-index manipulation. */
 (function(){
 'use strict';
-const BUILD='5.84';
+const BUILD='5.85';
 const LEGACY_FAV_KEY='noreyoLegacyFavoriteIds584';
 let syncingCruise=false;
 
 function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function decodeKey(v){try{return decodeURIComponent(String(v||''));}catch(_){return String(v||'');}}
 function mode(){
   const active=document.querySelector('.view.active .product-mode.on')||document.querySelector('#discover .product-mode.on');
   const t=String(active?.textContent||'').toLowerCase();
@@ -74,10 +75,10 @@ function fallbackFavorites(){
     }).join('');
     list.querySelectorAll('[data-v584-open]').forEach(card=>card.addEventListener('click',e=>{
       if(e.target.closest('[data-v584-remove]'))return;
-      try{if(typeof showSavedDetail==='function')showSavedDetail(card.dataset.v584Open,'favorites');}catch(_){ }
+      try{if(typeof showSavedDetail==='function')showSavedDetail(decodeKey(card.dataset.v584Open),'favorites');}catch(_){ }
     }));
     list.querySelectorAll('[data-v584-remove]').forEach(btn=>btn.addEventListener('click',e=>{
-      e.stopPropagation();try{if(typeof removeFavorite==='function')removeFavorite(btn.dataset.v584Remove);}catch(_){ }
+      e.stopPropagation();try{if(typeof removeFavorite==='function')removeFavorite(decodeKey(btn.dataset.v584Remove));}catch(_){ }
     }));
   }catch(e){console.warn('NOREYO '+BUILD+' favorite fallback',e);}
 }
@@ -205,5 +206,5 @@ document.addEventListener('click',e=>{
 
 rememberLegacyFavoriteIds();recoverFavoriteSnapshots();polishProfile();
 if(mode()==='cruise')setTimeout(syncCruiseSearchView,0);
-window.NOREYO_V584=Object.freeze({refreshFavorites,syncCruiseSearchView,version:BUILD});
+window.NOREYO_V584=Object.freeze({refreshFavorites,syncCruiseSearchView,decodeKey,version:BUILD});
 })();
