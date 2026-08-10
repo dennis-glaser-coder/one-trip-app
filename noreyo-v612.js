@@ -1,9 +1,9 @@
-/* NOREYO V6.12 — CTA DOM stability bridge.
-   Inserts the missing text-space between label/arrow spans so legacy idempotence
-   checks stop rebuilding search CTA innerHTML on every enforce/unify pass. */
+/* NOREYO V6.30 — CTA DOM stability without per-button observers.
+   A single scoped Discover observer detects CTA rewrites and inserts the
+   missing label/arrow text-space idempotently. */
 (function(){
 'use strict';
-const BUILD='6.12';
+const BUILD='6.30';
 let discoverObserver=null,raf=0;
 
 function isSearchCta(el){
@@ -24,21 +24,15 @@ function stabilizeButton(btn){
   btn.insertBefore(document.createTextNode(' '),arrow);
   return true;
 }
-function bindButton(btn){
-  if(!isSearchCta(btn)||btn.__noreyoV612Observer)return;
-  stabilizeButton(btn);
-  if(typeof MutationObserver==='undefined')return;
-  const mo=new MutationObserver(()=>{stabilizeButton(btn);});
-  mo.observe(btn,{childList:true});
-  btn.__noreyoV612Observer=mo;
-}
 function scan(){
   raf=0;
-  document.querySelectorAll('.noreyo-v541-booking-cta,.liveSearchButton').forEach(bindButton);
+  document.querySelectorAll('.noreyo-v541-booking-cta,.liveSearchButton').forEach(stabilizeButton);
 }
 function schedule(){if(raf)return;raf=requestAnimationFrame(scan);}
 function relevant(records){
   for(const r of records){
+    const target=r.target?.nodeType===1?r.target:r.target?.parentElement;
+    if(isSearchCta(target))return true;
     for(const n of r.addedNodes||[]){
       if(n.nodeType!==1)continue;
       if(isSearchCta(n)||n.querySelector?.('.noreyo-v541-booking-cta,.liveSearchButton'))return true;
@@ -56,10 +50,6 @@ function install(){
 function cleanup(){
   if(discoverObserver){discoverObserver.disconnect();discoverObserver=null;}
   if(raf){cancelAnimationFrame(raf);raf=0;}
-  document.querySelectorAll('.noreyo-v541-booking-cta,.liveSearchButton').forEach(btn=>{
-    try{btn.__noreyoV612Observer?.disconnect?.();}catch(_){ }
-    try{delete btn.__noreyoV612Observer;}catch(_){ }
-  });
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
 window.addEventListener('pagehide',cleanup,{passive:true});
