@@ -1,9 +1,9 @@
-/* NOREYO V6.09 — scoped search completion lifecycle guard.
-   Releases disabled search CTAs on real terminal states and completed offer renders,
-   including repeated searches that return identical cards. */
+/* NOREYO V6.10 — scoped search completion/network lifecycle guard.
+   Releases disabled search CTAs on terminal states, completed offer renders and
+   search-travel network failures without swallowing provider errors. */
 (function(){
 'use strict';
-const BUILD='6.09';
+const BUILD='6.10';
 let observer=null,root=null,raf=0;
 
 function norm(v){
@@ -20,11 +20,17 @@ function settledResultVisible(){
   if(results.querySelector?.('#offers .offer,.offer'))return true;
   return terminalText(results.textContent||'');
 }
+function releaseBusy(){
+  try{
+    const api=window.NOREYO_V585;
+    if(api?.busy){api.releaseBusy?.();return true;}
+  }catch(_){ }
+  return false;
+}
 function releaseIfSettled(){
   raf=0;
-  const api=window.NOREYO_V585;
-  if(!api?.busy||!settledResultVisible())return false;
-  try{api.releaseBusy?.();return true;}catch(_){return false;}
+  if(!window.NOREYO_V585?.busy||!settledResultVisible())return false;
+  return releaseBusy();
 }
 function schedule(){
   if(raf)return;
@@ -40,35 +46,58 @@ function bind(){
   observer.observe(root,{childList:true,subtree:true,characterData:true});
   schedule();
 }
+function isSearchTravel(input){
+  const url=typeof input==='string'?input:String(input?.url||'');
+  return url.includes('/functions/v1/search-travel');
+}
+function installFetchHook(){
+  try{
+    if(typeof window.fetch!=='function'||window.fetch.__noreyoV610)return;
+    const prior=window.fetch.bind(window);
+    const wrapped=async function(input,init){
+      const target=isSearchTravel(input);
+      try{
+        const response=await prior(input,init);
+        if(target&&window.NOREYO_V585?.busy&&response&&response.ok===false)releaseBusy();
+        return response;
+      }catch(error){
+        if(target&&window.NOREYO_V585?.busy)releaseBusy();
+        throw error;
+      }
+    };
+    wrapped.__noreyoV610=true;
+    window.fetch=wrapped;
+  }catch(_){ }
+}
 function installRenderHook(){
   try{
-    if(typeof renderOffers!=='function'||renderOffers.__noreyoV609)return;
+    if(typeof renderOffers!=='function'||renderOffers.__noreyoV610)return;
     const prior=renderOffers;
     const wrapped=function(){
       const result=prior.apply(this,arguments);
-      const done=()=>{if(window.NOREYO_V585?.busy&&settledResultVisible())window.NOREYO_V585.releaseBusy?.();};
+      const done=()=>{if(window.NOREYO_V585?.busy&&settledResultVisible())releaseBusy();};
       if(result&&typeof result.then==='function')result.then(done,done);
       else setTimeout(done,0);
       return result;
     };
-    wrapped.__noreyoV609=true;
+    wrapped.__noreyoV610=true;
     renderOffers=wrapped;
   }catch(_){ }
 }
 function installNavigationHook(){
   try{
-    if(typeof go!=='function'||go.__noreyoV609)return;
+    if(typeof go!=='function'||go.__noreyoV610)return;
     const prior=go;
     const wrapped=function(){
       const result=prior.apply(this,arguments);
       setTimeout(bind,0);
       return result;
     };
-    wrapped.__noreyoV609=true;
+    wrapped.__noreyoV610=true;
     go=wrapped;
   }catch(_){ }
 }
-function install(){bind();installRenderHook();installNavigationHook();}
+function install(){bind();installFetchHook();installRenderHook();installNavigationHook();}
 function cleanup(){
   if(observer){observer.disconnect();observer=null;}
   if(raf){cancelAnimationFrame(raf);raf=0;}
@@ -77,5 +106,5 @@ function cleanup(){
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
 window.addEventListener('pagehide',cleanup,{passive:true});
 window.addEventListener('pageshow',install,{passive:true});
-window.NOREYO_V607=Object.freeze({BUILD,terminalText,settledResultVisible,releaseIfSettled,bind});
+window.NOREYO_V607=Object.freeze({BUILD,terminalText,settledResultVisible,isSearchTravel,releaseIfSettled,bind});
 })();
