@@ -1,4 +1,6 @@
 (function(){
+  'use strict';
+  const BUILD='6.01';
   let plannerScrollY=0;
   let plannerLocked=false;
   let vvTimer=0;
@@ -45,15 +47,20 @@
     syncVisualViewport();
   }
 
-  function unlockPlannerPage(){
-    if(!plannerLocked)return;
+  function clearPlannerLock(restoreScroll,immediate){
+    clearTimeout(vvTimer);vvTimer=0;
+    const wasLocked=plannerLocked;
     plannerLocked=false;
     document.documentElement.classList.remove('noreyo-planner-lock');
     document.body.classList.remove('noreyo-planner-lock','noreyo-planner-keyboard');
     document.body.style.top='';
     document.getElementById('plannerSheet')?.classList.remove('noreyo-destination-sheet');
-    requestAnimationFrame(()=>window.scrollTo(0,plannerScrollY));
+    if(!restoreScroll||!wasLocked)return;
+    if(immediate)window.scrollTo(0,plannerScrollY);
+    else requestAnimationFrame(()=>window.scrollTo(0,plannerScrollY));
   }
+
+  function unlockPlannerPage(){clearPlannerLock(true,false);}
 
   function stabilizeDestinationSheet(){
     if(!destinationOpen())return;
@@ -100,9 +107,6 @@
     if(!input||!destinationOpen())return;
     document.body.classList.add('noreyo-planner-keyboard');
     syncVisualViewport();
-
-    /* Important on iOS: do NOT call scrollIntoView here. Safari would pan the
-       visual viewport again and move the complete bottom sheet. */
     const body=document.getElementById('plannerBody');
     requestAnimationFrame(()=>{if(body)body.scrollTop=0;syncVisualViewport();});
     setTimeout(()=>{if(body)body.scrollTop=0;syncVisualViewport();},80);
@@ -130,9 +134,16 @@
   window.visualViewport?.addEventListener('resize',onViewportChange);
   window.visualViewport?.addEventListener('scroll',onViewportChange);
   window.addEventListener('resize',onViewportChange);
-  window.addEventListener('pageshow',()=>{installPlannerHooks();syncVisualViewport();});
+  window.addEventListener('pagehide',()=>{clearPlannerLock(true,true);},{passive:true});
+  window.addEventListener('pageshow',()=>{
+    installPlannerHooks();
+    if(destinationOpen())requestAnimationFrame(stabilizeDestinationSheet);
+    else clearPlannerLock(false,true);
+    syncVisualViewport();
+  },{passive:true});
 
   installPlannerHooks();
   syncVisualViewport();
   setTimeout(installPlannerHooks,120);
+  window.NOREYO_V544=Object.freeze({BUILD,destinationOpen,stabilizeDestinationSheet,clearPlannerLock});
 })();
