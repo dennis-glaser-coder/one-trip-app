@@ -118,28 +118,29 @@
   }
 
   function validISODate(value){
-    if(!/^\d{4}-\d{2}-\d{2}$/.test(String(value||'')))return false;
-    const d=new Date(String(value)+'T12:00:00');
-    return !Number.isNaN(d.getTime());
+    const s=String(value||'');
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(s))return false;
+    const d=new Date(s+'T12:00:00');
+    return !Number.isNaN(d.getTime())&&
+      d.getFullYear()===Number(s.slice(0,4))&&
+      d.getMonth()+1===Number(s.slice(5,7))&&
+      d.getDate()===Number(s.slice(8,10));
   }
 
   function normalizeChildren(value){
     return (Array.isArray(value)?value:[])
       .map(v=>Number(v))
-      .filter(Number.isFinite)
-      .map(v=>Math.max(0,Math.min(17,Math.round(v))))
-      .slice(0,4);
+      .filter(Number.isFinite);
   }
 
   function sanitizeClientSearchState(){
     if(typeof searchState==='undefined'||!searchState)return;
-    searchState.adults=Math.max(1,Math.min(6,Math.round(Number(searchState.adults)||2)));
+    const adults=Number(searchState.adults);
+    searchState.adults=Number.isFinite(adults)?adults:2;
     searchState.childAges=normalizeChildren(searchState.childAges);
     searchState.airports=(Array.isArray(searchState.airports)?searchState.airports:[])
       .map(x=>String(x||'').trim().toUpperCase())
-      .filter((x,i,a)=>/^[A-Z]{3}$/.test(x)&&a.indexOf(x)===i)
-      .slice(0,5);
-    if(!searchState.airports.length)searchState.airports=['DUS','CGN','PAD'];
+      .filter((x,i,a)=>/^[A-Z]{3}$/.test(x)&&a.indexOf(x)===i);
 
     if(!validISODate(searchState.checkin)&&typeof tomorrowISO==='function')searchState.checkin=tomorrowISO();
     if(!validISODate(searchState.checkout)||String(searchState.checkout)<=String(searchState.checkin)){
@@ -159,7 +160,9 @@
     const body={...(raw||{})};
     const occ=Array.isArray(body.occupancies)&&body.occupancies.length?body.occupancies[0]:{};
     const adults=Math.max(1,Math.min(6,Math.round(Number(occ?.adults ?? (typeof searchState!=='undefined'?searchState.adults:2))||2)));
-    const children=normalizeChildren(Array.isArray(occ?.children)?occ.children:(typeof searchState!=='undefined'?searchState.childAges:[]));
+    const children=normalizeChildren(Array.isArray(occ?.children)?occ.children:(typeof searchState!=='undefined'?searchState.childAges:[]))
+      .map(v=>Math.max(0,Math.min(17,Math.round(v))))
+      .slice(0,4);
     body.occupancies=[{adults,children}];
     body.currency='EUR';
     body.guestNationality='DE';
@@ -224,7 +227,7 @@
 
       const retry=minimalHotelBody(clean);
       if(!retry)return response;
-      console.warn('NOREYO V5.85: retrying hotel search with sanitized request');
+      console.warn('NOREYO V5.86: retrying hotel search with sanitized request');
       return nativeFetch(input,{...init,body:JSON.stringify(retry)});
     };
     guarded.__noreyoHotelGuard=true;
@@ -292,7 +295,7 @@
       const baseGo=go;
       go=function(id){const r=baseGo(id);if(id==='discover')schedule();return r;};
     }
-  }catch(e){console.warn('NOREYO V5.85 hooks',e)}
+  }catch(e){console.warn('NOREYO V5.86 hooks',e)}
 
   enforce();
   setTimeout(enforce,80);setTimeout(enforce,220);setTimeout(enforce,500);
