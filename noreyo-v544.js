@@ -1,9 +1,8 @@
 (function(){
   'use strict';
-  const BUILD='6.01';
+  const BUILD='6.11';
   let plannerScrollY=0;
   let plannerLocked=false;
-  let vvTimer=0;
 
   function destinationOpen(){
     try{return typeof plannerMode!=='undefined'&&plannerMode==='destination'&&document.getElementById('plannerSheet')?.classList.contains('show');}
@@ -27,14 +26,9 @@
     root.style.setProperty('--noreyo-vv-left',m.left+'px');
     if(!destinationOpen())return;
 
-    const keyboardOpen=document.activeElement?.matches?.('#plannerSheet .planner-search input')||m.height<(window.innerHeight||m.height)-100;
+    const keyboardOpen=document.activeElement?.matches?.('#plannerSheet .planner-search input')||
+      m.height<(window.innerHeight||m.height)-100;
     document.body.classList.toggle('noreyo-planner-keyboard',!!keyboardOpen);
-
-    const body=document.getElementById('plannerBody');
-    if(keyboardOpen&&body){
-      clearTimeout(vvTimer);
-      vvTimer=setTimeout(()=>{body.scrollTop=0;},30);
-    }
   }
 
   function lockPlannerPage(){
@@ -48,7 +42,6 @@
   }
 
   function clearPlannerLock(restoreScroll,immediate){
-    clearTimeout(vvTimer);vvTimer=0;
     const wasLocked=plannerLocked;
     plannerLocked=false;
     document.documentElement.classList.remove('noreyo-planner-lock');
@@ -73,7 +66,7 @@
   }
 
   function installPlannerHooks(){
-    if(typeof openPlanner==='function'&&!openPlanner.__noreyo545){
+    if(typeof openPlanner==='function'&&!openPlanner.__noreyo611){
       const baseOpen=openPlanner;
       const wrapped=function(mode){
         const r=baseOpen.apply(this,arguments);
@@ -83,21 +76,21 @@
         }
         return r;
       };
-      wrapped.__noreyo545=true;
+      wrapped.__noreyo611=true;
       openPlanner=wrapped;
     }
 
-    if(typeof closePlanner==='function'&&!closePlanner.__noreyo545){
+    if(typeof closePlanner==='function'&&!closePlanner.__noreyo611){
       const baseClose=closePlanner;
       const wrapped=function(){const r=baseClose.apply(this,arguments);unlockPlannerPage();return r;};
-      wrapped.__noreyo545=true;
+      wrapped.__noreyo611=true;
       closePlanner=wrapped;
     }
 
-    if(typeof chooseDestination==='function'&&!chooseDestination.__noreyo545){
+    if(typeof chooseDestination==='function'&&!chooseDestination.__noreyo611){
       const baseChoose=chooseDestination;
       const wrapped=function(){const r=baseChoose.apply(this,arguments);unlockPlannerPage();return r;};
-      wrapped.__noreyo545=true;
+      wrapped.__noreyo611=true;
       chooseDestination=wrapped;
     }
   }
@@ -109,8 +102,7 @@
     syncVisualViewport();
     const body=document.getElementById('plannerBody');
     requestAnimationFrame(()=>{if(body)body.scrollTop=0;syncVisualViewport();});
-    setTimeout(()=>{if(body)body.scrollTop=0;syncVisualViewport();},80);
-    setTimeout(()=>{if(body)body.scrollTop=0;syncVisualViewport();},260);
+    setTimeout(()=>{if(body&&body.scrollTop<24)body.scrollTop=0;syncVisualViewport();},80);
   },true);
 
   document.addEventListener('focusout',e=>{
@@ -123,13 +115,7 @@
     },80);
   },true);
 
-  const onViewportChange=()=>{
-    syncVisualViewport();
-    if(destinationOpen()&&document.activeElement?.closest?.('#plannerSheet .planner-search input')){
-      const body=document.getElementById('plannerBody');
-      if(body)body.scrollTop=0;
-    }
-  };
+  const onViewportChange=()=>{syncVisualViewport();};
 
   window.visualViewport?.addEventListener('resize',onViewportChange);
   window.visualViewport?.addEventListener('scroll',onViewportChange);
