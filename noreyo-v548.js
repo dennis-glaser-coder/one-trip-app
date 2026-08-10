@@ -1,6 +1,6 @@
 (function(){
   'use strict';
-  const BUILD='6.18';
+  const BUILD='6.28';
 
   function requestedMealCode(){
     try{return typeof mealPlanFilter==='string'?mealPlanFilter:'ANY';}catch{return 'ANY';}
@@ -35,15 +35,29 @@
   function mealLabel(){try{return typeof mealPlanLabel==='function'?String(mealPlanLabel()||'Verpflegung'):'Verpflegung';}catch{return 'Verpflegung';}}
   function setText(el,text){if(el&&el.textContent!==text){el.textContent=text;return true;}return false;}
   function setAttr(el,name,value){if(!el||el.getAttribute(name)===value)return false;el.setAttribute(name,value);return true;}
+  function emptyReason(text){
+    const s=String(text||'');
+    if(/Keine Verfügbarkeit gefunden/i.test(s))return 'availability';
+    if(/Keine vollständige Übereinstimmung/i.test(s))return 'match';
+    return '';
+  }
   function fixEmptyState(){
     const offersEl=document.getElementById('offers'),match=document.querySelector('#results .match');if(!offersEl||!match)return false;
-    const emptyText=String(offersEl.textContent||'');
-    const noAvailability=/Keine Verfügbarkeit gefunden/i.test(emptyText);
-    const noFullMatch=/Keine vollständige Übereinstimmung/i.test(emptyText);
-    if(!noAvailability&&!noFullMatch)return false;
+    const reason=emptyReason(offersEl.textContent||'');if(!reason)return false;
     const must=mustCount();if(must>0)return false;
     const wanted=requestedMealCode(),title=match.querySelector('b'),sub=match.querySelector('small'),cardTitle=offersEl.querySelector('b'),cardCopy=offersEl.querySelector('p'),primary=offersEl.querySelector('button.planner-save');
     let changed=false;
+
+    if(reason==='availability'){
+      changed=setText(title,'Keine Verfügbarkeit für diesen Zeitraum')||changed;
+      changed=setText(sub,'Ändere Zeitraum oder Reiseziel und suche erneut.')||changed;
+      changed=setText(cardTitle,'Für diese Reisedaten aktuell kein bestätigtes Angebot')||changed;
+      changed=setText(cardCopy,'Die aktuelle Datenquelle liefert für genau diese Reisedaten momentan kein verfügbares Hotelangebot. Das kann sich mit einem anderen Zeitraum oder Reiseziel ändern.')||changed;
+      changed=setText(primary,'Zeitraum ändern')||changed;
+      changed=setAttr(primary,'onclick',"openPlanner('dates')")||changed;
+      return changed;
+    }
+
     if(wanted!=='ANY'){
       const label=mealLabel();
       changed=setText(title,`Aktuell keine bestätigte ${label}-Rate`)||changed;
@@ -54,15 +68,7 @@
       changed=setAttr(primary,'onclick',"openPlanner('board')")||changed;
       return changed;
     }
-    if(noAvailability){
-      changed=setText(title,'Keine Verfügbarkeit für diesen Zeitraum')||changed;
-      changed=setText(sub,'Ändere Zeitraum oder Reiseziel und suche erneut.')||changed;
-      changed=setText(cardTitle,'Für diese Reisedaten aktuell kein bestätigtes Angebot')||changed;
-      changed=setText(cardCopy,'Die aktuelle Datenquelle liefert für genau diese Reisedaten momentan kein verfügbares Hotelangebot. Das kann sich mit einem anderen Zeitraum oder Reiseziel ändern.')||changed;
-      changed=setText(primary,'Zeitraum ändern')||changed;
-      changed=setAttr(primary,'onclick',"openPlanner('dates')")||changed;
-      return changed;
-    }
+
     changed=setText(title,'Aktive Filter ohne Treffer')||changed;
     changed=setText(sub,'Passe einen Filter an oder ändere den Zeitraum.')||changed;
     changed=setText(cardTitle,'Aktuelle Auswahl ohne vollständigen Treffer')||changed;
@@ -77,9 +83,9 @@
     const results=document.getElementById('results');if(!results||observer||typeof MutationObserver==='undefined')return;
     observer=new MutationObserver(schedule);observer.observe(results,{childList:true,subtree:true,characterData:true});
   }
-  function cleanup(){if(observer){observer.disconnect();observer=null;}raf=0;}
+  function cleanup(){if(observer){observer.disconnect();observer=null;}if(raf){cancelAnimationFrame(raf);raf=0;}}
   fixEmptyState();installObserver();
   window.addEventListener('pagehide',cleanup,{passive:true});
   window.addEventListener('pageshow',()=>{fixEmptyState();installObserver();},{passive:true});
-  window.NOREYO_V548=Object.freeze({BUILD,requestedMealCode,codeFromBoard,selectRequestedRate,mustCount,fixEmptyState});
+  window.NOREYO_V548=Object.freeze({BUILD,requestedMealCode,codeFromBoard,selectRequestedRate,mustCount,emptyReason,fixEmptyState});
 })();
