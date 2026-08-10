@@ -1,10 +1,9 @@
-/* NOREYO V6.39 — German 7–9 party wording reconciliation.
-   Extends the AI safety layer for ausgeschriebene Gruppen and natural
-   "wir sind / wir reisen" wording while keeping adult/child limits explicit. */
+/* NOREYO V6.41 — German party + descendant-family reconciliation. */
 (function(){
 'use strict';
-const BUILD='6.40';
+const BUILD='6.41';
 const MAX_ADULTS=6,MAX_CHILDREN=4,MAX_TRAVELLERS=9;
+let pendingDescendantAges=null;
 
 function norm(v){return String(v||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/ß/g,'ss');}
 function num(v){
@@ -37,6 +36,26 @@ function partySize(t){
   const after=s.slice((m.index||0)+m[0].length,(m.index||0)+m[0].length+18);
   return /^\s*(?:tage|wochen|naechte|nachte|jahre|monate)\b/.test(after)?null:(party[m[1]]||null);
 }
+function descendantCount(t){
+  const s=norm(t);
+  let m=s.match(/\b([1-4]|ein(?:e|en|em|er)?|zwei|drei|vier)\s+(?:soehne|sohne|toechter|tochter|sohn)\b/);
+  if(m)return num(m[1]);
+  const mentions=s.match(/\b(?:mein(?:e|en|em|er)?\s+)?(?:sohn|tochter)\b/g)||[];
+  return mentions.length?Math.min(MAX_CHILDREN,mentions.length):null;
+}
+function descendantAges(t){
+  const s=norm(t),out=[];
+  const add=v=>{const n=Number(v);if(Number.isInteger(n)&&n>=0&&n<=17&&out.length<MAX_CHILDREN)out.push(n);};
+  let m;
+  const before=/(\d{1,2})\s*(?:jahre?\s*alt|jahrig(?:e|er|en|es)?|j\.)\s*(?:sohn|tochter)\b/g;
+  while((m=before.exec(s)))add(m[1]);
+  const after=/\b(?:sohn|tochter)\b[^;.!?]{0,32}?(\d{1,2})\s*(?:jahre?|jahr|j\.)\b/g;
+  while((m=after.exec(s)))add(m[1]);
+  if(out.length)return out;
+  const plain=/\b(?:sohn|tochter)\b\s*(?:ist\s+)?(\d{1,2})(?=\s*(?:,|und\b|$))/g;
+  while((m=plain.exec(s)))add(m[1]);
+  return out.length?out:null;
+}
 function childCount(t){
   try{
     const api=window.NOREYO_V591;
@@ -46,13 +65,13 @@ function childCount(t){
     }
   }catch(_){ }
   const s=norm(t);
-  if(/\b(?:ohne|keine|kein)\s+(?:kinder|kind|babys?)\b/.test(s)||/\bnur erwachsene\b/.test(s))return 0;
+  if(/\b(?:ohne|keine|kein)\s+(?:kinder|kind|babys?|soehne|sohne|toechter|tochter|sohn)\b/.test(s)||/\bnur erwachsene\b/.test(s))return 0;
   const m=s.match(/\b([1-4]|ein(?:e|en|em|er)?|zwei|drei|vier)\s+(?:kinder|kindern|kind|babys?)\b/);
-  return m?num(m[1]):null;
+  if(m)return num(m[1]);
+  return descendantCount(s);
 }
 function resolvedParty(t){
-  const explicit=explicitAdultCount(t);
-  const children=childCount(t);
+  const explicit=explicitAdultCount(t),children=childCount(t);
   if(explicit!==null){
     if(explicit<1||explicit>MAX_ADULTS)return {valid:false,reason:'adults',source:'adults',adults:explicit,children,total:null};
     if(children===null)return {valid:true,source:'adults',adults:explicit,children:null,total:null};
@@ -72,14 +91,13 @@ function resolvedParty(t){
   if(adults<1||adults>MAX_ADULTS)return {valid:false,reason:'adults',source:'party',adults,children,total:party};
   return {valid:true,source:'party',adults,children,total:party};
 }
-function ppBudget(t){
-  try{return Number(window.NOREYO_V591?.perPersonBudget?.(t))||null;}catch(_){return null;}
-}
+function ppBudget(t){try{return Number(window.NOREYO_V591?.perPersonBudget?.(t))||null;}catch(_){return null;}}
 function childAges(t){
   try{
     const ages=window.NOREYO_V591?.childAges?.(t);
-    return Array.isArray(ages)?ages.map(Number):null;
-  }catch(_){return null;}
+    if(Array.isArray(ages))return ages.map(Number);
+  }catch(_){ }
+  return descendantAges(t);
 }
 function refresh(){
   try{if(typeof updateSearchUI==='function')updateSearchUI();}catch(_){ }
@@ -91,19 +109,14 @@ function applyReconciliation(t,snapshot){
   const party=resolvedParty(t);
   if(!party)return false;
   if(!party.valid){
+    pendingDescendantAges=null;
     if(snapshot){
-      try{
-        if(typeof searchState!=='undefined'&&searchState){
-          searchState.adults=snapshot.adults;
-          searchState.childAges=snapshot.childAges.slice();
-        }
-      }catch(_){ }
+      try{if(typeof searchState!=='undefined'&&searchState){searchState.adults=snapshot.adults;searchState.childAges=snapshot.childAges.slice();}}catch(_){ }
     }
     if(party.reason==='children-required')notify('Bei mehr als 6 Reisenden bitte die Kinderanzahl angeben.');
     else if(party.reason==='adults')notify(`Aktuell sind maximal ${MAX_ADULTS} Erwachsene pro Suche möglich.`);
     else notify('Bitte die Reisenden-Aufteilung prüfen.');
-    refresh();
-    return true;
+    refresh();return true;
   }
   let changed=false;
   try{
@@ -113,8 +126,13 @@ function applyReconciliation(t,snapshot){
       if(party.children!==null&&Array.isArray(ages)&&ages.length===party.children){
         const old=Array.isArray(searchState.childAges)?searchState.childAges.map(Number):[];
         if(old.length!==ages.length||old.some((v,i)=>v!==ages[i])){searchState.childAges=ages.slice();changed=true;}
-      }else if(party.children!==null&&Array.isArray(searchState.childAges)&&searchState.childAges.length){
-        searchState.childAges=[];changed=true;
+        pendingDescendantAges=null;
+      }else if(party.children!==null&&party.children>0){
+        if(Array.isArray(searchState.childAges)&&searchState.childAges.length){searchState.childAges=[];changed=true;}
+        pendingDescendantAges={count:party.children,source:/\b(?:sohn|tochter|soehne|sohne|toechter)\b/.test(norm(t))?'descendant':'children'};
+      }else if(party.children===0){
+        pendingDescendantAges=null;
+        if(Array.isArray(searchState.childAges)&&searchState.childAges.length){searchState.childAges=[];changed=true;}
       }
     }
   }catch(_){ }
@@ -123,10 +141,7 @@ function applyReconciliation(t,snapshot){
     if(pp&&typeof limits!=='undefined'&&limits){
       const selectedChildren=snapshot?.childAges?.length||0;
       const travellers=party.total!==null?party.total:party.adults+selectedChildren;
-      if(travellers>=1&&travellers<=MAX_TRAVELLERS){
-        const total=pp*travellers;
-        if(Number(limits.maxHotelPrice)!==total){limits.maxHotelPrice=total;changed=true;}
-      }
+      if(travellers>=1&&travellers<=MAX_TRAVELLERS){const total=pp*travellers;if(Number(limits.maxHotelPrice)!==total){limits.maxHotelPrice=total;changed=true;}}
     }
   }catch(_){ }
   if(changed)refresh();
@@ -139,11 +154,8 @@ function repairAnalysis(t){
   if(!party.valid){chips.forEach(chip=>chip.remove());return !!chips.length;}
   const label=party.source==='adults'
     ?`${party.adults} ${party.adults===1?'Erwachsener':'Erwachsene'}${party.children>0?` · ${party.children} ${party.children===1?'Kind':'Kinder'}`:''}`
-    :(party.children>0
-      ?`${party.adults} ${party.adults===1?'Erwachsener':'Erwachsene'} · ${party.children} ${party.children===1?'Kind':'Kinder'}`
-      :`${party.total} ${party.total===1?'Person':'Personen'}`);
-  chips.forEach(chip=>{chip.innerHTML='<i>✓</i>Reisende · '+label;});
-  return !!chips.length;
+    :(party.children>0?`${party.adults} ${party.adults===1?'Erwachsener':'Erwachsene'} · ${party.children} ${party.children===1?'Kind':'Kinder'}`:`${party.total} ${party.total===1?'Person':'Personen'}`);
+  chips.forEach(chip=>{chip.innerHTML='<i>✓</i>Reisende · '+label;});return !!chips.length;
 }
 function snapshotState(){
   try{
@@ -152,16 +164,29 @@ function snapshotState(){
     return {adults:Number.isInteger(adults)&&adults>=1&&adults<=MAX_ADULTS?adults:2,childAges:Array.isArray(searchState.childAges)?searchState.childAges.map(Number):[]};
   }catch(_){return null;}
 }
-function onApply(e){
-  if(!e.target?.closest?.('.noreyo-v556-apply'))return;
-  const t=text(),snapshot=snapshotState();
-  setTimeout(()=>applyReconciliation(t,snapshot),0);
+function familyAgeError(){
+  if(!pendingDescendantAges)return'';
+  try{
+    const ages=Array.isArray(searchState?.childAges)?searchState.childAges.map(Number):[];
+    if(ages.length===pendingDescendantAges.count&&ages.every(v=>Number.isInteger(v)&&v>=0&&v<=17)){pendingDescendantAges=null;return'';}
+  }catch(_){ }
+  return `Bitte Alter für ${pendingDescendantAges.count} ${pendingDescendantAges.count===1?'Kind':'Kinder'} angeben.`;
 }
-function onAnalyze(e){
-  if(!e.target?.closest?.('.noreyo-v556-analyze'))return;
-  const t=text();setTimeout(()=>repairAnalysis(t),0);
+function releaseSearchGuards(){
+  try{window.NOREYO_V585?.releaseBusy?.();}catch(_){ }
+  try{window.NOREYO_V607?.releaseGuard?.('family-age-validation');}catch(_){ }
 }
+function onSearchCapture(e){
+  const btn=e.target instanceof Element?e.target.closest('.noreyo-v541-booking-cta,.liveSearchButton,#searchView .search-card .primary'):null;
+  if(!btn)return;
+  const error=familyAgeError();if(!error)return;
+  e.preventDefault();e.stopImmediatePropagation();releaseSearchGuards();notify(error);
+  setTimeout(()=>{try{if(typeof openPlanner==='function')openPlanner('travellers');}catch(_){ }},0);
+}
+function onApply(e){if(!e.target?.closest?.('.noreyo-v556-apply'))return;const t=text(),snapshot=snapshotState();setTimeout(()=>applyReconciliation(t,snapshot),0);}
+function onAnalyze(e){if(!e.target?.closest?.('.noreyo-v556-analyze'))return;const t=text();setTimeout(()=>repairAnalysis(t),0);}
 document.addEventListener('click',onApply,true);
 document.addEventListener('click',onAnalyze,true);
-window.NOREYO_V636=Object.freeze({BUILD,num,explicitAdultCount,partySize,childCount,resolvedParty,applyReconciliation,repairAnalysis});
+window.addEventListener('click',onSearchCapture,true);
+window.NOREYO_V636=Object.freeze({BUILD,num,explicitAdultCount,partySize,descendantCount,descendantAges,childCount,resolvedParty,applyReconciliation,repairAnalysis,familyAgeError});
 })();
