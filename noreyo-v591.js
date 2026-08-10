@@ -46,7 +46,7 @@ function childAges(text){
   while((m=re.exec(seg))){
     const n=Number(m[1]);
     if(/monat/.test(m[2])){
-      if(n>=0&&n<=23)ages.push(0);
+      if(n>=0&&n<=23)ages.push(Math.floor(n/12));
     }else if(n>=0&&n<=17){
       ages.push(n);
     }
