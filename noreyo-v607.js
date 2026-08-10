@@ -1,9 +1,9 @@
-/* NOREYO V6.07 — search terminal-state busy release guard.
-   Releases disabled search CTAs as soon as a real NOREYO result/error/empty state is visible. */
+/* NOREYO V6.08 — scoped search terminal-state busy release guard.
+   Releases disabled search CTAs on real NOREYO terminal states without a body-wide observer. */
 (function(){
 'use strict';
-const BUILD='6.07';
-let observer=null,root=null,raf=0,bodyObserver=null;
+const BUILD='6.08';
+let observer=null,root=null,raf=0;
 
 function norm(v){
   return String(v||'').toLowerCase().normalize('NFD')
@@ -35,16 +35,22 @@ function bind(){
   observer.observe(root,{childList:true,subtree:true,characterData:true});
   schedule();
 }
-function install(){
-  bind();
-  if(!bodyObserver&&document.body&&typeof MutationObserver!=='undefined'){
-    bodyObserver=new MutationObserver(()=>{if(document.getElementById('results')!==root)bind();});
-    bodyObserver.observe(document.body,{childList:true,subtree:true});
-  }
+function installNavigationHook(){
+  try{
+    if(typeof go!=='function'||go.__noreyoV608)return;
+    const prior=go;
+    const wrapped=function(){
+      const result=prior.apply(this,arguments);
+      setTimeout(bind,0);
+      return result;
+    };
+    wrapped.__noreyoV608=true;
+    go=wrapped;
+  }catch(_){ }
 }
+function install(){bind();installNavigationHook();}
 function cleanup(){
   if(observer){observer.disconnect();observer=null;}
-  if(bodyObserver){bodyObserver.disconnect();bodyObserver=null;}
   if(raf){cancelAnimationFrame(raf);raf=0;}
   root=null;
 }
