@@ -56,12 +56,3 @@ const mo=new MutationObserver(()=>requestAnimationFrame(paint));mo.observe(docum
 setTimeout(paint,100);setTimeout(paint,350);setTimeout(paint,900);
 window.NOREYO_V576={paint};
 })();
-
-/* V5.79 loader — keeps profile and loads the tap-safe premium discovery */
-(()=>{
- if(document.querySelector('script[data-noreyo-v577]'))return;
- const s=document.createElement('script');
- s.src='./noreyo-v577.js?build=579';
- s.dataset.noreyoV577='1';
- document.head.appendChild(s);
-})();
