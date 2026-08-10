@@ -1,16 +1,18 @@
-/* NOREYO V6.79 — AI sheet VisualViewport width/offset safety.
-   Mirrors destination-planner viewport handling so the AI bottom sheet stays
-   inside the actually visible Safari viewport under zoom/landscape/keyboard. */
+/* NOREYO V6.84 — AI sheet VisualViewport exact-bound safety.
+   Keeps the AI bottom sheet inside the actual visible Safari viewport even
+   under strong zoom / landscape / keyboard shrink and clears stale sheet sizing. */
 (function(){
 'use strict';
-const BUILD='6.79';
+const BUILD='6.84';
 let modalObserver=null,rootObserver=null,bound=false;
 
 function metrics(){
   const vv=window.visualViewport;
+  const width=Math.round(vv?.width||window.innerWidth||390);
+  const height=Math.round(vv?.height||window.innerHeight||700);
   return {
-    width:Math.max(260,Math.round(vv?.width||window.innerWidth||390)),
-    height:Math.max(260,Math.round(vv?.height||window.innerHeight||700)),
+    width:Math.max(1,width),
+    height:Math.max(1,height),
     top:Math.max(0,Math.round(vv?.offsetTop||0)),
     left:Math.max(0,Math.round(vv?.offsetLeft||0))
   };
@@ -20,6 +22,8 @@ function shown(){return !!modal()?.classList.contains('show');}
 function clear(){
   const w=modal();if(!w)return false;
   for(const prop of ['width','height','top','left','right','bottom'])w.style[prop]='';
+  const sheet=w.querySelector('.noreyo-v556-sheet');
+  if(sheet)sheet.style.maxHeight='';
   return true;
 }
 function sync(){
@@ -32,7 +36,7 @@ function sync(){
   w.style.right='auto';
   w.style.bottom='auto';
   const sheet=w.querySelector('.noreyo-v556-sheet');
-  if(sheet)sheet.style.maxHeight=Math.max(360,Math.min(820,m.height-4))+'px';
+  if(sheet)sheet.style.maxHeight=Math.max(1,Math.min(820,m.height-4))+'px';
   return true;
 }
 function bindModal(){
