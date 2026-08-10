@@ -1,6 +1,6 @@
 (function(){
   'use strict';
-  const BUILD='6.03';
+  const BUILD='6.18';
 
   function requestedMealCode(){
     try{return typeof mealPlanFilter==='string'?mealPlanFilter:'ANY';}catch{return 'ANY';}
@@ -37,7 +37,10 @@
   function setAttr(el,name,value){if(!el||el.getAttribute(name)===value)return false;el.setAttribute(name,value);return true;}
   function fixEmptyState(){
     const offersEl=document.getElementById('offers'),match=document.querySelector('#results .match');if(!offersEl||!match)return false;
-    const empty=/Keine vollständige Übereinstimmung|Keine Verfügbarkeit gefunden/i.test(offersEl.textContent||'');if(!empty)return false;
+    const emptyText=String(offersEl.textContent||'');
+    const noAvailability=/Keine Verfügbarkeit gefunden/i.test(emptyText);
+    const noFullMatch=/Keine vollständige Übereinstimmung/i.test(emptyText);
+    if(!noAvailability&&!noFullMatch)return false;
     const must=mustCount();if(must>0)return false;
     const wanted=requestedMealCode(),title=match.querySelector('b'),sub=match.querySelector('small'),cardTitle=offersEl.querySelector('b'),cardCopy=offersEl.querySelector('p'),primary=offersEl.querySelector('button.planner-save');
     let changed=false;
@@ -51,9 +54,19 @@
       changed=setAttr(primary,'onclick',"openPlanner('board')")||changed;
       return changed;
     }
+    if(noAvailability){
+      changed=setText(title,'Keine Verfügbarkeit für diesen Zeitraum')||changed;
+      changed=setText(sub,'Ändere Zeitraum oder Reiseziel und suche erneut.')||changed;
+      changed=setText(cardTitle,'Für diese Reisedaten aktuell kein bestätigtes Angebot')||changed;
+      changed=setText(cardCopy,'Die aktuelle Datenquelle liefert für genau diese Reisedaten momentan kein verfügbares Hotelangebot. Das kann sich mit einem anderen Zeitraum oder Reiseziel ändern.')||changed;
+      changed=setText(primary,'Zeitraum ändern')||changed;
+      changed=setAttr(primary,'onclick',"openPlanner('dates')")||changed;
+      return changed;
+    }
     changed=setText(title,'Aktive Filter ohne Treffer')||changed;
     changed=setText(sub,'Passe einen Filter an oder ändere den Zeitraum.')||changed;
-    changed=setText(cardCopy,'Es gibt verfügbare Hotels, aber aktuell keinen Treffer mit deinen übrigen Filtern. Wünsche allein schließen Hotels nicht aus.')||changed;
+    changed=setText(cardTitle,'Aktuelle Auswahl ohne vollständigen Treffer')||changed;
+    changed=setText(cardCopy,'Für deine aktuelle Kombination aus Filtern und Reisedaten wurde kein vollständiger Treffer bestätigt. Passe einen Filter oder den Zeitraum an.')||changed;
     changed=setText(primary,'Filter prüfen')||changed;
     changed=setAttr(primary,'onclick',"openFilter('Zimmer')")||changed;
     return changed;
