@@ -3,13 +3,13 @@
 'use strict';
 const BUILD='5.85';
 const MAX_ADULTS=6,MAX_CHILDREN=4,MAX_TRAVELLERS=9;
-let pendingFamily=null,adultSnapshot=null,lastNaturalText='';
+let pendingFamily=null,adultSnapshot=null;
 let busy=false,busyButton=null,busyTimer=0,resultObserver=null,rootObserver=null,observedRoot=null,baseline='';
 
 function norm(v){return String(v||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/ß/g,'ss');}
 function num(v){const m={ein:1,eine:1,einen:1,einem:1,einer:1,zwei:2,drei:3,vier:4,fuenf:5,funf:5,sechs:6,sieben:7,acht:8,neun:9};const s=norm(v).trim();return /^\d+$/.test(s)?Number(s):(m[s]??null);}
 function state(){try{return typeof searchState!=='undefined'&&searchState?searchState:null;}catch(_){return null;}}
-function refresh(){try{if(typeof updateSearchUI==='function')updateSearchUI();}catch(_){}try{if(typeof persistState==='function')persistState();}catch(_){}}
+function refresh(){try{if(typeof updateSearchUI==='function')updateSearchUI();}catch(_){}try{if(typeof persistState==='function')persistState();}catch(_){} }
 function naturalText(){return document.querySelector('#discover [data-v574-text]')?.value||document.querySelector('#discover [data-v571-text]')?.value||document.getElementById('noreyoAi556Text')?.value||'';}
 function explicitAdults(text){const t=norm(text);return /\bzu zweit\b/.test(t)||/\b(?:[1-9]|ein(?:e|en|em|er)?|zwei|drei|vier|fuenf|funf|sechs|sieben|acht|neun)\s+(?:erwachsen(?:e|er|en)?|personen?|reisende)\b/.test(t);}
 function parseAdults(text){const t=norm(text);let m=t.match(/\b([1-9]|ein(?:e|en|em|er)?|zwei|drei|vier|fuenf|funf|sechs|sieben|acht|neun)\s+(?:erwachsen(?:e|er|en)?|personen?|reisende)\b/);if(m)return num(m[1]);if(/\bzu zweit\b/.test(t))return 2;return null;}
@@ -161,8 +161,6 @@ function bindResults(){
 }
 function onSearchCapture(e){
  const btn=searchButton(e.target);if(!btn)return;
- const text=naturalText(),signatureText=norm(text).trim();
- if(signatureText&&signatureText!==lastNaturalText){applyFamily(text);lastNaturalText=signatureText;}
  const error=validateFamily()||coreSearchError();
  if(error){
    e.preventDefault();e.stopImmediatePropagation();notify(error);
@@ -177,7 +175,7 @@ function onAiApplyCapture(e){
  const text=naturalText(),s=state();
  adultSnapshot=!explicitAdults(text)&&Number.isInteger(Math.round(Number(s?.adults)))?Math.round(Number(s.adults)):null;
  setTimeout(()=>{
-   applyFamily(text);lastNaturalText=norm(text).trim();
+   applyFamily(text);
    if(adultSnapshot&&s&&Math.round(Number(s.adults))!==adultSnapshot){s.adults=adultSnapshot;refresh();}
    adultSnapshot=null;
  },0);
