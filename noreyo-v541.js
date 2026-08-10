@@ -32,8 +32,8 @@
       return el.classList.contains('command-cell')||!!el.querySelector('.command-cell');
     });
     cellItems.forEach((item,index)=>{
-      item.classList.remove('noreyo-v541-main-cell','noreyo-v541-extra-cell');
-      item.classList.add(index<4?'noreyo-v541-main-cell':'noreyo-v541-extra-cell');
+      item.classList.toggle('noreyo-v541-main-cell',index<4);
+      item.classList.toggle('noreyo-v541-extra-cell',index>=4);
     });
   }
 
@@ -50,7 +50,10 @@
       btn.classList.add('noreyo-v541-booking-cta');
     }
 
-    btn.innerHTML='<span>Passende Reisen finden</span><span aria-hidden="true">→</span>';
+    const wanted='Passende Reisen finden →';
+    if((btn.textContent||'').replace(/\s+/g,' ').trim()!==wanted){
+      btn.innerHTML='<span>Passende Reisen finden</span><span aria-hidden="true">→</span>';
+    }
 
     const grid=card.querySelector('.booking-command-grid');
     if(!grid)return;
@@ -221,7 +224,7 @@
 
       const retry=minimalHotelBody(clean);
       if(!retry)return response;
-      console.warn('NOREYO V5.43: retrying hotel search with sanitized request');
+      console.warn('NOREYO V5.85: retrying hotel search with sanitized request');
       return nativeFetch(input,{...init,body:JSON.stringify(retry)});
     };
     guarded.__noreyoHotelGuard=true;
@@ -261,6 +264,17 @@
 
   function schedule(){if(raf)return;raf=requestAnimationFrame(()=>{raf=0;enforce();});}
 
+  function mutationRelevant(records){
+    for(const r of records){
+      for(const n of r.addedNodes||[]){
+        if(n.nodeType!==1)continue;
+        if(n.matches?.('.hero,.search-card,.booking-command-grid,.product-switch-host')||
+           n.querySelector?.('.hero,.search-card,.booking-command-grid,.product-switch-host'))return true;
+      }
+    }
+    return false;
+  }
+
   sanitizeClientSearchState();
   installHotelRequestGuard();
   installSoftWishRanking();
@@ -278,11 +292,14 @@
       const baseGo=go;
       go=function(id){const r=baseGo(id);if(id==='discover')schedule();return r;};
     }
-  }catch(e){console.warn('NOREYO V5.43 hooks',e)}
+  }catch(e){console.warn('NOREYO V5.85 hooks',e)}
 
   enforce();
   setTimeout(enforce,80);setTimeout(enforce,220);setTimeout(enforce,500);
   const discover=document.getElementById('discover');
-  if(discover&&typeof MutationObserver!=='undefined')new MutationObserver(()=>{if(!lock)schedule();}).observe(discover,{childList:true,subtree:true});
-  window.addEventListener('pageshow',()=>{sanitizeClientSearchState();schedule();});
+  if(discover&&typeof MutationObserver!=='undefined'){
+    new MutationObserver(records=>{if(!lock&&mutationRelevant(records))schedule();})
+      .observe(discover,{childList:true,subtree:true});
+  }
+  window.addEventListener('pageshow',()=>{sanitizeClientSearchState();schedule();},{passive:true});
 })();
