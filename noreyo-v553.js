@@ -1,7 +1,7 @@
 (function(){
   'use strict';
-  const BUILD='5.87';
-  let raf=0;
+  const BUILD='6.20';
+  let raf=0,observer=null;
 
   const labels={
     package:'DEINE PAUSCHALREISE',
@@ -18,8 +18,7 @@
   }
 
   function applyHeading(){
-    const mode=currentMode();
-    const label=labels[mode]||labels.package;
+    const mode=currentMode(),label=labels[mode]||labels.package;
     document.querySelectorAll('#discover .search-console-head span,#discover .noreyo-v552-search-head span').forEach(el=>{
       if(el.textContent!==label)el.textContent=label;
     });
@@ -46,37 +45,56 @@
     return false;
   }
 
-  try{
-    if(typeof setProductMode==='function'&&!setProductMode.__noreyoV553){
-      const base=setProductMode;
-      const wrapped=function(mode){
-        const result=base.apply(this,arguments);
-        schedule();
-        setTimeout(applyHeading,40);
-        return result;
-      };
-      wrapped.__noreyoV553=true;
-      setProductMode=wrapped;
-    }
-    if(typeof renderProductControls==='function'&&!renderProductControls.__noreyoV553){
-      const base=renderProductControls;
+  function wrap(name,marker){
+    try{
+      const fn=globalThis[name];
+      if(typeof fn!=='function'||fn[marker])return;
       const wrapped=function(){
-        const result=base.apply(this,arguments);
+        const result=fn.apply(this,arguments);
         schedule();
         return result;
       };
-      wrapped.__noreyoV553=true;
-      renderProductControls=wrapped;
-    }
-  }catch(e){console.warn('NOREYO '+BUILD+' heading hook',e);}
+      wrapped[marker]=true;
+      globalThis[name]=wrapped;
+    }catch(_){ }
+  }
 
+  function installHooks(){
+    try{
+      if(typeof setProductMode==='function'&&!setProductMode.__noreyoV553){
+        const base=setProductMode;
+        const wrapped=function(mode){
+          const result=base.apply(this,arguments);
+          schedule();
+          setTimeout(applyHeading,40);
+          return result;
+        };
+        wrapped.__noreyoV553=true;
+        setProductMode=wrapped;
+      }
+    }catch(_){ }
+    wrap('renderProductControls','__noreyoV553');
+    wrap('updateCounts','__noreyoV620');
+  }
+
+  function installObserver(){
+    const discover=document.getElementById('discover');
+    if(!discover||observer||typeof MutationObserver==='undefined')return;
+    observer=new MutationObserver(records=>{if(mutationRelevant(records))schedule();});
+    observer.observe(discover,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});
+  }
+
+  function cleanup(){
+    if(observer){observer.disconnect();observer=null;}
+    if(raf){cancelAnimationFrame(raf);raf=0;}
+  }
+
+  installHooks();
   applyHeading();
+  installObserver();
   setTimeout(applyHeading,80);
   setTimeout(applyHeading,240);
-  const discover=document.getElementById('discover');
-  if(discover&&typeof MutationObserver!=='undefined'){
-    new MutationObserver(records=>{if(mutationRelevant(records))schedule();})
-      .observe(discover,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});
-  }
-  window.addEventListener('pageshow',schedule,{passive:true});
+  window.addEventListener('pagehide',cleanup,{passive:true});
+  window.addEventListener('pageshow',()=>{installHooks();applyHeading();installObserver();},{passive:true});
+  window.NOREYO_V553=Object.freeze({BUILD,currentMode,applyHeading,mutationRelevant});
 })();
