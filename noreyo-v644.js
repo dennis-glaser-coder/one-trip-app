@@ -1,38 +1,40 @@
-/* NOREYO V6.48 — descendant-only family reconciliation.
-   Applies natural son/daughter wording without repeating adult count, supports
-   explicit plural child-age phrases, and never scans unrelated nearby numbers. */
+/* NOREYO V6.49 — descendant-only family reconciliation.
+   Supports explicit plural child-age phrases without relying on umlaut-sensitive
+   singular/plural spelling, and keeps invalid ages pending instead of shrinking the party. */
 (function(){
 'use strict';
-const BUILD='6.48';
+const BUILD='6.49';
 const MAX_ADULTS=6,MAX_CHILDREN=4,MAX_TRAVELLERS=9;
 let pending=null;
 
 function norm(v){return String(v||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/ß/g,'ss');}
 function naturalText(){return document.getElementById('noreyoAi556Text')?.value||'';}
-function hasExplicitParty(t){
-  try{const api=window.NOREYO_V636;return api?.explicitAdultCount?.(t)!==null||api?.partySize?.(t)!==null;}catch(_){return false;}
+function hasExplicitParty(t){try{const api=window.NOREYO_V636;return api?.explicitAdultCount?.(t)!==null||api?.partySize?.(t)!==null;}catch(_){return false;}}
+function pluralAgeInfo(t){
+  const s=norm(t);let m;
+  const list=/\b(?:soehne|sohne|toechter|tochter)\b\s*(?:sind\s+)?(\d{1,2}(?:\s*(?:,|und|&|\/)\s*\d{1,2}){1,3})(?=\s*(?:jahre?\b|jahr\b|j\.|[,.;]|$))/g;
+  while((m=list.exec(s))){
+    const raw=(m[1].match(/\d{1,2}/g)||[]).map(Number).slice(0,MAX_CHILDREN);
+    if(raw.length<2)continue;
+    const valid=raw.every(n=>Number.isInteger(n)&&n>=0&&n<=17);
+    return {count:raw.length,ages:valid?raw:null,valid};
+  }
+  return null;
 }
-function pluralAges(t){
-  const s=norm(t),out=[];let m;
-  const add=v=>{const n=Number(v);if(Number.isInteger(n)&&n>=0&&n<=17&&out.length<MAX_CHILDREN)out.push(n);};
-  const list=/\b(?:soehne|sohne|toechter)\b\s*(?:sind\s+)?(\d{1,2}(?:\s*(?:,|und|&|\/)\s*\d{1,2}){1,3})(?=\s*(?:jahre?\b|jahr\b|j\.\b|[,.;]|$))/g;
-  while((m=list.exec(s)))for(const n of(m[1].match(/\d{1,2}/g)||[]))add(n);
-  return out.length?out:null;
-}
+function pluralAges(t){return pluralAgeInfo(t)?.ages||null;}
 function descendantCount(t){
+  const plural=pluralAgeInfo(t);if(plural)return plural.count;
   try{const n=window.NOREYO_V636?.descendantCount?.(t);if(n!==null&&n!==undefined)return Number(n);}catch(_){ }
-  const ages=pluralAges(t);if(ages?.length)return ages.length;
   const s=norm(t);
-  if(/\b(?:meine|unsere)\s+beiden\s+(?:soehne|sohne|toechter)\b/.test(s))return 2;
+  if(/\b(?:meine|unsere)\s+beiden\s+(?:soehne|sohne|toechter|tochter)\b/.test(s))return 2;
   return null;
 }
 function descendantAges(t){
+  const plural=pluralAgeInfo(t);if(plural)return plural.ages;
   const base=(()=>{try{const a=window.NOREYO_V636?.descendantAges?.(t);return Array.isArray(a)?a.map(Number):null;}catch(_){return null;}})();
   if(base?.length)return base;
-  const plural=pluralAges(t);if(plural?.length)return plural;
-  const s=norm(t),out=[];
+  const s=norm(t),out=[];let m;
   const add=v=>{const n=Number(v);if(Number.isInteger(n)&&n>=0&&n<=17&&out.length<MAX_CHILDREN)out.push(n);};
-  let m;
   const hyphen=/(\d{1,2})\s*[- ]?\s*jahrig(?:e|er|en|es)?\s+(?:sohn|tochter)\b/g;
   while((m=hyphen.exec(s)))add(m[1]);
   const direct=/\b(?:sohn|tochter)\b\s*(?:ist\s+|:\s*)?(\d{1,2})(?=\s*(?:,|und\b|$|jahre?\b|jahr\b|j\.))/g;
@@ -89,5 +91,5 @@ function onSearch(e){
   setTimeout(()=>{try{if(typeof openPlanner==='function')openPlanner('travellers');}catch(_){ }},0);
 }
 document.addEventListener('click',onApply,true);document.addEventListener('click',onAnalyze,true);window.addEventListener('click',onSearch,true);
-window.NOREYO_V644=Object.freeze({BUILD,isDescendantOnly,descendantCount,descendantAges,pluralAges,selectedAdults,apply,familyAgeError,repairAnalysis});
+window.NOREYO_V644=Object.freeze({BUILD,isDescendantOnly,descendantCount,descendantAges,pluralAgeInfo,pluralAges,selectedAdults,apply,familyAgeError,repairAnalysis});
 })();
