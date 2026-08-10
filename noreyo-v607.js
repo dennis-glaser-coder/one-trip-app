@@ -1,9 +1,9 @@
-/* NOREYO V6.21 — authoritative search completion/network lifecycle guard.
-   Keeps an independent button/request lock so older signature-based busy release
-   cannot re-enable or double-submit while a newer search is still unresolved. */
+/* NOREYO V6.23 — authoritative search completion/network lifecycle guard.
+   Keeps an independent button/request lock for package/hotel searches so older
+   signature-based busy release cannot re-enable or double-submit too early. */
 (function(){
 'use strict';
-const BUILD='6.21';
+const BUILD='6.23';
 let observer=null,root=null,raf=0;
 let guardActive=false,guardButton=null,buttonObserver=null,guardTimer=0;
 
@@ -21,6 +21,19 @@ function releaseLegacyBusy(){
     if(api?.busy){api.releaseBusy?.();return true;}
   }catch(_){ }
   return false;
+}
+function currentMode(){
+  const active=document.querySelector('.view.active .product-mode.on')||document.querySelector('#discover .product-mode.on');
+  const t=norm(active?.textContent||'');
+  if(t.includes('flug'))return'flight';
+  if(t.includes('kreuzfahrt'))return'cruise';
+  if(t.includes('hotel'))return'hotel';
+  try{if(typeof productMode==='string'&&productMode)return productMode;}catch(_){ }
+  return'package';
+}
+function authoritativeMode(){
+  const m=currentMode();
+  return m==='package'||m==='hotel';
 }
 function isSearchButton(target){
   if(!(target instanceof Element))return null;
@@ -58,7 +71,7 @@ function releaseGuard(reason){
   return true;
 }
 function onSearchCapture(e){
-  const btn=isSearchButton(e.target);if(!btn)return;
+  const btn=isSearchButton(e.target);if(!btn||!authoritativeMode())return;
   if(guardActive){
     e.preventDefault();
     e.stopImmediatePropagation();
@@ -163,7 +176,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 window.addEventListener('pagehide',cleanup,{passive:true});
 window.addEventListener('pageshow',()=>{installFetchHook();installRenderHook();installNavigationHook();bind();},{passive:true});
 window.NOREYO_V607=Object.freeze({
-  BUILD,terminalText,isSearchTravel,hasRenderedOffers,releaseTerminalIfVisible,
+  BUILD,currentMode,authoritativeMode,terminalText,isSearchTravel,hasRenderedOffers,releaseTerminalIfVisible,
   bind,startGuard,releaseGuard,get active(){return guardActive;}
 });
 })();
