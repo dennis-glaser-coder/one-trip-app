@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='5.57';
+const BUILD='5.86';
 const baseOpenFilter=typeof openFilter==='function'?openFilter:null;
 let draft=null,activeKeys=[],lastMode='';
 const defs={
@@ -122,15 +122,32 @@ function install(){
     card.querySelectorAll('.command-cell').forEach(el=>{
       const t=(el.textContent||'').replace(/\s+/g,' ').trim();
       if(/wünsche\s*&\s*pflicht|flugwünsche|filter/i.test(t)){
-        const b=el.querySelector('.command-copy b');
-        if(b)b.textContent=m==='flight'?'Flugfilter':m==='hotel'?'Hotelfilter':'Reisefilter';
+        const b=el.querySelector('.command-copy b'),wanted=m==='flight'?'Flugfilter':m==='hotel'?'Hotelfilter':'Reisefilter';
+        if(b&&b.textContent!==wanted)b.textContent=wanted;
       }
     });
   }
 }
 let raf=0;function schedule(){if(raf)return;raf=requestAnimationFrame(()=>{raf=0;install();});}
+function mutationRelevant(records){
+  for(const r of records){
+    for(const n of r.addedNodes||[]){
+      if(n.nodeType!==1)continue;
+      if(n.matches?.('.search-card,.command-cell,.product-mode,.product-switch-host')||
+         n.querySelector?.('.search-card,.command-cell,.product-mode,.product-switch-host'))return true;
+    }
+  }
+  return false;
+}
+try{
+  if(typeof setProductMode==='function'&&!setProductMode.__noreyoV557Schedule){
+    const priorSetProductMode=setProductMode;
+    const wrapped=function(){const r=priorSetProductMode.apply(this,arguments);schedule();return r;};
+    wrapped.__noreyoV557Schedule=true;setProductMode=wrapped;
+  }
+}catch(_){ }
 install();setTimeout(install,80);setTimeout(install,240);setTimeout(install,600);
-const discover=document.getElementById('discover');if(discover&&typeof MutationObserver!=='undefined')new MutationObserver(schedule).observe(discover,{childList:true,subtree:true});
+const discover=document.getElementById('discover');if(discover&&typeof MutationObserver!=='undefined')new MutationObserver(records=>{if(mutationRelevant(records))schedule();}).observe(discover,{childList:true,subtree:true});
 window.addEventListener('pageshow',schedule,{passive:true});
 window.NOREYO_V557=Object.freeze({open:openSmart,mode,version:BUILD});
 })();
