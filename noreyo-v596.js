@@ -1,7 +1,7 @@
-/* NOREYO V5.96 — unified early search preflight on current main */
+/* NOREYO V5.96.1 — unified early search preflight on current main */
 (function(){
 'use strict';
-const BUILD='5.96';
+const BUILD='5.96.1';
 let busy=false,busyButton=null,busyTimer=0,observer=null,rootObserver=null,observedRoot=null,baseline='';
 function norm(v){return String(v||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/ß/g,'ss');}
 function notify(msg){try{if(typeof showToast==='function')showToast(msg);else if(typeof window.toast==='function')window.toast(msg);}catch(_){}}
@@ -18,7 +18,7 @@ function resultRoot(){return document.getElementById('results');}
 function signature(){const offers=[...document.querySelectorAll('#offers .offer')];return offers.length+':'+offers.slice(0,3).map(x=>String(x.textContent||'').replace(/\s+/g,' ').slice(0,180)).join('|');}
 function terminal(){const t=norm(resultRoot()?.textContent||'');return /keine (?:angebote|hotels|fluege|reisen|ergebnisse)|nichts gefunden|suche fehlgeschlagen|fehler bei der suche|erneut versuchen/.test(t);}
 function releaseBusy(){if(!busy)return;busy=false;clearTimeout(busyTimer);busyTimer=0;if(busyButton){busyButton.disabled=false;busyButton.removeAttribute('aria-disabled');}busyButton=null;resultRoot()?.setAttribute('aria-busy','false');}
-function beginBusy(btn){busy=true;baseline=signature();busyButton=btn||null;if(btn){btn.disabled=true;btn.setAttribute('aria-disabled','true');}resultRoot()?.setAttribute('aria-busy','true');clearTimeout(busyTimer);busyTimer=setTimeout(releaseBusy,15000);}
+function beginBusy(btn){busy=true;baseline=signature();busyButton=btn||null;resultRoot()?.setAttribute('aria-busy','true');setTimeout(()=>{if(busy&&busyButton===btn&&btn){btn.disabled=true;btn.setAttribute('aria-disabled','true');}},0);clearTimeout(busyTimer);busyTimer=setTimeout(releaseBusy,15000);}
 function bindResults(){const r=resultRoot();if(!r||r===observedRoot)return;if(observer)observer.disconnect();observedRoot=r;r.setAttribute('aria-live','polite');r.setAttribute('aria-busy',busy?'true':'false');observer=new MutationObserver(()=>{if(busy&&(signature()!==baseline||terminal()))releaseBusy();});observer.observe(r,{childList:true,subtree:true,characterData:true});}
 function onClick(e){if(!(e.target instanceof Element))return;const btn=e.target.closest('.noreyo-v541-booking-cta,.liveSearchButton');if(!btn)return;const check=validateSearchSafety();if(check.error){e.preventDefault();e.stopImmediatePropagation();notify(check.error);if(check.planner)setTimeout(()=>openPlannerFor(check.planner),0);return;}if(busy){e.preventDefault();e.stopImmediatePropagation();return;}beginBusy(btn);}
 function attachRoot(){if(rootObserver||typeof MutationObserver==='undefined'||!document.body)return;rootObserver=new MutationObserver(()=>{const r=resultRoot();if(r!==observedRoot){observedRoot=null;bindResults();}});rootObserver.observe(document.body,{childList:true,subtree:true});}
