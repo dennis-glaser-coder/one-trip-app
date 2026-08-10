@@ -1,9 +1,9 @@
-/* NOREYO V6.49 — descendant-only family reconciliation.
-   Supports explicit plural child-age phrases without relying on umlaut-sensitive
-   singular/plural spelling, and keeps invalid ages pending instead of shrinking the party. */
+/* NOREYO V6.53 — descendant-only family reconciliation.
+   Supports explicit singular/plural child wording, preserves selected adults,
+   and blocks over-limit family requests until the traveller split is corrected. */
 (function(){
 'use strict';
-const BUILD='6.49';
+const BUILD='6.53';
 const MAX_ADULTS=6,MAX_CHILDREN=4,MAX_TRAVELLERS=9;
 let pending=null;
 
@@ -50,7 +50,8 @@ function notify(msg){try{if(typeof showToast==='function')showToast(msg);else wi
 function apply(t,before){
   if(!isDescendantOnly(t))return false;
   const adults=before?.adults||selectedAdults(),count=descendantCount(t),ages=descendantAges(t);
-  if(!adults||!count||count<1||count>MAX_CHILDREN||adults+count>MAX_TRAVELLERS)return false;
+  if(!adults||!count||count<1||count>MAX_CHILDREN)return false;
+  const overLimit=adults+count>MAX_TRAVELLERS;
   let changed=false;
   try{
     if(typeof searchState!=='undefined'&&searchState){
@@ -58,30 +59,40 @@ function apply(t,before){
       const old=Array.isArray(searchState.childAges)?searchState.childAges.map(Number):[];
       if(Array.isArray(ages)&&ages.length===count){
         if(old.length!==ages.length||old.some((v,i)=>v!==ages[i])){searchState.childAges=ages.slice();changed=true;}
-        pending=null;
-      }else{
-        if(old.length){searchState.childAges=[];changed=true;}
-        pending={count,createdAt:Date.now()};
-      }
+      }else if(old.length){searchState.childAges=[];changed=true;}
     }
   }catch(_){ }
+  if(overLimit){
+    pending={count,reason:'party-limit',createdAt:Date.now()};
+    notify(`Aktuell sind maximal ${MAX_TRAVELLERS} Reisende pro Suche möglich.`);
+    if(changed)refresh();
+    return true;
+  }
+  if(Array.isArray(ages)&&ages.length===count)pending=null;
+  else pending={count,reason:'ages',createdAt:Date.now()};
   const pp=ppBudget(t);
   try{if(pp&&typeof limits!=='undefined'&&limits){const total=pp*(adults+count);if(Number(limits.maxHotelPrice)!==total){limits.maxHotelPrice=total;changed=true;}}}catch(_){ }
   if(changed)refresh();return changed;
 }
 function familyAgeError(){
   if(!pending)return'';
-  try{const ages=Array.isArray(searchState?.childAges)?searchState.childAges.map(Number):[];if(ages.length===pending.count&&ages.every(v=>Number.isInteger(v)&&v>=0&&v<=17)){pending=null;return'';}}catch(_){ }
+  const adults=selectedAdults();
+  if(!adults||adults+pending.count>MAX_TRAVELLERS)return `Aktuell sind maximal ${MAX_TRAVELLERS} Reisende pro Suche möglich.`;
+  try{
+    const ages=Array.isArray(searchState?.childAges)?searchState.childAges.map(Number):[];
+    if(ages.length===pending.count&&ages.every(v=>Number.isInteger(v)&&v>=0&&v<=17)){pending=null;return'';}
+  }catch(_){ }
   return `Bitte Alter für ${pending.count} ${pending.count===1?'Kind':'Kinder'} angeben.`;
 }
 function repairAnalysis(t){
   if(!isDescendantOnly(t))return false;
   const result=document.getElementById('noreyoAi556Result'),adults=selectedAdults(),count=descendantCount(t);if(!result||!adults||!count)return false;
   const chips=[...result.querySelectorAll('.noreyo-v556-chip')].filter(chip=>/reisende\s*·/i.test(String(chip.textContent||'')));
+  if(adults+count>MAX_TRAVELLERS){chips.forEach(chip=>chip.remove());return !!chips.length;}
   const label=`${adults} ${adults===1?'Erwachsener':'Erwachsene'} · ${count} ${count===1?'Kind':'Kinder'}`;
   if(chips.length)chips.forEach(chip=>{chip.innerHTML='<i>✓</i>Reisende · '+label;});return !!chips.length;
 }
-function releaseSearchGuards(){try{window.NOREYO_V585?.releaseBusy?.();}catch(_){ }try{window.NOREYO_V607?.releaseGuard?.('descendant-age-validation');}catch(_){ }}
+function releaseSearchGuards(){try{window.NOREYO_V585?.releaseBusy?.();}catch(_){ }try{window.NOREYO_V607?.releaseGuard?.('descendant-family-validation');}catch(_){ }}
 function searchButton(target){return target instanceof Element?target.closest('.noreyo-v541-booking-cta,.liveSearchButton,#searchView .search-card .primary'):null;}
 function onApply(e){if(!e.target?.closest?.('.noreyo-v556-apply'))return;const t=naturalText(),before=snapshot();if(!isDescendantOnly(t))return;setTimeout(()=>apply(t,before),0);}
 function onAnalyze(e){if(!e.target?.closest?.('.noreyo-v556-analyze'))return;const t=naturalText();if(isDescendantOnly(t))setTimeout(()=>repairAnalysis(t),0);}
