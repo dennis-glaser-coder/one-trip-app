@@ -19,7 +19,7 @@ html,body{margin:0;min-height:100%;font-family:-apple-system,BlinkMacSystemFont,
 <script>
 (()=>{
 'use strict';
-const BUILD='6.44-safe';
+const BUILD='6.45-safe';
 const HOTFIX=`
 @media(max-width:600px){
   .app-head{padding-top:calc(42px + env(safe-area-inset-top))!important;padding-left:18px!important;padding-right:18px!important;padding-bottom:12px!important}
@@ -47,7 +47,7 @@ function stripAsset(html,kind,name){
  return html.replace(re,'');
 }
 function patch(html){
- html=html.split('V5.27').join('V6.44-safe').split('content="5.27"').join('content="6.44-safe"').split('BUILD 5.27').join('BUILD 6.44-safe');
+ html=html.split('V5.27').join('V6.45-safe').split('content="5.27"').join('content="6.45-safe"').split('BUILD 5.27').join('BUILD 6.45-safe');
  html=brand(html);
  const end='</style>';if(!html.includes(end))throw new Error('Style-Anker fehlt');
  let patched=html.replace(end,HOTFIX+end);
@@ -69,14 +69,14 @@ function patch(html){
  styles.forEach(([name])=>{patched=stripAsset(patched,'style',name);});
  patched=patched.replace('</head>',styles.map(([, ,tag])=>tag).join('')+'</head>');
  const scripts=[
-  ['noreyo-v533.js',643],['noreyo-v541.js',586],['noreyo-v544.js',611],['noreyo-v546.js',582],['noreyo-v547.js',605],['noreyo-v548.js',628],['noreyo-v551.js',587],['noreyo-v552.js',582],['noreyo-v553.js',622],['noreyo-v554.js',615],['noreyo-v555.js',582],['noreyo-v556.js',587],['noreyo-v557.js',596],['noreyo-v558.js',598],['noreyo-v584.js',589],['noreyo-v606.js',627],['noreyo-v585.js',602],['noreyo-v607.js',634],['noreyo-v612.js',630],['noreyo-v591.js',635],['noreyo-v624.js',633],['noreyo-v636.js',641],['noreyo-v644.js',644]
+  ['noreyo-v533.js',643],['noreyo-v541.js',586],['noreyo-v544.js',611],['noreyo-v546.js',582],['noreyo-v547.js',605],['noreyo-v548.js',628],['noreyo-v551.js',587],['noreyo-v552.js',582],['noreyo-v553.js',622],['noreyo-v554.js',615],['noreyo-v555.js',582],['noreyo-v556.js',587],['noreyo-v557.js',596],['noreyo-v558.js',598],['noreyo-v584.js',589],['noreyo-v606.js',627],['noreyo-v585.js',602],['noreyo-v607.js',634],['noreyo-v612.js',630],['noreyo-v591.js',635],['noreyo-v624.js',633],['noreyo-v636.js',641],['noreyo-v644.js',644],['noreyo-v645.js',645]
  ];
  scripts.forEach(([name])=>{patched=stripAsset(patched,'script',name);});
  const enhancer=scripts.map(([name,build])=>'<scr'+'ipt src="./'+name+'?build='+build+'"></scr'+'ipt>').join('');
  patched=patched.replace('</body>',enhancer+'</body>');
  return patched;
 }
-async function boot(){try{setStatus('NOREYO '+BUILD+' wird vorbereitet …');const r=await fetch('./site.zip?build=noreyo-644',{cache:'no-store'});if(!r.ok)throw new Error('site.zip konnte nicht geladen werden ('+r.status+')');const buffer=await r.arrayBuffer();let files;try{files=await unzipNative(buffer)}catch(e){console.warn(e);files=await unzipFallback(buffer)}let html=patch(new TextDecoder().decode(files['index.html']));setStatus('Bilder werden vorbereitet …');for(const [name,bytes] of Object.entries(files)){if(!name.startsWith('assets/')||name.endsWith('/'))continue;const url=URL.createObjectURL(new Blob([bytes],{type:mime(name)}));html=html.split(name).join(url)}document.open();document.write(html);document.close()}catch(err){console.error(err);document.getElementById('bar').style.display='none';statusEl.textContent='NOREYO konnte nicht geladen werden';const e=document.getElementById('error');e.style.display='block';e.textContent='Bitte Seite neu laden.\n\n'+(err?.message||String(err))}}
+async function boot(){try{setStatus('NOREYO '+BUILD+' wird vorbereitet …');const r=await fetch('./site.zip?build=noreyo-645',{cache:'no-store'});if(!r.ok)throw new Error('site.zip konnte nicht geladen werden ('+r.status+')');const buffer=await r.arrayBuffer();let files;try{files=await unzipNative(buffer)}catch(e){console.warn(e);files=await unzipFallback(buffer)}let html=patch(new TextDecoder().decode(files['index.html']));setStatus('Bilder werden vorbereitet …');for(const [name,bytes] of Object.entries(files)){if(!name.startsWith('assets/')||name.endsWith('/'))continue;const url=URL.createObjectURL(new Blob([bytes],{type:mime(name)}));html=html.split(name).join(url)}document.open();document.write(html);document.close()}catch(err){console.error(err);document.getElementById('bar').style.display='none';statusEl.textContent='NOREYO konnte nicht geladen werden';const e=document.getElementById('error');e.style.display='block';e.textContent='Bitte Seite neu laden.\n\n'+(err?.message||String(err))}}
 boot();
 })();
 </script>
