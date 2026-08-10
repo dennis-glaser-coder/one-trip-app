@@ -4,6 +4,7 @@
 const BUILD='5.82';
 const MAX_ADULTS=6;
 const MAX_TRAVELLERS=9;
+let v582Attempts=0,v582Timer=0;
 function state(){try{return typeof searchState!=='undefined'&&searchState?searchState:null;}catch(_){return null;}}
 function childAges(){const s=state();return Array.isArray(s?.childAges)?s.childAges.map(Number):[];}
 function occupancyError(){
@@ -22,12 +23,16 @@ function onSearch(e){const btn=e.target instanceof Element?e.target.closest('.li
 function syncBuildLabel(){const el=document.querySelector('.noreyo-v576-build');if(el&&el.textContent!=='NOREYO · BUILD '+BUILD)el.textContent='NOREYO · BUILD '+BUILD;}
 function relevant(records){for(const r of records){for(const n of r.addedNodes||[]){if(n.nodeType!==1)continue;if(n.matches?.('#profile,.noreyo-v576-build')||n.querySelector?.('#profile,.noreyo-v576-build'))return true;}}return false;}
 function loadV582(){
- if(window.NOREYO_V582||document.querySelector('script[data-noreyo-v582]'))return;
+ if(window.NOREYO_V582){v582Attempts=0;clearTimeout(v582Timer);v582Timer=0;return;}
+ if(document.querySelector('script[data-noreyo-v582]')||v582Attempts>=3)return;
+ v582Attempts++;
  const s=document.createElement('script');s.src='./noreyo-v582.js?build=582';s.dataset.noreyoV582='1';
- s.onerror=()=>{s.remove();setTimeout(loadV582,700);};
+ s.onload=()=>{v582Attempts=0;clearTimeout(v582Timer);v582Timer=0;};
+ s.onerror=()=>{s.remove();if(v582Attempts<3){clearTimeout(v582Timer);v582Timer=setTimeout(loadV582,350*Math.pow(2,v582Attempts-1));}};
  document.head.appendChild(s);
 }
-function install(){document.addEventListener('click',onSearch,true);syncBuildLabel();loadV582();if(typeof MutationObserver!=='undefined'){const mo=new MutationObserver(records=>{if(relevant(records))syncBuildLabel();});mo.observe(document.body,{childList:true,subtree:true});}window.addEventListener('pageshow',()=>{syncBuildLabel();loadV582();},{passive:true});}
+function cleanup(){clearTimeout(v582Timer);v582Timer=0;}
+function install(){document.addEventListener('click',onSearch,true);syncBuildLabel();loadV582();if(typeof MutationObserver!=='undefined'){const mo=new MutationObserver(records=>{if(relevant(records))syncBuildLabel();});mo.observe(document.body,{childList:true,subtree:true});}window.addEventListener('pageshow',()=>{syncBuildLabel();loadV582();},{passive:true});window.addEventListener('pagehide',cleanup,{passive:true});}
 window.NOREYO_V581=Object.freeze({BUILD,MAX_ADULTS,MAX_TRAVELLERS,occupancyError,syncBuildLabel,loadV582});
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
 })();
