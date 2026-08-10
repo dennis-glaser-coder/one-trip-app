@@ -1,10 +1,11 @@
-/* NOREYO V6.13 — race-safe search completion/network lifecycle guard.
-   Terminal observer only releases on terminal text. Successful searches release
-   only after renderOffers completes, so stale cards cannot end a new search early. */
+/* NOREYO V6.16 — authoritative search completion/network lifecycle guard.
+   Keeps an independent button/request lock so older signature-based busy release
+   cannot re-enable or double-submit while a newer search is still unresolved. */
 (function(){
 'use strict';
-const BUILD='6.14';
+const BUILD='6.16';
 let observer=null,root=null,raf=0;
+let guardActive=false,guardButton=null,buttonObserver=null,guardTimer=0;
 
 function norm(v){
   return String(v||'').toLowerCase().normalize('NFD')
@@ -14,18 +15,63 @@ function terminalText(text){
   const t=norm(text);
   return /keine (?:angebote|hotels|fluge|reisen|ergebnisse)|nichts gefunden|suche fehlgeschlagen|fehler bei der suche|erneut versuchen|keine vollstandige ubereinstimmung|keine verfugbarkeit gefunden|aktive filter ohne treffer|aktuell keine bestatigte .*rate|in den aktuellen daten nicht bestatigt/.test(t);
 }
-function releaseBusy(){
+function releaseLegacyBusy(){
   try{
     const api=window.NOREYO_V585;
     if(api?.busy){api.releaseBusy?.();return true;}
   }catch(_){ }
   return false;
 }
+function isSearchButton(target){
+  if(!(target instanceof Element))return null;
+  return target.closest('.noreyo-v541-booking-cta,.liveSearchButton,#searchView .search-card .primary');
+}
+function enforceButtonLock(){
+  if(!guardActive||!guardButton)return;
+  if(!guardButton.disabled)guardButton.disabled=true;
+  if(guardButton.getAttribute('aria-disabled')!=='true')guardButton.setAttribute('aria-disabled','true');
+}
+function bindButtonObserver(){
+  if(buttonObserver){buttonObserver.disconnect();buttonObserver=null;}
+  if(!guardButton||typeof MutationObserver==='undefined')return;
+  buttonObserver=new MutationObserver(enforceButtonLock);
+  buttonObserver.observe(guardButton,{attributes:true,attributeFilter:['disabled','aria-disabled']});
+}
+function startGuard(btn){
+  if(guardActive)return false;
+  guardActive=true;guardButton=btn||null;
+  enforceButtonLock();bindButtonObserver();
+  clearTimeout(guardTimer);guardTimer=setTimeout(()=>releaseGuard('timeout'),16000);
+  return true;
+}
+function releaseGuard(reason){
+  if(!guardActive){releaseLegacyBusy();return false;}
+  guardActive=false;
+  clearTimeout(guardTimer);guardTimer=0;
+  if(buttonObserver){buttonObserver.disconnect();buttonObserver=null;}
+  if(guardButton){
+    guardButton.disabled=false;
+    guardButton.removeAttribute('aria-disabled');
+  }
+  guardButton=null;
+  releaseLegacyBusy();
+  return true;
+}
+function onSearchCapture(e){
+  const btn=isSearchButton(e.target);if(!btn)return;
+  if(guardActive){
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    enforceButtonLock();
+    return;
+  }
+  startGuard(btn);
+}
 function releaseTerminalIfVisible(){
   raf=0;
   const results=document.getElementById('results');
-  if(!window.NOREYO_V585?.busy||!results||!terminalText(results.textContent||''))return false;
-  return releaseBusy();
+  if(!guardActive||!results||!terminalText(results.textContent||''))return false;
+  return releaseGuard('terminal');
 }
 function scheduleTerminal(){
   if(raf)return;
@@ -47,20 +93,20 @@ function isSearchTravel(input){
 }
 function installFetchHook(){
   try{
-    if(typeof window.fetch!=='function'||window.fetch.__noreyoV613)return;
+    if(typeof window.fetch!=='function'||window.fetch.__noreyoV616)return;
     const prior=window.fetch.bind(window);
     const wrapped=async function(input,init){
       const target=isSearchTravel(input);
       try{
         const response=await prior(input,init);
-        if(target&&window.NOREYO_V585?.busy&&response&&response.ok===false)releaseBusy();
+        if(target&&guardActive&&response&&response.ok===false)releaseGuard('http-error');
         return response;
       }catch(error){
-        if(target&&window.NOREYO_V585?.busy)releaseBusy();
+        if(target&&guardActive)releaseGuard('network-error');
         throw error;
       }
     };
-    wrapped.__noreyoV613=true;
+    wrapped.__noreyoV616=true;
     window.fetch=wrapped;
   }catch(_){ }
 }
@@ -70,46 +116,53 @@ function hasRenderedOffers(){
 }
 function installRenderHook(){
   try{
-    if(typeof renderOffers!=='function'||renderOffers.__noreyoV613)return;
+    if(typeof renderOffers!=='function'||renderOffers.__noreyoV616)return;
     const prior=renderOffers;
     const wrapped=function(){
       let result;
       try{result=prior.apply(this,arguments);}
-      catch(error){releaseBusy();throw error;}
+      catch(error){releaseGuard('render-error');throw error;}
       const done=()=>{
-        if(!window.NOREYO_V585?.busy)return;
-        if(hasRenderedOffers()||terminalText(document.getElementById('results')?.textContent||''))releaseBusy();
+        if(!guardActive)return;
+        if(hasRenderedOffers()||terminalText(document.getElementById('results')?.textContent||''))releaseGuard('rendered');
       };
-      const failed=()=>{releaseBusy();};
+      const failed=()=>{releaseGuard('render-rejected');};
       if(result&&typeof result.then==='function')result.then(done,failed);
       else setTimeout(done,0);
       return result;
     };
-    wrapped.__noreyoV613=true;
+    wrapped.__noreyoV616=true;
     renderOffers=wrapped;
   }catch(_){ }
 }
 function installNavigationHook(){
   try{
-    if(typeof go!=='function'||go.__noreyoV613)return;
+    if(typeof go!=='function'||go.__noreyoV616)return;
     const prior=go;
     const wrapped=function(){
       const result=prior.apply(this,arguments);
       setTimeout(bind,0);
       return result;
     };
-    wrapped.__noreyoV613=true;
+    wrapped.__noreyoV616=true;
     go=wrapped;
   }catch(_){ }
 }
-function install(){bind();installFetchHook();installRenderHook();installNavigationHook();}
+function install(){
+  bind();installFetchHook();installRenderHook();installNavigationHook();
+  window.addEventListener('click',onSearchCapture,true);
+}
 function cleanup(){
+  releaseGuard('pagehide');
   if(observer){observer.disconnect();observer=null;}
   if(raf){cancelAnimationFrame(raf);raf=0;}
   root=null;
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
 window.addEventListener('pagehide',cleanup,{passive:true});
-window.addEventListener('pageshow',install,{passive:true});
-window.NOREYO_V607=Object.freeze({BUILD,terminalText,isSearchTravel,hasRenderedOffers,releaseTerminalIfVisible,bind});
+window.addEventListener('pageshow',()=>{installFetchHook();installRenderHook();installNavigationHook();bind();},{passive:true});
+window.NOREYO_V607=Object.freeze({
+  BUILD,terminalText,isSearchTravel,hasRenderedOffers,releaseTerminalIfVisible,
+  bind,startGuard,releaseGuard,get active(){return guardActive;}
+});
 })();
