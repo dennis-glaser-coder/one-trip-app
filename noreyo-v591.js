@@ -1,7 +1,7 @@
-/* NOREYO V6.00 — natural-language traveller, budget, child-age and implicit-date safety. */
+/* NOREYO V6.35 — natural-language traveller, budget, child-age and implicit-date safety. */
 (function(){
 'use strict';
-const BUILD='6.00';
+const BUILD='6.35';
 
 function norm(v){return String(v||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/ß/g,'ss');}
 function naturalText(){return document.getElementById('noreyoAi556Text')?.value||'';}
@@ -63,7 +63,15 @@ function childAges(text){
 }
 function selectedChildCount(){try{return Array.isArray(searchState?.childAges)?searchState.childAges.length:0;}catch(_){return 0;}}
 function travellerCount(text){
-  const party=partySize(text);if(party!==null)return party>=1&&party<=9?party:null;
+  const party=partySize(text);
+  if(party!==null){
+    if(party<1||party>9)return null;
+    const parsedChildren=childCount(text);
+    if(parsedChildren===null)return party<=6?party:null;
+    if(parsedChildren<0||parsedChildren>4)return null;
+    const adults=party-parsedChildren;
+    return adults>=1&&adults<=6?party:null;
+  }
   const adults=adultCount(text)||currentAdults();
   if(!adults)return null;
   const parsedChildren=childCount(text);
