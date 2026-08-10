@@ -9,7 +9,7 @@ const LEGACY_SNAPSHOT_SEED_KEY='noreyoLegacyFavoriteSnapshotsSeeded589';
 const LEGACY_TOMBSTONE_KEY='noreyoLegacyFavoriteTombstones589';
 let syncingCruise=false,searchCardBaselineNode=null,suppressFavoriteKey='';
 
-function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));}
+function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function decodeKey(v){try{return decodeURIComponent(String(v||''));}catch(_){return String(v||'');}}
 function mode(){
   const active=document.querySelector('.view.active .product-mode.on')||document.querySelector('#discover .product-mode.on');
