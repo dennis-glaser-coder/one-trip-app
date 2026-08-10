@@ -16,43 +16,6 @@ html,body{margin:0;min-height:100%;font-family:-apple-system,BlinkMacSystemFont,
 </head>
 <body>
 <div id="boot"><div class="boot-card"><div class="logo">NOREYO</div><div class="sub" id="status">Reiseerlebnis wird geladen …</div><div class="bar" id="bar"></div><div id="error"></div></div></div>
-<script>
-(()=>{
-'use strict';
-const BUILD='6.62-safe';
-const HOTFIX=`
-@media(max-width:600px){
-  .app-head{padding-top:calc(42px + env(safe-area-inset-top))!important;padding-left:18px!important;padding-right:18px!important;padding-bottom:12px!important}
-  .nav{bottom:calc(3px + env(safe-area-inset-bottom))!important;height:50px!important;width:calc(100% - 20px)!important;max-width:448px!important;padding-bottom:0!important;border:1px solid rgba(7,31,45,.08)!important;border-radius:18px!important;background:rgba(255,254,252,.90)!important;backdrop-filter:blur(24px) saturate(1.22)!important;-webkit-backdrop-filter:blur(24px) saturate(1.22)!important;box-shadow:0 10px 30px rgba(7,31,45,.10)!important}
-  .nav-btn{font-size:7px!important;gap:2px!important;line-height:1!important}.nav-btn .icon{width:17px!important;height:17px!important}
-  .nav-btn.active:before{top:3px!important;width:18px!important}
-  .view{padding-bottom:calc(145px + env(safe-area-inset-bottom))!important;scroll-padding-bottom:155px!important}#detail.view{padding-bottom:0!important}#discover .content{padding-bottom:58px!important}
-  .booking-command-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}.command-cell{min-width:0!important;padding:10px 9px!important;gap:7px!important}.command-cell .command-copy{min-width:0!important;overflow:visible!important}
-  .command-cell b{font-size:11.2px!important;line-height:1.18!important;white-space:normal!important;overflow:hidden!important;text-overflow:clip!important;display:-webkit-box!important;-webkit-box-orient:vertical!important;-webkit-line-clamp:2!important}.command-cell small{font-size:7.1px!important;letter-spacing:1px!important}.dateValue,.mealPlanValue{letter-spacing:-.1px!important}
-}
-@media(max-width:390px){.app-head{padding-top:calc(40px + env(safe-area-inset-top))!important}.nav{height:48px!important;width:calc(100% - 18px)!important}.nav-btn{font-size:6.8px!important}.nav-btn .icon{width:16px!important;height:16px!important}.command-cell b{font-size:10.8px!important}}
-`;
-const statusEl=document.getElementById('status');
-const setStatus=t=>statusEl.textContent=t;
-const mime=name=>({jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',webp:'image/webp',gif:'image/gif',svg:'image/svg+xml'})[name.split('.').pop().toLowerCase()]||'application/octet-stream';
-async function inflateRaw(bytes){const ds=new DecompressionStream('deflate-raw');return new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(ds)).arrayBuffer())}
-async function unzipNative(buffer){const u8=new Uint8Array(buffer),dv=new DataView(buffer),td=new TextDecoder(),out={};let off=0;while(off+30<=u8.length&&dv.getUint32(off,true)===0x04034b50){const flags=dv.getUint16(off+6,true),method=dv.getUint16(off+8,true),csize=dv.getUint32(off+18,true),nlen=dv.getUint16(off+26,true),xlen=dv.getUint16(off+28,true);if(flags&0x08)throw new Error('ZIP data descriptor unsupported');const name=td.decode(u8.subarray(off+30,off+30+nlen)),start=off+30+nlen+xlen,comp=u8.slice(start,start+csize);let raw;if(method===0)raw=comp;else if(method===8)raw=await inflateRaw(comp);else throw new Error('ZIP compression '+method+' unsupported');out[name]=raw;off=start+csize}if(!out['index.html'])throw new Error('index.html fehlt im Paket');return out}
-function loadScript(src){return new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=rej;document.head.appendChild(s)})}
-async function unzipFallback(buffer){setStatus('Kompatibilitätsmodus wird geladen …');await loadScript('https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js');const z=await JSZip.loadAsync(buffer),out={};for(const [name,e] of Object.entries(z.files))if(!e.dir)out[name]=new Uint8Array(await e.async('uint8array'));return out}
-function brand(html){html=html.split('ONE TRIP').join('NOREYO').split('One Trip').join('NOREYO').split('one trip').join('NOREYO').split('zeigt dir zuerst die Reisen').join('zeigt dir die Reisen');html=html.replace(/<title>.*?<\/title>/i,'<title>NOREYO – Travel made for you.</title>');html=html.replace(/<meta\s+name="application-name"[^>]*>/i,'<meta name="application-name" content="NOREYO">');if(!/name="apple-mobile-web-app-title"/i.test(html))html=html.replace('</title>','</title>\n<meta name="apple-mobile-web-app-title" content="NOREYO">');if(!/name="description"/i.test(html))html=html.replace('</title>','</title>\n<meta name="description" content="NOREYO – Travel made for you. Finde Hotels und Reisen, die wirklich zu deinen Wünschen passen.">');return html}
-function reEsc(v){return String(v).replace(/[.*+?^${}()|[\]\\]/g,'\\$&');}
-function stripAsset(html,kind,name){const attr=kind==='style'?'href':'src',tag=kind==='style'?'link':'script';const re=new RegExp('<'+tag+'\\b[^>]*'+attr+'=["\\\']\\./'+reEsc(name)+'(?:\\?[^"\\\']*)?["\\\'][^>]*>'+(kind==='script'?'\\s*<\\/script>':''),'gi');return html.replace(re,'');}
-function patch(html){
- html=html.split('V5.27').join('V6.62-safe').split('content="5.27"').join('content="6.62-safe"').split('BUILD 5.27').join('BUILD 6.62-safe');html=brand(html);
- const end='</style>';if(!html.includes(end))throw new Error('Style-Anker fehlt');let patched=html.replace(end,HOTFIX+end);
- const styles=[['noreyo-v533.css',582,'<link rel="stylesheet" href="./noreyo-v533.css?build=582">'],['noreyo-v534.css',582,'<link rel="stylesheet" data-noreyo-v534="1" href="./noreyo-v534.css?build=582">'],['noreyo-v541.css',582,'<link rel="stylesheet" href="./noreyo-v541.css?build=582">'],['noreyo-v544.css',657,'<link rel="stylesheet" href="./noreyo-v544.css?build=657">'],['noreyo-v551.css',582,'<link rel="stylesheet" href="./noreyo-v551.css?build=582">'],['noreyo-v552.css',582,'<link rel="stylesheet" href="./noreyo-v552.css?build=582">'],['noreyo-v555.css',582,'<link rel="stylesheet" href="./noreyo-v555.css?build=582">'],['noreyo-v556.css',582,'<link rel="stylesheet" href="./noreyo-v556.css?build=582">'],['noreyo-v557.css',582,'<link rel="stylesheet" href="./noreyo-v557.css?build=582">'],['noreyo-v558.css',582,'<link rel="stylesheet" href="./noreyo-v558.css?build=582">'],['noreyo-v583.css',583,'<link rel="stylesheet" href="./noreyo-v583.css?build=583">'],['noreyo-v584.css',584,'<link rel="stylesheet" href="./noreyo-v584.css?build=584">'],['noreyo-v585.css',619,'<link rel="stylesheet" href="./noreyo-v585.css?build=619">']];
- styles.forEach(([name])=>{patched=stripAsset(patched,'style',name);});patched=patched.replace('</head>',styles.map(([, ,tag])=>tag).join('')+'</head>');
- const scripts=[['noreyo-v533.js',643],['noreyo-v541.js',586],['noreyo-v544.js',657],['noreyo-v546.js',582],['noreyo-v547.js',650],['noreyo-v548.js',628],['noreyo-v551.js',587],['noreyo-v552.js',582],['noreyo-v553.js',661],['noreyo-v554.js',662],['noreyo-v555.js',582],['noreyo-v556.js',587],['noreyo-v557.js',596],['noreyo-v558.js',658],['noreyo-v584.js',589],['noreyo-v606.js',627],['noreyo-v585.js',602],['noreyo-v607.js',656],['noreyo-v612.js',630],['noreyo-v591.js',635],['noreyo-v624.js',652],['noreyo-v636.js',660],['noreyo-v644.js',659]];
- scripts.forEach(([name])=>{patched=stripAsset(patched,'script',name);});const enhancer=scripts.map(([name,build])=>'<scr'+'ipt src="./'+name+'?build='+build+'"></scr'+'ipt>').join('');patched=patched.replace('</body>',enhancer+'</body>');return patched;
-}
-async function boot(){try{setStatus('NOREYO '+BUILD+' wird vorbereitet …');const r=await fetch('./site.zip?build=noreyo-662',{cache:'no-store'});if(!r.ok)throw new Error('site.zip konnte nicht geladen werden ('+r.status+')');const buffer=await r.arrayBuffer();let files;try{files=await unzipNative(buffer)}catch(e){console.warn(e);files=await unzipFallback(buffer)}let html=patch(new TextDecoder().decode(files['index.html']));setStatus('Bilder werden vorbereitet …');for(const [name,bytes] of Object.entries(files)){if(!name.startsWith('assets/')||name.endsWith('/'))continue;const url=URL.createObjectURL(new Blob([bytes],{type:mime(name)}));html=html.split(name).join(url)}document.open();document.write(html);document.close()}catch(err){console.error(err);document.getElementById('bar').style.display='none';statusEl.textContent='NOREYO konnte nicht geladen werden';const e=document.getElementById('error');e.style.display='block';e.textContent='Bitte Seite neu laden.\n\n'+(err?.message||String(err))}}
-boot();
-})();
-</script>
+<script src="./noreyo-bootstrap-v667.js?build=667"></script>
 </body>
 </html>
