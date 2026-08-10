@@ -1,7 +1,7 @@
-/* NOREYO V5.88 — redundant fail-closed unified search preflight */
+/* NOREYO V5.90 — redundant fail-closed unified search preflight */
 (function(){
 'use strict';
-const BUILD='5.88';
+const BUILD='5.90';
 let busy=false,busyButton=null,busyTimer=0,observer=null,rootObserver=null,observedRoot=null,baseline='';
 let safetyAttempts=0,safetyTimer=0,providerAttempts=0,providerTimer=0;
 
@@ -23,7 +23,7 @@ function ensureFamilySafety(){
  if(window.NOREYO_V577||document.querySelector('script[data-noreyo-v577]'))return;
  if(safetyAttempts>=3)return;
  safetyAttempts++;
- const s=document.createElement('script');s.src='./noreyo-v577.js?build=588';s.dataset.noreyoV577='1';
+ const s=document.createElement('script');s.src='./noreyo-v577.js?build=590';s.dataset.noreyoV577='1';
  s.onload=()=>{safetyAttempts=0;clearTimeout(safetyTimer);safetyTimer=0;};
  s.onerror=()=>{s.remove();scheduleSafetyRetry();};
  document.head.appendChild(s);
@@ -34,7 +34,7 @@ function ensureProviderSafety(){
  if(document.querySelector('script[data-noreyo-v581]'))return;
  if(providerAttempts>=3)return;
  providerAttempts++;
- const s=document.createElement('script');s.src='./noreyo-v581.js?build=588';s.dataset.noreyoV581='1';
+ const s=document.createElement('script');s.src='./noreyo-v581.js?build=590';s.dataset.noreyoV581='1';
  s.onload=()=>{providerAttempts=0;clearTimeout(providerTimer);providerTimer=0;};
  s.onerror=()=>{s.remove();scheduleProviderRetry();};
  document.head.appendChild(s);
