@@ -1,9 +1,9 @@
 (function(){
 'use strict';
-const BUILD='5.90';
+const BUILD='5.96';
+const PARK_KEY='noreyoParkedFilterStates596';
 const baseOpenFilter=typeof openFilter==='function'?openFilter:null;
 let draft=null,activeKeys=[],lastMode='';
-const parkedStates=Object.create(null);
 const defs={
   Zimmer0:{label:'Balkon',hint:'Zimmer mit Balkon',icon:'▱'},
   Zimmer1:{label:'Meerblick',hint:'Meerblick bevorzugen',icon:'≈'},
@@ -27,6 +27,24 @@ const sets={
   flight:{popular:['Flug0','Flug1'],extra:[]}
 };
 const knownStateKeys=[...Object.keys(defs),'Hotel6','Hotel7'];
+const parkedStates=Object.create(null);
+function loadParked(){
+  try{
+    const raw=JSON.parse(localStorage.getItem(PARK_KEY)||'{}');
+    if(!raw||typeof raw!=='object')return;
+    for(const [k,v] of Object.entries(raw)){
+      if(knownStateKeys.includes(k)&&(v==='wish'||v==='must'))parkedStates[k]=v;
+    }
+  }catch(_){ }
+}
+function persistParked(){
+  try{
+    const clean={};
+    for(const [k,v] of Object.entries(parkedStates))if(v==='wish'||v==='must')clean[k]=v;
+    if(Object.keys(clean).length)localStorage.setItem(PARK_KEY,JSON.stringify(clean));
+    else localStorage.removeItem(PARK_KEY);
+  }catch(_){ }
+}
 function mode(){
   const active=document.querySelector('#discover .product-mode.on');
   const t=(active?.textContent||'').toLowerCase();
@@ -98,6 +116,7 @@ function close(apply){
   const w=document.getElementById('noreyoFilter557');if(!w)return;
   if(apply&&draft&&typeof states!=='undefined'&&states){
     activeKeys.forEach(k=>{if(k in draft){states[k]=draft[k];delete parkedStates[k];}});
+    persistParked();
     syncAfterApply();try{if(typeof showToast==='function')showToast('Filter übernommen');}catch(_){ }
   }
   w.classList.remove('show');draft=null;activeKeys=[];
@@ -106,17 +125,18 @@ function clearIrrelevantOnModeChange(m){
   if(m==='cruise'||m===lastMode)return;
   if(typeof states==='undefined'||!states){lastMode=m;return;}
   const set=sets[m]||sets.package,allowed=new Set([...set.popular,...set.extra]);
-  let changed=false;
+  let changed=false,parkedChanged=false;
   knownStateKeys.forEach(k=>{
     if(!allowed.has(k)&&states[k]&&states[k]!=='any'){
-      parkedStates[k]=states[k];states[k]='any';changed=true;
+      parkedStates[k]=states[k];states[k]='any';changed=true;parkedChanged=true;
     }
   });
   for(const [k,v] of Object.entries(parkedStates)){
     if(allowed.has(k)&&(states[k]||'any')==='any'&&v&&v!=='any'){
-      states[k]=v;changed=true;
+      states[k]=v;delete parkedStates[k];changed=true;parkedChanged=true;
     }
   }
+  if(parkedChanged)persistParked();
   lastMode=m;
   if(changed)syncAfterApply();
 }
@@ -155,6 +175,7 @@ try{
     wrapped.__noreyoV557Schedule=true;setProductMode=wrapped;
   }
 }catch(_){ }
+loadParked();
 install();setTimeout(install,80);setTimeout(install,240);setTimeout(install,600);
 const discover=document.getElementById('discover');if(discover&&typeof MutationObserver!=='undefined')new MutationObserver(records=>{if(mutationRelevant(records))schedule();}).observe(discover,{childList:true,subtree:true});
 window.addEventListener('pageshow',schedule,{passive:true});
