@@ -1,9 +1,9 @@
-/* NOREYO V6.16 — authoritative search completion/network lifecycle guard.
+/* NOREYO V6.21 — authoritative search completion/network lifecycle guard.
    Keeps an independent button/request lock so older signature-based busy release
    cannot re-enable or double-submit while a newer search is still unresolved. */
 (function(){
 'use strict';
-const BUILD='6.17';
+const BUILD='6.21';
 let observer=null,root=null,raf=0;
 let guardActive=false,guardButton=null,buttonObserver=null,guardTimer=0;
 
@@ -13,7 +13,7 @@ function norm(v){
 }
 function terminalText(text){
   const t=norm(text);
-  return /keine (?:angebote|hotels|fluge|reisen|ergebnisse)|nichts gefunden|suche fehlgeschlagen|fehler bei der suche|erneut versuchen|keine vollstandige ubereinstimmung|keine verfugbarkeit gefunden|aktive filter ohne treffer|aktuell keine bestatigte .*rate|in den aktuellen daten nicht bestatigt/.test(t);
+  return /keine (?:angebote|hotels|fluge|reisen|ergebnisse)|nichts gefunden|suche fehlgeschlagen|fehler bei der suche|erneut versuchen|keine vollstandige ubereinstimmung|keine verfugbarkeit gefunden|keine verfugbarkeit fur diesen zeitraum|fur diese reisedaten aktuell kein bestatigtes angebot|aktive filter ohne treffer|aktuelle auswahl ohne vollstandigen treffer|aktuell keine bestatigte .*rate|in den aktuellen daten nicht bestatigt/.test(t);
 }
 function releaseLegacyBusy(){
   try{
