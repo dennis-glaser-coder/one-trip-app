@@ -19,7 +19,7 @@ html,body{margin:0;min-height:100%;font-family:-apple-system,BlinkMacSystemFont,
 <script>
 (()=>{
 'use strict';
-const BUILD='6.30-safe';
+const BUILD='6.31-safe';
 const HOTFIX=`
 @media(max-width:600px){
   .app-head{padding-top:calc(42px + env(safe-area-inset-top))!important;padding-left:18px!important;padding-right:18px!important;padding-bottom:12px!important}
@@ -41,15 +41,13 @@ function loadScript(src){return new Promise((res,rej)=>{const s=document.createE
 async function unzipFallback(buffer){setStatus('Kompatibilitätsmodus wird geladen …');await loadScript('https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js');const z=await JSZip.loadAsync(buffer),out={};for(const [name,e] of Object.entries(z.files))if(!e.dir)out[name]=new Uint8Array(await e.async('uint8array'));return out}
 function brand(html){html=html.split('ONE TRIP').join('NOREYO').split('One Trip').join('NOREYO').split('one trip').join('NOREYO').split('zeigt dir zuerst die Reisen').join('zeigt dir die Reisen');html=html.replace(/<title>.*?<\/title>/i,'<title>NOREYO – Travel made for you.</title>');html=html.replace(/<meta\s+name="application-name"[^>]*>/i,'<meta name="application-name" content="NOREYO">');if(!/name="apple-mobile-web-app-title"/i.test(html))html=html.replace('</title>','</title>\n<meta name="apple-mobile-web-app-title" content="NOREYO">');if(!/name="description"/i.test(html))html=html.replace('</title>','</title>\n<meta name="description" content="NOREYO – Travel made for you. Finde Hotels und Reisen, die wirklich zu deinen Wünschen passen.">');return html}
 function reEsc(v){return String(v).replace(/[.*+?^${}()|[\]\\]/g,'\\$&');}
-function upsertAsset(html,kind,name,build,tag){
- const attr=kind==='style'?'href':'src';
- const re=new RegExp('('+attr+'=["\\\']\\./'+reEsc(name)+')(?:\\?[^"\\\']*)?(["\\\'])','i');
- if(re.test(html))return html.replace(re,'$1?build='+build+'$2');
- const anchor=kind==='style'?'</head>':'</body>';
- return html.replace(anchor,tag+anchor);
+function stripAsset(html,kind,name){
+ const attr=kind==='style'?'href':'src',tag=kind==='style'?'link':'script';
+ const re=new RegExp('<'+tag+'\\b[^>]*'+attr+'=["\\\']\\./'+reEsc(name)+'(?:\\?[^"\\\']*)?["\\\'][^>]*>'+(kind==='script'?'\\s*<\\/script>':''),'gi');
+ return html.replace(re,'');
 }
 function patch(html){
- html=html.split('V5.27').join('V6.30-safe').split('content="5.27"').join('content="6.30-safe"').split('BUILD 5.27').join('BUILD 6.30-safe');
+ html=html.split('V5.27').join('V6.31-safe').split('content="5.27"').join('content="6.31-safe"').split('BUILD 5.27').join('BUILD 6.31-safe');
  html=brand(html);
  const end='</style>';if(!html.includes(end))throw new Error('Style-Anker fehlt');
  let patched=html.replace(end,HOTFIX+end);
@@ -68,14 +66,17 @@ function patch(html){
   ['noreyo-v584.css',584,'<link rel="stylesheet" href="./noreyo-v584.css?build=584">'],
   ['noreyo-v585.css',619,'<link rel="stylesheet" href="./noreyo-v585.css?build=619">']
  ];
- styles.forEach(([name,build,tag])=>{patched=upsertAsset(patched,'style',name,build,tag);});
+ styles.forEach(([name])=>{patched=stripAsset(patched,'style',name);});
+ patched=patched.replace('</head>',styles.map(([, ,tag])=>tag).join('')+'</head>');
  const scripts=[
   ['noreyo-v533.js',604],['noreyo-v541.js',586],['noreyo-v544.js',611],['noreyo-v546.js',582],['noreyo-v547.js',605],['noreyo-v548.js',628],['noreyo-v551.js',587],['noreyo-v552.js',582],['noreyo-v553.js',622],['noreyo-v554.js',615],['noreyo-v555.js',582],['noreyo-v556.js',587],['noreyo-v557.js',596],['noreyo-v558.js',598],['noreyo-v584.js',589],['noreyo-v606.js',627],['noreyo-v585.js',602],['noreyo-v607.js',629],['noreyo-v612.js',630],['noreyo-v591.js',600],['noreyo-v624.js',624]
  ];
- scripts.forEach(([name,build])=>{patched=upsertAsset(patched,'script',name,build,'<scr'+'ipt src="./'+name+'?build='+build+'"></scr'+'ipt>');});
+ scripts.forEach(([name])=>{patched=stripAsset(patched,'script',name);});
+ const enhancer=scripts.map(([name,build])=>'<scr'+'ipt src="./'+name+'?build='+build+'"></scr'+'ipt>').join('');
+ patched=patched.replace('</body>',enhancer+'</body>');
  return patched;
 }
-async function boot(){try{setStatus('NOREYO '+BUILD+' wird vorbereitet …');const r=await fetch('./site.zip?build=noreyo-630',{cache:'no-store'});if(!r.ok)throw new Error('site.zip konnte nicht geladen werden ('+r.status+')');const buffer=await r.arrayBuffer();let files;try{files=await unzipNative(buffer)}catch(e){console.warn(e);files=await unzipFallback(buffer)}let html=patch(new TextDecoder().decode(files['index.html']));setStatus('Bilder werden vorbereitet …');for(const [name,bytes] of Object.entries(files)){if(!name.startsWith('assets/')||name.endsWith('/'))continue;const url=URL.createObjectURL(new Blob([bytes],{type:mime(name)}));html=html.split(name).join(url)}document.open();document.write(html);document.close()}catch(err){console.error(err);document.getElementById('bar').style.display='none';statusEl.textContent='NOREYO konnte nicht geladen werden';const e=document.getElementById('error');e.style.display='block';e.textContent='Bitte Seite neu laden.\n\n'+(err?.message||String(err))}}
+async function boot(){try{setStatus('NOREYO '+BUILD+' wird vorbereitet …');const r=await fetch('./site.zip?build=noreyo-631',{cache:'no-store'});if(!r.ok)throw new Error('site.zip konnte nicht geladen werden ('+r.status+')');const buffer=await r.arrayBuffer();let files;try{files=await unzipNative(buffer)}catch(e){console.warn(e);files=await unzipFallback(buffer)}let html=patch(new TextDecoder().decode(files['index.html']));setStatus('Bilder werden vorbereitet …');for(const [name,bytes] of Object.entries(files)){if(!name.startsWith('assets/')||name.endsWith('/'))continue;const url=URL.createObjectURL(new Blob([bytes],{type:mime(name)}));html=html.split(name).join(url)}document.open();document.write(html);document.close()}catch(err){console.error(err);document.getElementById('bar').style.display='none';statusEl.textContent='NOREYO konnte nicht geladen werden';const e=document.getElementById('error');e.style.display='block';e.textContent='Bitte Seite neu laden.\n\n'+(err?.message||String(err))}}
 boot();
 })();
 </script>
