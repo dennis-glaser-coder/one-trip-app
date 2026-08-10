@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='6.74';
+const BUILD='6.75';
 const labelKey={
  'Balkon':'Zimmer0','Meerblick':'Zimmer1','Terrasse':'Zimmer2','Mind. 4 Sterne':'Hotel0','Adults Only':'Hotel1','Spa / Wellness':'Hotel4','Fitness':'Hotel5','Sandstrand':'Lage0','Direkt am Strand':'Lage1','Ruhige Lage':'Lage2','Restaurants zu Fuß':'Lage3','Kurzer Transfer':'Lage4','Kostenlos stornierbar':'Preis2','Direktflug':'Flug0','Aufgabegepäck':'Flug1'
 };
@@ -69,10 +69,13 @@ function decorate(){
     });
   }
   const conf=r.querySelector('.noreyo-v556-confidence');if(conf)conf.setAttribute('aria-label','Angaben geprüft');
-  r.addEventListener('click',e=>{
-    if(!e.target.closest('.noreyo-v556-apply'))return;
-    const snapshot={...overrides};setTimeout(()=>applyOverrides(snapshot),0);
-  },{capture:true,once:true});
+  if(r.dataset.noreyoV559ApplyBound!=='1'){
+    r.dataset.noreyoV559ApplyBound='1';
+    r.addEventListener('click',e=>{
+      if(!e.target.closest('.noreyo-v556-apply'))return;
+      const snapshot={...overrides};setTimeout(()=>applyOverrides(snapshot),0);
+    },true);
+  }
 }
 function resetMarker(){const r=document.getElementById('noreyoAi556Result');if(r)delete r.dataset.noreyoV559;}
 function schedule(){if(raf)return;raf=requestAnimationFrame(()=>{raf=0;decorate();});}
