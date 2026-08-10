@@ -3,6 +3,7 @@
 const BUILD='5.86';
 const baseOpenFilter=typeof openFilter==='function'?openFilter:null;
 let draft=null,activeKeys=[],lastMode='';
+const parkedStates=Object.create(null);
 const defs={
   Zimmer0:{label:'Balkon',hint:'Zimmer mit Balkon',icon:'▱'},
   Zimmer1:{label:'Meerblick',hint:'Meerblick bevorzugen',icon:'≈'},
@@ -100,15 +101,20 @@ function close(apply){
 }
 function clearIrrelevantOnModeChange(m){
   if(m==='cruise'||m===lastMode)return;
-  lastMode=m;
-  if(typeof states==='undefined'||!states)return;
+  if(typeof states==='undefined'||!states){lastMode=m;return;}
   const set=sets[m]||sets.package,allowed=new Set([...set.popular,...set.extra]);
   let changed=false;
   knownStateKeys.forEach(k=>{
     if(!allowed.has(k)&&states[k]&&states[k]!=='any'){
-      states[k]='any';changed=true;
+      parkedStates[k]=states[k];states[k]='any';changed=true;
     }
   });
+  for(const [k,v] of Object.entries(parkedStates)){
+    if(allowed.has(k)&&(states[k]||'any')==='any'&&v&&v!=='any'){
+      states[k]=v;changed=true;
+    }
+  }
+  lastMode=m;
   if(changed)syncAfterApply();
 }
 function install(){
