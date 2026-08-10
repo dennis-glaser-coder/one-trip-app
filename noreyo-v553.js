@@ -1,6 +1,6 @@
 (function(){
   'use strict';
-  const BUILD='6.20';
+  const BUILD='6.22';
   let raf=0,observer=null;
 
   const labels={
@@ -29,14 +29,21 @@
     raf=requestAnimationFrame(()=>{raf=0;applyHeading();});
   }
 
+  function isHeadingNode(node){
+    const el=node?.nodeType===1?node:node?.parentElement;
+    return !!el?.closest?.('#discover .search-console-head span,#discover .noreyo-v552-search-head span');
+  }
+
   function mutationRelevant(records){
     for(const r of records){
+      if(r.type==='characterData'&&isHeadingNode(r.target))return true;
       if(r.type==='attributes'){
         const t=r.target;
         if(t instanceof Element&&(t.matches('.product-mode')||t.closest('.product-switch')))return true;
         continue;
       }
       for(const n of r.addedNodes||[]){
+        if(n.nodeType===3&&isHeadingNode(n))return true;
         if(n.nodeType!==1)continue;
         if(n.matches?.('.search-console-head,.noreyo-v552-search-head,.product-switch,.product-mode')||
            n.querySelector?.('.search-console-head,.noreyo-v552-search-head,.product-switch,.product-mode'))return true;
@@ -81,7 +88,7 @@
     const discover=document.getElementById('discover');
     if(!discover||observer||typeof MutationObserver==='undefined')return;
     observer=new MutationObserver(records=>{if(mutationRelevant(records))schedule();});
-    observer.observe(discover,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});
+    observer.observe(discover,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['class']});
   }
 
   function cleanup(){
@@ -94,6 +101,7 @@
   installObserver();
   setTimeout(applyHeading,80);
   setTimeout(applyHeading,240);
+  setTimeout(applyHeading,620);
   window.addEventListener('pagehide',cleanup,{passive:true});
   window.addEventListener('pageshow',()=>{installHooks();applyHeading();installObserver();},{passive:true});
   window.NOREYO_V553=Object.freeze({BUILD,currentMode,applyHeading,mutationRelevant});
