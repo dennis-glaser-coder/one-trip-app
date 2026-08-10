@@ -1,14 +1,16 @@
-/* NOREYO V5.91 — natural-language adult/budget ambiguity guard.
-   Prevents duration phrases such as "für zwei Wochen" from acting like an adult count. */
+/* NOREYO V5.92 — natural-language ambiguity + budget proximity guard.
+   Keeps duration phrases from acting like adult counts and only treats amounts
+   as per-person budgets when the qualifier is actually attached to that amount. */
 (function(){
 'use strict';
-const BUILD='5.91';
+const BUILD='5.92';
 
 function norm(v){return String(v||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/ß/g,'ss');}
 function naturalText(){return document.getElementById('noreyoAi556Text')?.value||'';}
 function explicitAdults(text){
   const t=norm(text);
-  return /\bzu zweit\b/.test(t)||/\b(?:[1-9]|ein(?:e|en|em|er)?|zwei|drei|vier|fuenf|funf|sechs|sieben|acht|neun)\s+(?:erwachsen(?:e|er|en)?|personen?|reisende)\b/.test(t);
+  return /\bzu zweit\b/.test(t)||
+    /\b(?:[1-9]|ein(?:e|en|em|er)?|zwei|drei|vier|fuenf|funf|sechs|sieben|acht|neun)\s+(?:erwachsen(?:e|er|en)?|personen?|reisende)\b/.test(t);
 }
 function currentAdults(){
   try{
@@ -16,17 +18,20 @@ function currentAdults(){
     return Number.isInteger(n)&&n>=1&&n<=6?n:null;
   }catch(_){return null;}
 }
+function money(v){
+  const n=Number(String(v||'').replace(/[.\s]/g,'').replace(',','.'));
+  return Number.isFinite(n)&&n>=100&&n<=50000?n:null;
+}
 function perPersonBudget(text){
   const t=norm(text);
-  if(!/\b(?:pro person|je person|p\.?\s*p\.?)\b/.test(t))return null;
   const patterns=[
-    /(?:max(?:imal)?\.?|bis|budget(?: von)?|hoechstens|hochstens)\s*(?:ca\.?\s*)?([0-9][0-9\.\s]{2,})\s*(?:€|euro)/i,
-    /([0-9][0-9\.\s]{2,})\s*(?:€|euro)\s*(?:max(?:imal)?\.?|budget|pro person|je person|p\.?\s*p\.?)?/i
+    /(?:max(?:imal)?\.?|bis|budget(?: von)?|hoechstens|hochstens)\s*(?:ca\.?\s*)?([0-9][0-9.\s]{2,})\s*(?:€|euro)\s*(?:pro person|je person|p\.?\s*p\.?)/i,
+    /(?:pro person|je person|p\.?\s*p\.?)\s*(?:max(?:imal)?\.?|bis|budget(?: von)?|hoechstens|hochstens)?\s*(?:ca\.?\s*)?([0-9][0-9.\s]{2,})\s*(?:€|euro)/i,
+    /([0-9][0-9.\s]{2,})\s*(?:€|euro)\s*(?:pro person|je person|p\.?\s*p\.?)/i
   ];
   for(const re of patterns){
     const m=t.match(re);if(!m)continue;
-    const n=Number(m[1].replace(/[\.\s]/g,''));
-    if(Number.isFinite(n)&&n>=100&&n<=50000)return n;
+    const n=money(m[1]);if(n!==null)return n;
   }
   return null;
 }
@@ -59,10 +64,15 @@ function onApplyCapture(e){
   setTimeout(()=>{
     let changed=false;
     try{
-      if(typeof searchState!=='undefined'&&searchState&&Math.round(Number(searchState.adults))!==adults){searchState.adults=adults;changed=true;}
+      if(typeof searchState!=='undefined'&&searchState&&Math.round(Number(searchState.adults))!==adults){
+        searchState.adults=adults;changed=true;
+      }
     }catch(_){ }
     try{
-      if(pp&&typeof limits!=='undefined'&&limits){const total=pp*adults;if(Number(limits.maxHotelPrice)!==total){limits.maxHotelPrice=total;changed=true;}}
+      if(pp&&typeof limits!=='undefined'&&limits){
+        const total=pp*adults;
+        if(Number(limits.maxHotelPrice)!==total){limits.maxHotelPrice=total;changed=true;}
+      }
     }catch(_){ }
     if(changed)refresh();
   },0);
