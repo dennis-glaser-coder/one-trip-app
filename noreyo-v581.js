@@ -1,9 +1,10 @@
-/* NOREYO V5.90 — provider occupancy alignment + deduplicated safety guard loader */
+/* NOREYO V5.91 — exact provider occupancy alignment + deduplicated safety guard loader */
 (function(){
 'use strict';
-const BUILD='5.90';
+const BUILD='5.91';
 const MAX_ADULTS=6;
 const MAX_TRAVELLERS=9;
+const MAX_CHILDREN=4;
 let v582Attempts=0,v582Timer=0,v587Attempts=0,v587Timer=0;
 let v587GraceTimer=0;
 function state(){try{return typeof searchState!=='undefined'&&searchState?searchState:null;}catch(_){return null;}}
@@ -14,6 +15,7 @@ function occupancyError(){
  if(!Number.isInteger(adults)||adults<1)return'Bitte mindestens einen Erwachsenen auswählen.';
  if(adults>MAX_ADULTS)return`Aktuell sind maximal ${MAX_ADULTS} Erwachsene pro Suche möglich.`;
  if(adults+ages.length>MAX_TRAVELLERS)return`Aktuell sind maximal ${MAX_TRAVELLERS} Reisende pro Suche möglich.`;
+ if(ages.length>MAX_CHILDREN)return`Aktuell sind maximal ${MAX_CHILDREN} Kinder pro Suche möglich.`;
  if(ages.some(v=>!Number.isInteger(v)||v<0||v>17))return'Bitte alle Kinderalter zwischen 0 und 17 Jahren prüfen.';
  if(ages.filter(v=>v<=1).length>adults)return'Pro Erwachsenen kann maximal ein Kleinkind unter 2 Jahren berücksichtigt werden.';
  return'';
@@ -85,6 +87,6 @@ function install(){
  window.addEventListener('pageshow',()=>{syncBuildLabel();loadV582();loadV587();},{passive:true});
  window.addEventListener('pagehide',cleanup,{passive:true});
 }
-window.NOREYO_V581=Object.freeze({BUILD,MAX_ADULTS,MAX_TRAVELLERS,occupancyError,syncBuildLabel,loadV582,loadV587});
+window.NOREYO_V581=Object.freeze({BUILD,MAX_ADULTS,MAX_TRAVELLERS,MAX_CHILDREN,occupancyError,syncBuildLabel,loadV582,loadV587});
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
 })();
