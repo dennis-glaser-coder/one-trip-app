@@ -1,6 +1,6 @@
 (function(){
   'use strict';
-  const BUILD='5.94';
+  const BUILD='6.15';
   let raf=0,fallbackTimer=0;
 
   function isFlightMode(){
@@ -26,7 +26,7 @@
     if(window.NOREYO_V557)return;
     if(document.querySelector('script[data-noreyo-v557-fallback]'))return;
     const s=document.createElement('script');
-    s.src='./noreyo-v557.js?build=590';
+    s.src='./noreyo-v557.js?build=596';
     s.dataset.noreyoV557Fallback='1';
     s.onerror=()=>s.remove();
     document.head.appendChild(s);
