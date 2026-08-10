@@ -1,6 +1,6 @@
 (function(){
   'use strict';
-  const BUILD='5.58';
+  const BUILD='5.97';
   let raf=0;
 
   function currentMode(){
@@ -14,6 +14,7 @@
   }
   function setText(el,text){if(el&&el.textContent!==text)el.textContent=text;}
   function setHTML(el,html){if(el&&el.innerHTML!==html)el.innerHTML=html;}
+  function norm(v){return String(v||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').trim();}
 
   const rules={
     Zimmer0:{label:'Balkon',read:o=>tri(o?.confirmed?.balcony)},
@@ -90,6 +91,47 @@
     match.classList.add('noreyo-v558-match');
   }
 
+  function offerIds(o){
+    return [o?.key,o?.id,o?.hotelId,o?.hotel_id,o?.rateId,o?.rate_id]
+      .map(v=>String(v??'').trim()).filter(Boolean);
+  }
+  function offerNames(o){
+    return [o?.hotel,o?.hotelName,o?.name,o?.title,o?.propertyName]
+      .map(norm).filter(v=>v.length>=4);
+  }
+  function cardTokens(card){
+    const out=[];
+    try{for(const v of Object.values(card?.dataset||{}))if(v)out.push(String(v));}catch(_){ }
+    try{
+      for(const attr of ['data-offer-id','data-hotel-id','data-id','data-key']){
+        const v=card?.getAttribute?.(attr);if(v)out.push(String(v));
+      }
+    }catch(_){ }
+    return out;
+  }
+  function decodeURIComponentSafe(v){try{return decodeURIComponent(v);}catch(_){return String(v||'');}}
+  function resolveOfferForCard(card,index,data,used){
+    if(!Array.isArray(data)||!data.length)return null;
+    const tokens=cardTokens(card);
+    for(let i=0;i<data.length;i++){
+      if(used.has(i))continue;
+      const ids=offerIds(data[i]);
+      if(ids.some(id=>tokens.some(t=>t===id||decodeURIComponentSafe(t)===id))){used.add(i);return data[i];}
+    }
+    const text=norm(card?.textContent||'');
+    const nameMatches=[];
+    for(let i=0;i<data.length;i++){
+      if(used.has(i))continue;
+      const names=offerNames(data[i]);
+      if(names.some(name=>text.includes(name)))nameMatches.push(i);
+    }
+    if(nameMatches.length===1){used.add(nameMatches[0]);return data[nameMatches[0]];}
+    if(!used.has(index)&&data[index]){used.add(index);return data[index];}
+    const next=data.findIndex((_,i)=>!used.has(i));
+    if(next>=0){used.add(next);return data[next];}
+    return null;
+  }
+
   function decorateCard(card,o,index){
     if(!card)return;
     card.classList.add('noreyo-v558-offer');
@@ -162,7 +204,8 @@
     if(!cards.length){decorateDetail();return;}
     let data=[];
     try{if(Array.isArray(offers))data=offers;}catch(_){ }
-    cards.forEach((card,i)=>decorateCard(card,data[i],i));
+    const used=new Set();
+    cards.forEach((card,i)=>decorateCard(card,resolveOfferForCard(card,i,data,used),i));
     decorateDetail();
   }
 
@@ -185,5 +228,5 @@
   const results=document.getElementById('results');
   if(results&&typeof MutationObserver!=='undefined')new MutationObserver(schedule).observe(results,{childList:true,subtree:true});
   window.addEventListener('pageshow',schedule,{passive:true});
-  window.NOREYO_V558=Object.freeze({decorate,version:BUILD});
+  window.NOREYO_V558=Object.freeze({decorate,resolveOfferForCard,version:BUILD});
 })();
