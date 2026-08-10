@@ -1,7 +1,7 @@
 (function(){
   'use strict';
-  const BUILD='6.05';
-  let raf=0,observer=null;
+  const BUILD='6.50';
+  let raf=0,observer=null,timers=[];
 
   function fixHeroCopy(){
     document.querySelectorAll('#discover .hero-copy p').forEach(el=>{
@@ -28,11 +28,18 @@
     observer=new MutationObserver(records=>{if(relevant(records))schedule();});
     observer.observe(hero,{childList:true,subtree:true,characterData:true});
   }
-  function cleanup(){if(observer){observer.disconnect();observer=null;}raf=0;}
+  function scheduleWarmups(){
+    timers.forEach(clearTimeout);timers=[];
+    [80,250,600].forEach(ms=>timers.push(setTimeout(fixHeroCopy,ms)));
+  }
+  function cleanup(){
+    if(observer){observer.disconnect();observer=null;}
+    if(raf){cancelAnimationFrame(raf);raf=0;}
+    timers.forEach(clearTimeout);timers=[];
+  }
 
-  fixHeroCopy();installObserver();
-  setTimeout(fixHeroCopy,80);setTimeout(fixHeroCopy,250);setTimeout(fixHeroCopy,600);
+  fixHeroCopy();installObserver();scheduleWarmups();
   window.addEventListener('pagehide',cleanup,{passive:true});
-  window.addEventListener('pageshow',()=>{fixHeroCopy();installObserver();},{passive:true});
-  window.NOREYO_V547=Object.freeze({BUILD,fixHeroCopy,relevant});
+  window.addEventListener('pageshow',()=>{fixHeroCopy();installObserver();scheduleWarmups();},{passive:true});
+  window.NOREYO_V547=Object.freeze({BUILD,fixHeroCopy,relevant,cleanup});
 })();
