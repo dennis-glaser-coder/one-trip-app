@@ -1,10 +1,10 @@
-/* NOREYO V5.86 — provider occupancy alignment + safety guard loaders */
+/* NOREYO V5.87 — provider occupancy alignment + safety guard loaders */
 (function(){
 'use strict';
-const BUILD='5.86';
+const BUILD='5.87';
 const MAX_ADULTS=6;
 const MAX_TRAVELLERS=9;
-let v582Attempts=0,v582Timer=0,v586Attempts=0,v586Timer=0;
+let v582Attempts=0,v582Timer=0,v587Attempts=0,v587Timer=0;
 function state(){try{return typeof searchState!=='undefined'&&searchState?searchState:null;}catch(_){return null;}}
 function childAges(){const s=state();return Array.isArray(s?.childAges)?s.childAges.map(Number):[];}
 function occupancyError(){
@@ -24,20 +24,20 @@ function syncBuildLabel(){const el=document.querySelector('.noreyo-v576-build');
 function relevant(records){for(const r of records){for(const n of r.addedNodes||[]){if(n.nodeType!==1)continue;if(n.matches?.('#profile,.noreyo-v576-build')||n.querySelector?.('#profile,.noreyo-v576-build'))return true;}}return false;}
 function loadGuard(key,globalName,src,attemptKey){
  const is582=attemptKey==='582';
- let attempts=is582?v582Attempts:v586Attempts;
- if(window[globalName]){if(is582){v582Attempts=0;clearTimeout(v582Timer);v582Timer=0;}else{v586Attempts=0;clearTimeout(v586Timer);v586Timer=0;}return;}
+ let attempts=is582?v582Attempts:v587Attempts;
+ if(window[globalName]){if(is582){v582Attempts=0;clearTimeout(v582Timer);v582Timer=0;}else{v587Attempts=0;clearTimeout(v587Timer);v587Timer=0;}return;}
  if(document.querySelector(`script[data-noreyo-v${key}]`)||attempts>=3)return;
  attempts++;
- if(is582)v582Attempts=attempts;else v586Attempts=attempts;
+ if(is582)v582Attempts=attempts;else v587Attempts=attempts;
  const s=document.createElement('script');s.src=src;s.dataset[`noreyoV${key}`]='1';
- s.onload=()=>{if(is582){v582Attempts=0;clearTimeout(v582Timer);v582Timer=0;}else{v586Attempts=0;clearTimeout(v586Timer);v586Timer=0;}};
- s.onerror=()=>{s.remove();const current=is582?v582Attempts:v586Attempts;if(current<3){const delay=350*Math.pow(2,current-1);if(is582){clearTimeout(v582Timer);v582Timer=setTimeout(loadV582,delay);}else{clearTimeout(v586Timer);v586Timer=setTimeout(loadV586,delay);}}};
+ s.onload=()=>{if(is582){v582Attempts=0;clearTimeout(v582Timer);v582Timer=0;}else{v587Attempts=0;clearTimeout(v587Timer);v587Timer=0;}};
+ s.onerror=()=>{s.remove();const current=is582?v582Attempts:v587Attempts;if(current<3){const delay=350*Math.pow(2,current-1);if(is582){clearTimeout(v582Timer);v582Timer=setTimeout(loadV582,delay);}else{clearTimeout(v587Timer);v587Timer=setTimeout(loadV587,delay);}}};
  document.head.appendChild(s);
 }
-function loadV582(){loadGuard('582','NOREYO_V582','./noreyo-v582.js?build=586','582');}
-function loadV586(){loadGuard('586','NOREYO_V586','./noreyo-v586.js?build=586','586');}
-function cleanup(){clearTimeout(v582Timer);clearTimeout(v586Timer);v582Timer=0;v586Timer=0;}
-function install(){document.addEventListener('click',onSearch,true);syncBuildLabel();loadV582();loadV586();if(typeof MutationObserver!=='undefined'){const mo=new MutationObserver(records=>{if(relevant(records))syncBuildLabel();});mo.observe(document.body,{childList:true,subtree:true});}window.addEventListener('pageshow',()=>{syncBuildLabel();loadV582();loadV586();},{passive:true});window.addEventListener('pagehide',cleanup,{passive:true});}
-window.NOREYO_V581=Object.freeze({BUILD,MAX_ADULTS,MAX_TRAVELLERS,occupancyError,syncBuildLabel,loadV582,loadV586});
+function loadV582(){loadGuard('582','NOREYO_V582','./noreyo-v582.js?build=587','582');}
+function loadV587(){loadGuard('587','NOREYO_V587','./noreyo-v587.js?build=587','587');}
+function cleanup(){clearTimeout(v582Timer);clearTimeout(v587Timer);v582Timer=0;v587Timer=0;}
+function install(){document.addEventListener('click',onSearch,true);syncBuildLabel();loadV582();loadV587();if(typeof MutationObserver!=='undefined'){const mo=new MutationObserver(records=>{if(relevant(records))syncBuildLabel();});mo.observe(document.body,{childList:true,subtree:true});}window.addEventListener('pageshow',()=>{syncBuildLabel();loadV582();loadV587();},{passive:true});window.addEventListener('pagehide',cleanup,{passive:true});}
+window.NOREYO_V581=Object.freeze({BUILD,MAX_ADULTS,MAX_TRAVELLERS,occupancyError,syncBuildLabel,loadV582,loadV587});
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
 })();
