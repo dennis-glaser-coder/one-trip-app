@@ -3,7 +3,7 @@
 'use strict';
 const BUILD='5.85';
 const MAX_ADULTS=6,MAX_CHILDREN=4,MAX_TRAVELLERS=9;
-let pendingFamily=null,adultSnapshot=null;
+let pendingFamily=null,adultSnapshot=null,lastNaturalText='';
 let busy=false,busyButton=null,busyTimer=0,resultObserver=null,rootObserver=null,observedRoot=null,baseline='';
 
 function norm(v){return String(v||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/ß/g,'ss');}
@@ -161,7 +161,8 @@ function bindResults(){
 }
 function onSearchCapture(e){
  const btn=searchButton(e.target);if(!btn)return;
- applyFamily();
+ const text=naturalText(),signatureText=norm(text).trim();
+ if(signatureText&&signatureText!==lastNaturalText){applyFamily(text);lastNaturalText=signatureText;}
  const error=validateFamily()||coreSearchError();
  if(error){
    e.preventDefault();e.stopImmediatePropagation();notify(error);
@@ -176,7 +177,7 @@ function onAiApplyCapture(e){
  const text=naturalText(),s=state();
  adultSnapshot=!explicitAdults(text)&&Number.isInteger(Math.round(Number(s?.adults)))?Math.round(Number(s.adults)):null;
  setTimeout(()=>{
-   applyFamily(text);
+   applyFamily(text);lastNaturalText=norm(text).trim();
    if(adultSnapshot&&s&&Math.round(Number(s.adults))!==adultSnapshot){s.adults=adultSnapshot;refresh();}
    adultSnapshot=null;
  },0);
