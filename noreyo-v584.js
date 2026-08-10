@@ -1,10 +1,11 @@
-/* NOREYO V5.84 — targeted platform repairs on the proven V5.82 interaction baseline.
+/* NOREYO V5.88 — targeted platform repairs on the proven V5.82 interaction baseline.
    No MutationObserver, no full-screen UI layer, no pointer-event or z-index manipulation. */
 (function(){
 'use strict';
-const BUILD='5.85';
+const BUILD='5.88';
 const LEGACY_FAV_KEY='noreyoLegacyFavoriteIds584';
-let syncingCruise=false,searchCardBaselineNode=null;
+const LEGACY_SEED_KEY='noreyoLegacyFavoriteIdsSeeded584';
+let syncingCruise=false,searchCardBaselineNode=null,suppressFavoriteKey='';
 
 function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function decodeKey(v){try{return decodeURIComponent(String(v||''));}catch(_){return String(v||'');}}
@@ -29,13 +30,18 @@ function storedObjects(){
 function rememberLegacyFavoriteIds(){
   const ids=new Set();
   try{JSON.parse(localStorage.getItem(LEGACY_FAV_KEY)||'[]').forEach(x=>ids.add(String(x)));}catch(_){ }
-  try{if(typeof favs!=='undefined'&&favs&&typeof favs.forEach==='function')favs.forEach(x=>ids.add(String(x)));}catch(_){ }
-  storedObjects().forEach(x=>{if(Array.isArray(x.favs))x.favs.forEach(id=>ids.add(String(id)));});
+  let seeded=false;try{seeded=localStorage.getItem(LEGACY_SEED_KEY)==='1';}catch(_){ }
+  if(!seeded){
+    try{if(typeof favs!=='undefined'&&favs&&typeof favs.forEach==='function')favs.forEach(x=>ids.add(String(x)));}catch(_){ }
+    storedObjects().forEach(x=>{if(Array.isArray(x.favs))x.favs.forEach(id=>ids.add(String(id)));});
+    try{localStorage.setItem(LEGACY_SEED_KEY,'1');}catch(_){ }
+  }
   try{localStorage.setItem(LEGACY_FAV_KEY,JSON.stringify([...ids]));}catch(_){ }
   return ids;
 }
+function persistLegacyFavoriteIds(ids){try{localStorage.setItem(LEGACY_FAV_KEY,JSON.stringify([...ids]));}catch(_){ }}
 function recoverFavoriteSnapshots(){
-  let changed=false;
+  let changed=false,legacyChanged=false;
   try{
     if(typeof savedFavorites==='undefined'||!Array.isArray(savedFavorites))return false;
     const known=new Set(savedFavorites.map(x=>String(x?.key||'')).filter(Boolean));
@@ -49,11 +55,18 @@ function recoverFavoriteSnapshots(){
     const legacy=rememberLegacyFavoriteIds();
     if(legacy.size&&typeof offers!=='undefined'&&Array.isArray(offers)&&typeof snapshotOffer==='function'){
       offers.forEach(o=>{
-        if(!legacy.has(String(o?.id)))return;
+        const id=String(o?.id||'');
+        if(!id||!legacy.has(id))return;
         const snap=snapshotOffer(o),key=String(snap?.key||'');
-        if(key&&!known.has(key)){savedFavorites.unshift(snap);known.add(key);changed=true;}
+        if(!key)return;
+        if((suppressFavoriteKey&&key===suppressFavoriteKey)||known.has(key)){
+          legacy.delete(id);legacyChanged=true;return;
+        }
+        savedFavorites.unshift(snap);known.add(key);changed=true;
+        legacy.delete(id);legacyChanged=true;
       });
     }
+    if(legacyChanged)persistLegacyFavoriteIds(legacy);
     if(changed&&typeof persistState==='function')persistState();
   }catch(e){console.warn('NOREYO '+BUILD+' favorite recovery',e);}
   return changed;
@@ -94,6 +107,18 @@ function afterFunction(name,after){
     const wrapped=function(){const r=original.apply(this,arguments);try{after.apply(this,arguments);}catch(_){ }return r;};
     wrapped.__noreyoV584=true;
     eval(name+'=wrapped');
+  }catch(_){ }
+}
+function wrapRemoveFavorite(){
+  try{
+    const original=removeFavorite;
+    if(typeof original!=='function'||original.__noreyoV584Remove)return;
+    const wrapped=function(key){
+      suppressFavoriteKey=String(key||'');
+      try{return original.apply(this,arguments);}
+      finally{try{refreshFavorites();}finally{suppressFavoriteKey='';}}
+    };
+    wrapped.__noreyoV584Remove=true;removeFavorite=wrapped;
   }catch(_){ }
 }
 
@@ -191,7 +216,7 @@ try{
 afterFunction('renderOffers',recoverFavoriteSnapshots);
 afterFunction('toggleFav',refreshFavorites);
 afterFunction('toggleSnapshotFavorite',refreshFavorites);
-afterFunction('removeFavorite',refreshFavorites);
+wrapRemoveFavorite();
 
 /* Wrap navigation once: Favorites always refresh; profile copy gets repaired after rollback. */
 try{
