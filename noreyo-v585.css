@@ -1,4 +1,4 @@
-/* NOREYO V5.85 — iPhone readability + touch sizing, no pointer-event/z-index overrides */
+/* NOREYO V5.91 — iPhone readability + touch sizing, no pointer-event/z-index overrides */
 @media(max-width:600px){
   .nav{height:54px!important;bottom:calc(4px + env(safe-area-inset-bottom))!important}
   .nav-btn{min-height:44px!important;font-size:9.5px!important;line-height:1.05!important;gap:3px!important;touch-action:manipulation}
@@ -9,6 +9,10 @@
   .command-cell small{font-size:9.5px!important;line-height:1.15!important;letter-spacing:.8px!important}
   .command-cell b{font-size:12px!important;line-height:1.22!important}
   .noreyo-v541-booking-cta,#searchView .search-card .primary{min-height:50px!important;touch-action:manipulation}
+
+  /* Favorite cards: destructive action must meet the same iPhone touch target as navigation/search. */
+  #favorites .v584-fav-card{grid-template-columns:78px minmax(0,1fr) 46px!important}
+  #favorites .v584-fav-card button{width:44px!important;height:44px!important;min-width:44px!important;min-height:44px!important;touch-action:manipulation}
 }
 @media(max-width:390px){
   .nav{height:52px!important}
@@ -17,5 +21,7 @@
   .command-cell{min-height:58px!important;padding:10px 9px!important}
   .command-cell small{font-size:9px!important}
   .command-cell b{font-size:11.5px!important}
+  #favorites .v584-fav-card{grid-template-columns:70px minmax(0,1fr) 44px!important;gap:8px!important}
+  #favorites .v584-fav-card>img{width:70px!important;height:64px!important}
 }
 @media(prefers-reduced-motion:reduce){.nav-btn,.command-cell{transition:none!important}}
