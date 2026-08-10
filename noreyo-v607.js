@@ -1,11 +1,11 @@
-/* NOREYO V6.23 — authoritative search completion/network lifecycle guard.
-   Keeps an independent button/request lock for package/hotel searches so older
-   signature-based busy release cannot re-enable or double-submit too early. */
+/* NOREYO V6.25 — authoritative search completion/network lifecycle guard.
+   Keeps an independent request lock for package/hotel searches while delaying
+   the physical disabled state until the initiating click has finished dispatching. */
 (function(){
 'use strict';
-const BUILD='6.23';
+const BUILD='6.25';
 let observer=null,root=null,raf=0;
-let guardActive=false,guardButton=null,buttonObserver=null,guardTimer=0;
+let guardActive=false,guardButton=null,buttonObserver=null,guardTimer=0,lockTimer=0;
 
 function norm(v){
   return String(v||'').toLowerCase().normalize('NFD')
@@ -50,16 +50,25 @@ function bindButtonObserver(){
   buttonObserver=new MutationObserver(enforceButtonLock);
   buttonObserver.observe(guardButton,{attributes:true,attributeFilter:['disabled','aria-disabled']});
 }
+function scheduleButtonLock(btn){
+  clearTimeout(lockTimer);
+  lockTimer=setTimeout(()=>{
+    lockTimer=0;
+    if(guardActive&&guardButton===btn)enforceButtonLock();
+  },0);
+}
 function startGuard(btn){
   if(guardActive)return false;
   guardActive=true;guardButton=btn||null;
-  enforceButtonLock();bindButtonObserver();
+  bindButtonObserver();
+  scheduleButtonLock(guardButton);
   clearTimeout(guardTimer);guardTimer=setTimeout(()=>releaseGuard('timeout'),16000);
   return true;
 }
 function releaseGuard(reason){
   if(!guardActive){releaseLegacyBusy();return false;}
   guardActive=false;
+  clearTimeout(lockTimer);lockTimer=0;
   clearTimeout(guardTimer);guardTimer=0;
   if(buttonObserver){buttonObserver.disconnect();buttonObserver=null;}
   if(guardButton){
@@ -168,6 +177,7 @@ function install(){
 }
 function cleanup(){
   releaseGuard('pagehide');
+  clearTimeout(lockTimer);lockTimer=0;
   if(observer){observer.disconnect();observer=null;}
   if(raf){cancelAnimationFrame(raf);raf=0;}
   root=null;
