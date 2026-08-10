@@ -1,11 +1,13 @@
-/* NOREYO V6.25 — authoritative search completion/network lifecycle guard.
-   Keeps an independent request lock for package/hotel searches while delaying
-   the physical disabled state until the initiating click has finished dispatching. */
+/* NOREYO V6.29 — authoritative search completion/network lifecycle guard.
+   A package/hotel search is released only after the search-travel request has
+   succeeded and a render pass belonging to the active search has completed.
+   Existing/stale result cards can no longer unlock a new request early. */
 (function(){
 'use strict';
-const BUILD='6.25';
+const BUILD='6.29';
 let observer=null,root=null,raf=0;
 let guardActive=false,guardButton=null,buttonObserver=null,guardTimer=0,lockTimer=0;
+let networkSuccess=false,renderSequence=0,guardRenderSequence=0,targetRequests=0;
 
 function norm(v){
   return String(v||'').toLowerCase().normalize('NFD')
@@ -57,9 +59,15 @@ function scheduleButtonLock(btn){
     if(guardActive&&guardButton===btn)enforceButtonLock();
   },0);
 }
+function resetCompletionState(){
+  networkSuccess=false;
+  targetRequests=0;
+  guardRenderSequence=renderSequence;
+}
 function startGuard(btn){
   if(guardActive)return false;
   guardActive=true;guardButton=btn||null;
+  resetCompletionState();
   bindButtonObserver();
   scheduleButtonLock(guardButton);
   clearTimeout(guardTimer);guardTimer=setTimeout(()=>releaseGuard('timeout'),16000);
@@ -76,6 +84,7 @@ function releaseGuard(reason){
     guardButton.removeAttribute('aria-disabled');
   }
   guardButton=null;
+  networkSuccess=false;targetRequests=0;guardRenderSequence=renderSequence;
   releaseLegacyBusy();
   return true;
 }
@@ -115,20 +124,25 @@ function isSearchTravel(input){
 }
 function installFetchHook(){
   try{
-    if(typeof window.fetch!=='function'||window.fetch.__noreyoV616)return;
+    if(typeof window.fetch!=='function'||window.fetch.__noreyoV629)return;
     const prior=window.fetch.bind(window);
     const wrapped=async function(input,init){
-      const target=isSearchTravel(input);
+      const target=isSearchTravel(input)&&guardActive;
+      if(target)targetRequests++;
       try{
         const response=await prior(input,init);
-        if(target&&guardActive&&response&&response.ok===false)releaseGuard('http-error');
+        if(target&&guardActive){
+          targetRequests=Math.max(0,targetRequests-1);
+          if(response&&response.ok===false){releaseGuard('http-error');}
+          else if(response?.ok===true){networkSuccess=true;}
+        }
         return response;
       }catch(error){
-        if(target&&guardActive)releaseGuard('network-error');
+        if(target&&guardActive){targetRequests=Math.max(0,targetRequests-1);releaseGuard('network-error');}
         throw error;
       }
     };
-    wrapped.__noreyoV616=true;
+    wrapped.__noreyoV629=true;
     window.fetch=wrapped;
   }catch(_){ }
 }
@@ -136,30 +150,36 @@ function hasRenderedOffers(){
   const results=document.getElementById('results');
   return !!results?.querySelector?.('#offers .offer,.offer');
 }
+function completionReady(){
+  if(!guardActive||!networkSuccess||targetRequests>0)return false;
+  if(renderSequence<=guardRenderSequence)return false;
+  const results=document.getElementById('results');
+  return hasRenderedOffers()||terminalText(results?.textContent||'');
+}
 function installRenderHook(){
   try{
-    if(typeof renderOffers!=='function'||renderOffers.__noreyoV616)return;
+    if(typeof renderOffers!=='function'||renderOffers.__noreyoV629)return;
     const prior=renderOffers;
     const wrapped=function(){
       let result;
       try{result=prior.apply(this,arguments);}
       catch(error){releaseGuard('render-error');throw error;}
       const done=()=>{
-        if(!guardActive)return;
-        if(hasRenderedOffers()||terminalText(document.getElementById('results')?.textContent||''))releaseGuard('rendered');
+        renderSequence++;
+        if(completionReady())releaseGuard('rendered-after-network');
       };
       const failed=()=>{releaseGuard('render-rejected');};
       if(result&&typeof result.then==='function')result.then(done,failed);
       else setTimeout(done,0);
       return result;
     };
-    wrapped.__noreyoV616=true;
+    wrapped.__noreyoV629=true;
     renderOffers=wrapped;
   }catch(_){ }
 }
 function installNavigationHook(){
   try{
-    if(typeof go!=='function'||go.__noreyoV616)return;
+    if(typeof go!=='function'||go.__noreyoV629)return;
     const prior=go;
     const wrapped=function(view){
       const result=prior.apply(this,arguments);
@@ -167,7 +187,7 @@ function installNavigationHook(){
       setTimeout(bind,0);
       return result;
     };
-    wrapped.__noreyoV616=true;
+    wrapped.__noreyoV629=true;
     go=wrapped;
   }catch(_){ }
 }
@@ -186,7 +206,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 window.addEventListener('pagehide',cleanup,{passive:true});
 window.addEventListener('pageshow',()=>{installFetchHook();installRenderHook();installNavigationHook();bind();},{passive:true});
 window.NOREYO_V607=Object.freeze({
-  BUILD,currentMode,authoritativeMode,terminalText,isSearchTravel,hasRenderedOffers,releaseTerminalIfVisible,
-  bind,startGuard,releaseGuard,get active(){return guardActive;}
+  BUILD,currentMode,authoritativeMode,terminalText,isSearchTravel,hasRenderedOffers,completionReady,releaseTerminalIfVisible,
+  bind,startGuard,releaseGuard,get active(){return guardActive;},get networkSuccess(){return networkSuccess;},get targetRequests(){return targetRequests;}
 });
 })();
