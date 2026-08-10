@@ -1,6 +1,6 @@
 (function(){
   'use strict';
-  const BUILD='5.97';
+  const BUILD='5.98';
   let raf=0;
 
   function currentMode(){
@@ -110,6 +110,19 @@
     return out;
   }
   function decodeURIComponentSafe(v){try{return decodeURIComponent(v);}catch(_){return String(v||'');}}
+  function cardPrices(card){
+    const raw=String(card?.textContent||'');
+    const out=new Set();
+    for(const m of raw.matchAll(/(?:^|[^\d])(\d{1,3}(?:[.\s]\d{3})+|\d{3,6})(?:[,.]\d{1,2})?\s*€/g)){
+      const n=Number(String(m[1]).replace(/[.\s]/g,''));
+      if(Number.isFinite(n)&&n>0)out.add(Math.round(n));
+    }
+    return out;
+  }
+  function priceMatches(o,prices){
+    const n=Math.round(Number(o?.price));
+    return Number.isFinite(n)&&prices.has(n);
+  }
   function resolveOfferForCard(card,index,data,used){
     if(!Array.isArray(data)||!data.length)return null;
     const tokens=cardTokens(card);
@@ -118,7 +131,7 @@
       const ids=offerIds(data[i]);
       if(ids.some(id=>tokens.some(t=>t===id||decodeURIComponentSafe(t)===id))){used.add(i);return data[i];}
     }
-    const text=norm(card?.textContent||'');
+    const text=norm(card?.textContent||''),prices=cardPrices(card);
     const nameMatches=[];
     for(let i=0;i<data.length;i++){
       if(used.has(i))continue;
@@ -126,9 +139,14 @@
       if(names.some(name=>text.includes(name)))nameMatches.push(i);
     }
     if(nameMatches.length===1){used.add(nameMatches[0]);return data[nameMatches[0]];}
-    if(!used.has(index)&&data[index]){used.add(index);return data[index];}
-    const next=data.findIndex((_,i)=>!used.has(i));
-    if(next>=0){used.add(next);return data[next];}
+    if(nameMatches.length>1&&prices.size){
+      const byPrice=nameMatches.filter(i=>priceMatches(data[i],prices));
+      if(byPrice.length===1){used.add(byPrice[0]);return data[byPrice[0]];}
+    }
+    if(!nameMatches.length&&prices.size){
+      const byPrice=data.map((o,i)=>({o,i})).filter(x=>!used.has(x.i)&&priceMatches(x.o,prices));
+      if(byPrice.length===1){used.add(byPrice[0].i);return byPrice[0].o;}
+    }
     return null;
   }
 
@@ -228,5 +246,5 @@
   const results=document.getElementById('results');
   if(results&&typeof MutationObserver!=='undefined')new MutationObserver(schedule).observe(results,{childList:true,subtree:true});
   window.addEventListener('pageshow',schedule,{passive:true});
-  window.NOREYO_V558=Object.freeze({decorate,resolveOfferForCard,version:BUILD});
+  window.NOREYO_V558=Object.freeze({decorate,resolveOfferForCard,cardPrices,version:BUILD});
 })();
