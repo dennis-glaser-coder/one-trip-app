@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='5.86';
+const BUILD='5.90';
 const baseOpenFilter=typeof openFilter==='function'?openFilter:null;
 let draft=null,activeKeys=[],lastMode='';
 const parkedStates=Object.create(null);
@@ -96,7 +96,10 @@ function syncAfterApply(){
 }
 function close(apply){
   const w=document.getElementById('noreyoFilter557');if(!w)return;
-  if(apply&&draft&&typeof states!=='undefined'&&states){activeKeys.forEach(k=>{if(k in draft)states[k]=draft[k];});syncAfterApply();try{if(typeof showToast==='function')showToast('Filter übernommen');}catch(_){ }}
+  if(apply&&draft&&typeof states!=='undefined'&&states){
+    activeKeys.forEach(k=>{if(k in draft){states[k]=draft[k];delete parkedStates[k];}});
+    syncAfterApply();try{if(typeof showToast==='function')showToast('Filter übernommen');}catch(_){ }
+  }
   w.classList.remove('show');draft=null;activeKeys=[];
 }
 function clearIrrelevantOnModeChange(m){
