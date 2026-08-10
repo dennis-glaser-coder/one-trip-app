@@ -1,9 +1,9 @@
-/* NOREYO V6.53 — descendant-only family reconciliation.
+/* NOREYO V6.54 — descendant-only family reconciliation.
    Supports explicit singular/plural child wording, preserves selected adults,
-   and blocks over-limit family requests until the traveller split is corrected. */
+   blocks over-limit family requests, and clears superseded family intent. */
 (function(){
 'use strict';
-const BUILD='6.53';
+const BUILD='6.54';
 const MAX_ADULTS=6,MAX_CHILDREN=4,MAX_TRAVELLERS=9;
 let pending=null;
 
@@ -45,6 +45,7 @@ function selectedAdults(){try{const n=Math.round(Number(searchState?.adults));re
 function snapshot(){try{return {adults:selectedAdults(),childAges:Array.isArray(searchState?.childAges)?searchState.childAges.map(Number):[]};}catch(_){return {adults:null,childAges:[]};}}
 function ppBudget(t){try{return Number(window.NOREYO_V591?.perPersonBudget?.(t))||null;}catch(_){return null;}}
 function isDescendantOnly(t){return !hasExplicitParty(t)&&descendantCount(t)!==null;}
+function clearPending(){const had=!!pending;pending=null;return had;}
 function refresh(){try{if(typeof updateSearchUI==='function')updateSearchUI();}catch(_){ }try{if(typeof updateCounts==='function')updateCounts();}catch(_){ }try{if(typeof persistState==='function')persistState();}catch(_){ }}
 function notify(msg){try{if(typeof showToast==='function')showToast(msg);else window.toast?.(msg);}catch(_){ }}
 function apply(t,before){
@@ -94,7 +95,12 @@ function repairAnalysis(t){
 }
 function releaseSearchGuards(){try{window.NOREYO_V585?.releaseBusy?.();}catch(_){ }try{window.NOREYO_V607?.releaseGuard?.('descendant-family-validation');}catch(_){ }}
 function searchButton(target){return target instanceof Element?target.closest('.noreyo-v541-booking-cta,.liveSearchButton,#searchView .search-card .primary'):null;}
-function onApply(e){if(!e.target?.closest?.('.noreyo-v556-apply'))return;const t=naturalText(),before=snapshot();if(!isDescendantOnly(t))return;setTimeout(()=>apply(t,before),0);}
+function onApply(e){
+  if(!e.target?.closest?.('.noreyo-v556-apply'))return;
+  const t=naturalText(),before=snapshot();
+  if(!isDescendantOnly(t)){clearPending();return;}
+  setTimeout(()=>apply(t,before),0);
+}
 function onAnalyze(e){if(!e.target?.closest?.('.noreyo-v556-analyze'))return;const t=naturalText();if(isDescendantOnly(t))setTimeout(()=>repairAnalysis(t),0);}
 function onSearch(e){
   const btn=searchButton(e.target);if(!btn)return;const error=familyAgeError();if(!error)return;
@@ -102,5 +108,5 @@ function onSearch(e){
   setTimeout(()=>{try{if(typeof openPlanner==='function')openPlanner('travellers');}catch(_){ }},0);
 }
 document.addEventListener('click',onApply,true);document.addEventListener('click',onAnalyze,true);window.addEventListener('click',onSearch,true);
-window.NOREYO_V644=Object.freeze({BUILD,isDescendantOnly,descendantCount,descendantAges,pluralAgeInfo,pluralAges,selectedAdults,apply,familyAgeError,repairAnalysis});
+window.NOREYO_V644=Object.freeze({BUILD,isDescendantOnly,descendantCount,descendantAges,pluralAgeInfo,pluralAges,selectedAdults,apply,familyAgeError,repairAnalysis,clearPending});
 })();
