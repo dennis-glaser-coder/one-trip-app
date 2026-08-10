@@ -1,8 +1,8 @@
-/* NOREYO V5.93 — natural-language traveller + budget disambiguation.
+/* NOREYO V5.95 — natural-language traveller/budget/child-age disambiguation.
    Repairs legacy V5.56 ambiguity after explicit AI apply without disturbing manual search edits. */
 (function(){
 'use strict';
-const BUILD='5.93';
+const BUILD='5.95';
 
 function norm(v){return String(v||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/ß/g,'ss');}
 function naturalText(){return document.getElementById('noreyoAi556Text')?.value||'';}
@@ -28,6 +28,34 @@ function currentAdults(){
     return Number.isInteger(n)&&n>=1&&n<=6?n:null;
   }catch(_){return null;}
 }
+function childCount(text){
+  const t=norm(text);
+  if(/\b(?:ohne|keine|kein)\s+(?:kinder|kind|babys?)\b/.test(t)||/\bnur erwachsene\b/.test(t))return 0;
+  const m=t.match(/\b([1-4]|ein(?:e|en|em|er)?|zwei|drei|vier)\s+(?:kinder|kindern|kind|babys?)\b/);
+  return m?wordNumber(m[1]):null;
+}
+function childAges(text){
+  const t=norm(text),count=childCount(t);
+  if(count===0)return [];
+  const anchor=t.search(/\b(?:kinder|kindern|kind|babys?)\b/);
+  if(anchor<0)return null;
+  const seg=t.slice(anchor,anchor+120);
+  const ages=[];
+  const re=/(\d{1,2})\s*(jahre?|jahr|j\.|monate?|monat)\b/g;
+  let m;
+  while((m=re.exec(seg))){
+    const n=Number(m[1]);
+    if(/monat/.test(m[2])){
+      if(n>=0&&n<=23)ages.push(0);
+    }else if(n>=0&&n<=17){
+      ages.push(n);
+    }
+    if(ages.length>=4)break;
+  }
+  if(!ages.length)return null;
+  if(count!==null&&ages.length!==count)return null;
+  return ages;
+}
 function money(v){
   const n=Number(String(v||'').replace(/[.\s]/g,'').replace(',','.'));
   return Number.isFinite(n)&&n>=100&&n<=50000?n:null;
@@ -40,7 +68,6 @@ function euroMentions(t){
 function perPersonBudget(text){
   const t=norm(text),mentions=euroMentions(t);
   if(!mentions.length)return null;
-
   for(const x of mentions){
     const before=t.slice(Math.max(0,x.index-42),x.index);
     const after=t.slice(x.end,Math.min(t.length,x.end+24));
@@ -49,7 +76,6 @@ function perPersonBudget(text){
     const budgetBefore=/(?:max(?:imal)?\.?|bis|budget(?: von)?|hoechstens|hochstens)\s*(?:ca\.?\s*)?$/.test(before);
     if((ppAfter&&budgetBefore)||ppBefore)return x.amount;
   }
-
   if(mentions.length===1){
     const x=mentions[0],after=t.slice(x.end,Math.min(t.length,x.end+24)),before=t.slice(Math.max(0,x.index-24),x.index);
     if(/^\s*(?:pro person|je person|p\.?\s*p\.?)/.test(after)||
@@ -81,7 +107,8 @@ function onApplyCapture(e){
   if(!e.target?.closest?.('.noreyo-v556-apply'))return;
   const text=naturalText();
   const selected=currentAdults(),parsed=adultCount(text),effective=parsed||selected;
-  if(!effective)return;
+  const ages=childAges(text);
+  if(!effective&&!ages)return;
   const pp=perPersonBudget(text);
   setTimeout(()=>{
     let changed=false;
@@ -91,9 +118,13 @@ function onApplyCapture(e){
       }else if(!parsed&&selected&&typeof searchState!=='undefined'&&searchState&&Math.round(Number(searchState.adults))!==selected){
         searchState.adults=selected;changed=true;
       }
+      if(Array.isArray(ages)&&typeof searchState!=='undefined'&&searchState){
+        const old=Array.isArray(searchState.childAges)?searchState.childAges.map(Number):[];
+        if(old.length!==ages.length||old.some((v,i)=>v!==ages[i])){searchState.childAges=ages.slice();changed=true;}
+      }
     }catch(_){ }
     try{
-      if(pp&&typeof limits!=='undefined'&&limits){
+      if(pp&&effective&&typeof limits!=='undefined'&&limits){
         const total=pp*effective;
         if(Number(limits.maxHotelPrice)!==total){limits.maxHotelPrice=total;changed=true;}
       }
@@ -104,5 +135,5 @@ function onApplyCapture(e){
 
 document.addEventListener('click',onAnalyzeCapture,true);
 document.addEventListener('click',onApplyCapture,true);
-window.NOREYO_V591=Object.freeze({BUILD,adultCount,explicitAdults,perPersonBudget,currentAdults,repairAnalysis});
+window.NOREYO_V591=Object.freeze({BUILD,adultCount,explicitAdults,childCount,childAges,perPersonBudget,currentAdults,repairAnalysis});
 })();
