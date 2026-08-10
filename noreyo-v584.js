@@ -1,13 +1,15 @@
-/* NOREYO V5.88 — targeted platform repairs on the proven V5.82 interaction baseline.
+/* NOREYO V5.89 — targeted platform repairs on the proven V5.82 interaction baseline.
    No MutationObserver, no full-screen UI layer, no pointer-event or z-index manipulation. */
 (function(){
 'use strict';
-const BUILD='5.88';
+const BUILD='5.89';
 const LEGACY_FAV_KEY='noreyoLegacyFavoriteIds584';
 const LEGACY_SEED_KEY='noreyoLegacyFavoriteIdsSeeded584';
+const LEGACY_SNAPSHOT_SEED_KEY='noreyoLegacyFavoriteSnapshotsSeeded589';
+const LEGACY_TOMBSTONE_KEY='noreyoLegacyFavoriteTombstones589';
 let syncingCruise=false,searchCardBaselineNode=null,suppressFavoriteKey='';
 
-function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));}
 function decodeKey(v){try{return decodeURIComponent(String(v||''));}catch(_){return String(v||'');}}
 function mode(){
   const active=document.querySelector('.view.active .product-mode.on')||document.querySelector('#discover .product-mode.on');
@@ -19,39 +21,71 @@ function mode(){
   return'package';
 }
 
-/* ---------- Favorites: recover old snapshots/IDs and always refresh the view ---------- */
+function legacyStorageKeys(){return['oneTripV52','oneTripV51','oneTripV5'];}
 function storedObjects(){
   const out=[];
-  ['oneTripV52','oneTripV51','oneTripV5'].forEach(k=>{
-    try{const x=JSON.parse(localStorage.getItem(k)||'null');if(x&&typeof x==='object')out.push(x);}catch(_){ }
+  legacyStorageKeys().forEach(k=>{
+    try{const x=JSON.parse(localStorage.getItem(k)||'null');if(x&&typeof x==='object')out.push({storageKey:k,value:x});}catch(_){ }
   });
   return out;
 }
+function tombstones(){
+  const out=new Set();
+  try{JSON.parse(localStorage.getItem(LEGACY_TOMBSTONE_KEY)||'[]').forEach(x=>out.add(String(x)));}catch(_){ }
+  return out;
+}
+function persistTombstones(set){try{localStorage.setItem(LEGACY_TOMBSTONE_KEY,JSON.stringify([...set]));}catch(_){ }}
 function rememberLegacyFavoriteIds(){
   const ids=new Set();
   try{JSON.parse(localStorage.getItem(LEGACY_FAV_KEY)||'[]').forEach(x=>ids.add(String(x)));}catch(_){ }
   let seeded=false;try{seeded=localStorage.getItem(LEGACY_SEED_KEY)==='1';}catch(_){ }
   if(!seeded){
     try{if(typeof favs!=='undefined'&&favs&&typeof favs.forEach==='function')favs.forEach(x=>ids.add(String(x)));}catch(_){ }
-    storedObjects().forEach(x=>{if(Array.isArray(x.favs))x.favs.forEach(id=>ids.add(String(id)));});
+    storedObjects().forEach(({value:x})=>{if(Array.isArray(x.favs))x.favs.forEach(id=>ids.add(String(id)));});
     try{localStorage.setItem(LEGACY_SEED_KEY,'1');}catch(_){ }
   }
   try{localStorage.setItem(LEGACY_FAV_KEY,JSON.stringify([...ids]));}catch(_){ }
   return ids;
 }
 function persistLegacyFavoriteIds(ids){try{localStorage.setItem(LEGACY_FAV_KEY,JSON.stringify([...ids]));}catch(_){ }}
+function seedLegacySnapshotsOnce(){
+  let seeded=false;try{seeded=localStorage.getItem(LEGACY_SNAPSHOT_SEED_KEY)==='1';}catch(_){ }
+  if(seeded)return false;
+  let changed=false;
+  try{
+    if(typeof savedFavorites==='undefined'||!Array.isArray(savedFavorites))return false;
+    const dead=tombstones();
+    const known=new Set(savedFavorites.map(x=>String(x?.key||'')).filter(Boolean));
+    storedObjects().forEach(({value:x})=>{
+      if(!Array.isArray(x.savedFavorites))return;
+      x.savedFavorites.forEach(o=>{
+        const key=String(o?.key||'');
+        if(key&&!dead.has(key)&&!known.has(key)){savedFavorites.push(o);known.add(key);changed=true;}
+      });
+    });
+    localStorage.setItem(LEGACY_SNAPSHOT_SEED_KEY,'1');
+    if(changed&&typeof persistState==='function')persistState();
+  }catch(e){console.warn('NOREYO '+BUILD+' legacy favorite seed',e);}
+  return changed;
+}
+function scrubLegacySnapshotKey(key){
+  key=String(key||'');if(!key)return;
+  const dead=tombstones();dead.add(key);persistTombstones(dead);
+  storedObjects().forEach(({storageKey,value:x})=>{
+    if(!Array.isArray(x.savedFavorites))return;
+    const next=x.savedFavorites.filter(o=>String(o?.key||'')!==key);
+    if(next.length===x.savedFavorites.length)return;
+    x.savedFavorites=next;
+    try{localStorage.setItem(storageKey,JSON.stringify(x));}catch(_){ }
+  });
+}
 function recoverFavoriteSnapshots(){
   let changed=false,legacyChanged=false;
   try{
     if(typeof savedFavorites==='undefined'||!Array.isArray(savedFavorites))return false;
+    seedLegacySnapshotsOnce();
     const known=new Set(savedFavorites.map(x=>String(x?.key||'')).filter(Boolean));
-    storedObjects().forEach(x=>{
-      if(!Array.isArray(x.savedFavorites))return;
-      x.savedFavorites.forEach(o=>{
-        const key=String(o?.key||'');
-        if(key&&!known.has(key)){savedFavorites.push(o);known.add(key);changed=true;}
-      });
-    });
+    const dead=tombstones();
     const legacy=rememberLegacyFavoriteIds();
     if(legacy.size&&typeof offers!=='undefined'&&Array.isArray(offers)&&typeof snapshotOffer==='function'){
       offers.forEach(o=>{
@@ -59,7 +93,7 @@ function recoverFavoriteSnapshots(){
         if(!id||!legacy.has(id))return;
         const snap=snapshotOffer(o),key=String(snap?.key||'');
         if(!key)return;
-        if((suppressFavoriteKey&&key===suppressFavoriteKey)||known.has(key)){
+        if(dead.has(key)||(suppressFavoriteKey&&key===suppressFavoriteKey)||known.has(key)){
           legacy.delete(id);legacyChanged=true;return;
         }
         savedFavorites.unshift(snap);known.add(key);changed=true;
@@ -115,6 +149,7 @@ function wrapRemoveFavorite(){
     if(typeof original!=='function'||original.__noreyoV584Remove)return;
     const wrapped=function(key){
       suppressFavoriteKey=String(key||'');
+      scrubLegacySnapshotKey(suppressFavoriteKey);
       try{return original.apply(this,arguments);}
       finally{try{refreshFavorites();}finally{suppressFavoriteKey='';}}
     };
@@ -122,7 +157,6 @@ function wrapRemoveFavorite(){
   }catch(_){ }
 }
 
-/* ---------- Cruise: mirror the correct cruise card into the Search tab ---------- */
 function enhanceCruiseCard(card){
   if(!card)return;
   const head=card.querySelector('.noreyo-v552-search-head b');if(head)head.textContent='Route, Zeitraum, Reisende & Kabine';
@@ -181,8 +215,6 @@ function syncCruiseSearchView(){
   }finally{syncingCruise=false;}
 }
 function syncCruiseValues(){if(mode()==='cruise')syncCruiseSearchView();else restoreSearchView();}
-
-/* v557 sends cruise to a non-existent core filter tab. Stop that path cleanly. */
 try{
   if(typeof openFilter==='function'&&!openFilter.__noreyoV584CruiseGuard){
     const priorOpenFilter=openFilter;
@@ -196,8 +228,6 @@ try{
     guarded.__noreyoV584CruiseGuard=true;openFilter=guarded;
   }
 }catch(_){ }
-
-/* Keep Search and Discover synchronized after genuine app actions, not DOM mutations. */
 try{
   if(typeof setProductMode==='function'&&!setProductMode.__noreyoV584){
     const priorSetProductMode=setProductMode;
@@ -217,8 +247,6 @@ afterFunction('renderOffers',recoverFavoriteSnapshots);
 afterFunction('toggleFav',refreshFavorites);
 afterFunction('toggleSnapshotFavorite',refreshFavorites);
 wrapRemoveFavorite();
-
-/* Wrap navigation once: Favorites always refresh; profile copy gets repaired after rollback. */
 try{
   if(typeof go==='function'&&!go.__noreyoV584){
     const priorGo=go;
@@ -226,7 +254,6 @@ try{
     wrapped.__noreyoV584=true;go=wrapped;
   }
 }catch(_){ }
-
 function polishProfile(){
   const root=document.getElementById('profile');if(!root)return;
   const kicker=root.querySelector('.simple-intro .kicker');if(kicker)kicker.textContent='DEIN NOREYO';
@@ -239,13 +266,11 @@ function polishProfile(){
     else if(t==='Treueprogramme'){row.hidden=true;}
   });
 }
-
 document.addEventListener('click',e=>{
   if(e.target.closest?.('[data-cruise-value],[data-close-cruise-sheet]'))setTimeout(syncCruiseSearchView,0);
   if(e.target.closest?.('.nav-btn[data-view="favorites"]'))setTimeout(refreshFavorites,0);
 },false);
-
-rememberLegacyFavoriteIds();recoverFavoriteSnapshots();polishProfile();
+rememberLegacyFavoriteIds();seedLegacySnapshotsOnce();recoverFavoriteSnapshots();polishProfile();
 if(mode()==='cruise')setTimeout(syncCruiseSearchView,0);
-window.NOREYO_V584=Object.freeze({refreshFavorites,syncCruiseSearchView,restoreSearchView,decodeKey,version:BUILD});
+window.NOREYO_V584=Object.freeze({refreshFavorites,syncCruiseSearchView,restoreSearchView,decodeKey,scrubLegacySnapshotKey,version:BUILD});
 })();
