@@ -1,0 +1,56 @@
+/* NOREYO V5.79 — iPhone touch safety + unobstructed search */
+
+/* Decorative layers must never steal taps. */
+#discover .noreyo-v574-hero-layer{pointer-events:none!important}
+#discover .hero.noreyo-v574-hero:after{pointer-events:none!important}
+
+/* Smart dock: only its actual controls are interactive. */
+#discover>.noreyo-v574-usp.noreyo-v577-smart{pointer-events:none!important}
+#discover .noreyo-v577-dock,
+#discover .noreyo-v577-panel{pointer-events:none!important}
+#discover .noreyo-v577-dock button,
+#discover .noreyo-v577-panel button,
+#discover .noreyo-v577-panel textarea,
+#discover .noreyo-v577-panel label,
+#discover .noreyo-v577-panel input{pointer-events:auto!important;touch-action:manipulation!important}
+
+/* Product switch: wrapper may overlap visually, controls must remain the only hit targets. */
+#discover .product-switch-host{pointer-events:none!important}
+#discover .product-switch,
+#discover .product-mode{pointer-events:auto!important;touch-action:manipulation!important}
+#discover .noreyo-v577-products .product-mode{min-height:44px!important;height:44px!important}
+
+/* Classical search always wins the touch stack. */
+#discover .search-wrap,
+#discover .search-card,
+#discover .booking-command-grid{position:relative!important;z-index:2!important;pointer-events:auto!important}
+#discover .command-cell,
+#discover .search-card button,
+#discover .search-card [role="button"],
+#discover .search-card label,
+#discover .search-card input,
+#discover .search-card select{position:relative;z-index:3;pointer-events:auto!important;touch-action:manipulation!important}
+
+/* Bottom nav should not create one large invisible touch shield. */
+.nav{pointer-events:none!important}
+.nav .nav-btn{pointer-events:auto!important;touch-action:manipulation!important}
+
+/* Give the final search action enough scroll room above the floating nav. */
+#discover .search-card.noreyo-v577-search-card{padding-bottom:calc(112px + env(safe-area-inset-bottom))!important}
+#discover .content{padding-bottom:calc(120px + env(safe-area-inset-bottom))!important}
+#discover{scroll-padding-bottom:calc(92px + env(safe-area-inset-bottom))!important}
+
+/* Avoid delayed/ghost taps on iOS. */
+#discover button,
+#discover .command-cell,
+#discover .product-mode,
+#discover label,
+.nav-btn{-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+
+/* Hidden legacy overlays must not block the discovery screen. */
+#noreyoDna560:not(.show){pointer-events:none!important}
+
+@media(max-width:390px){
+ #discover .noreyo-v577-products .product-mode{min-height:44px!important;height:44px!important}
+ #discover .search-card.noreyo-v577-search-card{padding-bottom:calc(118px + env(safe-area-inset-bottom))!important}
+}

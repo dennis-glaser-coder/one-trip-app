@@ -29,7 +29,13 @@ function cleanup(){
  const products=document.querySelector('#discover .product-switch.noreyo-v552-products');if(products)products.classList.add('noreyo-v577-products');
 }
 function updatePlaceholder(){const ta=document.querySelector('#discover [data-v574-text]');if(ta&&!ta.value)ta.placeholder=examples[mode()]||examples.package;}
-function openPanel(kind){const host=document.querySelector('#discover [data-v574-usp]');if(!host)return;host.classList.add('is-open');setTimeout(()=>{if(kind==='photos')host.querySelector('[data-v574-photos]')?.click();else host.querySelector('[data-v574-text]')?.focus();},80);}
+function openPanel(kind){
+ const host=document.querySelector('#discover [data-v574-usp]');if(!host)return;
+ host.classList.add('is-open');
+ /* Keep iOS actions inside the original tap gesture. Delaying file-input clicks or focus can be blocked by Safari. */
+ if(kind==='photos')host.querySelector('[data-v574-photos]')?.click();
+ else host.querySelector('[data-v574-text]')?.focus({preventScroll:false});
+}
 function closePanel(){document.querySelector('#discover [data-v574-usp]')?.classList.remove('is-open');}
 function paint(){if(painting)return;painting=true;try{hero();smart();cleanup();updatePlaceholder();}finally{painting=false;}}
 document.addEventListener('click',e=>{
