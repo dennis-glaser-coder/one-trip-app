@@ -3,7 +3,7 @@
    "wir sind / wir reisen" wording while keeping adult/child limits explicit. */
 (function(){
 'use strict';
-const BUILD='6.39';
+const BUILD='6.40';
 const MAX_ADULTS=6,MAX_CHILDREN=4,MAX_TRAVELLERS=9;
 
 function norm(v){return String(v||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/ß/g,'ss');}
@@ -23,11 +23,19 @@ function partySize(t){
   if(m)return num(m[1]);
   const party={zweit:2,dritt:3,viert:4,fuenft:5,funft:5,sechst:6,siebt:7,acht:8,neunt:9};
   m=s.match(/\bzu\s+(zweit|dritt|viert|fuenft|funft|sechst|siebt|acht|neunt)\b/);
-  if(m)return party[m[1]]||null;
+  if(m){
+    const before=s.slice(Math.max(0,(m.index||0)-8),m.index||0);
+    const after=s.slice((m.index||0)+m[0].length,(m.index||0)+m[0].length+18);
+    const duration=/^\s*(?:tage|wochen|naechte|nachte|jahre|monate)\b/.test(after);
+    const bounded=/\bbis\s*$/.test(before);
+    if(!duration&&!bounded)return party[m[1]]||null;
+  }
   m=s.match(/\bwir\s+sind\s+([1-9]|ein(?:e|en|em|er)?|zwei|drei|vier|fuenf|funf|sechs|sieben|acht|neun)(?=\s*(?:$|[,.;]|und\b|davon\b|mit\b))(?!\s*(?:tage|wochen|naechte|nachte|sterne|jahre|monate)\b)/);
   if(m)return num(m[1]);
   m=s.match(/\bwir\s+reisen\s+zu\s+(zweit|dritt|viert|fuenft|funft|sechst|siebt|acht|neunt)\b/);
-  return m?(party[m[1]]||null):null;
+  if(!m)return null;
+  const after=s.slice((m.index||0)+m[0].length,(m.index||0)+m[0].length+18);
+  return /^\s*(?:tage|wochen|naechte|nachte|jahre|monate)\b/.test(after)?null:(party[m[1]]||null);
 }
 function childCount(t){
   try{
