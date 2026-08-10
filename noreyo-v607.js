@@ -3,7 +3,7 @@
    only after renderOffers completes, so stale cards cannot end a new search early. */
 (function(){
 'use strict';
-const BUILD='6.13';
+const BUILD='6.14';
 let observer=null,root=null,raf=0;
 
 function norm(v){
@@ -73,12 +73,15 @@ function installRenderHook(){
     if(typeof renderOffers!=='function'||renderOffers.__noreyoV613)return;
     const prior=renderOffers;
     const wrapped=function(){
-      const result=prior.apply(this,arguments);
+      let result;
+      try{result=prior.apply(this,arguments);}
+      catch(error){releaseBusy();throw error;}
       const done=()=>{
         if(!window.NOREYO_V585?.busy)return;
         if(hasRenderedOffers()||terminalText(document.getElementById('results')?.textContent||''))releaseBusy();
       };
-      if(result&&typeof result.then==='function')result.then(done,done);
+      const failed=()=>{releaseBusy();};
+      if(result&&typeof result.then==='function')result.then(done,failed);
       else setTimeout(done,0);
       return result;
     };
