@@ -1,6 +1,6 @@
 (function(){
   'use strict';
-  const BUILD='6.04';
+  const BUILD='6.42';
   if(!document.querySelector('link[data-noreyo-v534]')){
     const link=document.createElement('link');link.rel='stylesheet';link.href='./noreyo-v534.css?build=534';link.dataset.noreyoV534='1';document.head.appendChild(link);
   }
@@ -64,11 +64,15 @@
     const m=matchData(o),confirmed=m.items.filter(x=>x.ok),chips=confirmed.slice(0,5).map(x=>`<span class="noreyo-detail-chip ${x.state}">${x.state==='must'?'Pflicht':'Wunsch'} · ${safeText(x.label)} ✓</span>`).join('');
     rating.insertAdjacentHTML('afterend',`<section class="noreyo-detail-match"><div class="noreyo-detail-score"><span>DEIN NOREYO MATCH</span><strong>${safeText(detailMatchLabel(m))}</strong></div><div class="noreyo-detail-why"><b>Warum passt dieses Hotel zu dir?</b><p>${safeText(detailMatchCopy(m))}</p></div>${chips?`<div class="noreyo-detail-chips">${chips}</div>`:''}</section>`);
   }
-  const baseRender=renderOffers;renderOffers=function(){baseRender();decorateOffers();};
-  const baseFilter=filterAndRankOffers;filterAndRankOffers=function(input){const out=baseFilter(input);out.sort((a,b)=>matchData(b).points-matchData(a).points||Number(String(b.rating||0).replace(',','.'))-Number(String(a.rating||0).replace(',','.'))||Number(a.price||Infinity)-Number(b.price||Infinity));return out;};
-  const baseDetail=renderDetail;renderDetail=function(o){baseDetail(o);decorateDetail(o);};
-  const baseControls=renderProductControls;renderProductControls=function(){baseControls();decorateSearch();};
-  const baseCounts=updateCounts;updateCounts=function(){baseCounts();decorateSearch();decorateResultPrinciple();};
+  function afterResult(result,after){
+    if(result&&typeof result.then==='function')return result.then(value=>{after();return value;});
+    after();return result;
+  }
+  const baseRender=renderOffers;renderOffers=function(){const r=baseRender.apply(this,arguments);return afterResult(r,decorateOffers);};
+  const baseFilter=filterAndRankOffers;filterAndRankOffers=function(){const out=baseFilter.apply(this,arguments);if(!Array.isArray(out))return out;out.sort((a,b)=>matchData(b).points-matchData(a).points||Number(String(b.rating||0).replace(',','.'))-Number(String(a.rating||0).replace(',','.'))||Number(a.price||Infinity)-Number(b.price||Infinity));return out;};
+  const baseDetail=renderDetail;renderDetail=function(o){const r=baseDetail.apply(this,arguments);return afterResult(r,()=>decorateDetail(o));};
+  const baseControls=renderProductControls;renderProductControls=function(){const r=baseControls.apply(this,arguments);return afterResult(r,decorateSearch);};
+  const baseCounts=updateCounts;updateCounts=function(){const r=baseCounts.apply(this,arguments);return afterResult(r,()=>{decorateSearch();decorateResultPrinciple();});};
   decorateSearch();decorateOffers();decorateResultPrinciple();
-  window.NOREYO_V533=Object.freeze({BUILD,decorateOffers,decorateDetail,matchData});
+  window.NOREYO_V533=Object.freeze({BUILD,decorateOffers,decorateDetail,matchData,afterResult});
 })();
