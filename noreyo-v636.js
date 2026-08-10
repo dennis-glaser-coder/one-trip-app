@@ -1,9 +1,9 @@
-/* NOREYO V6.38 — German 7–9 party wording reconciliation.
-   Extends the AI safety layer for ausgeschriebene Gruppen ("sieben/acht/neun Personen")
-   and prevents invalid >6-adult wording from leaking into the search state. */
+/* NOREYO V6.39 — German 7–9 party wording reconciliation.
+   Extends the AI safety layer for ausgeschriebene Gruppen and natural
+   "wir sind / wir reisen" wording while keeping adult/child limits explicit. */
 (function(){
 'use strict';
-const BUILD='6.38';
+const BUILD='6.39';
 const MAX_ADULTS=6,MAX_CHILDREN=4,MAX_TRAVELLERS=9;
 
 function norm(v){return String(v||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/ß/g,'ss');}
@@ -23,6 +23,10 @@ function partySize(t){
   if(m)return num(m[1]);
   const party={zweit:2,dritt:3,viert:4,fuenft:5,funft:5,sechst:6,siebt:7,acht:8,neunt:9};
   m=s.match(/\bzu\s+(zweit|dritt|viert|fuenft|funft|sechst|siebt|acht|neunt)\b/);
+  if(m)return party[m[1]]||null;
+  m=s.match(/\bwir\s+sind\s+([1-9]|ein(?:e|en|em|er)?|zwei|drei|vier|fuenf|funf|sechs|sieben|acht|neun)(?=\s*(?:$|[,.;]|und\b|davon\b|mit\b))(?!\s*(?:tage|wochen|naechte|nachte|sterne|jahre|monate)\b)/);
+  if(m)return num(m[1]);
+  m=s.match(/\bwir\s+reisen\s+zu\s+(zweit|dritt|viert|fuenft|funft|sechst|siebt|acht|neunt)\b/);
   return m?(party[m[1]]||null):null;
 }
 function childCount(t){
@@ -102,7 +106,6 @@ function applyReconciliation(t,snapshot){
         const old=Array.isArray(searchState.childAges)?searchState.childAges.map(Number):[];
         if(old.length!==ages.length||old.some((v,i)=>v!==ages[i])){searchState.childAges=ages.slice();changed=true;}
       }else if(party.children!==null&&Array.isArray(searchState.childAges)&&searchState.childAges.length){
-        // A fresh explicit child count without fresh ages must never inherit ages from an older search.
         searchState.childAges=[];changed=true;
       }
     }
