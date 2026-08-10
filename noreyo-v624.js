@@ -1,15 +1,11 @@
-/* NOREYO V6.24 — AI modal BFCache/page-lock cleanup for iPhone Safari. */
+/* NOREYO V6.33 — AI modal BFCache cleanup + detail meal-truth audit. */
 (function(){
 'use strict';
-const BUILD='6.24';
+const BUILD='6.33';
 let restoreY=0;
 
-function aiWrap(){
-  return document.getElementById('noreyoAi556');
-}
-function legacyWrap(){
-  return document.getElementById('noreyoAi555');
-}
+function aiWrap(){return document.getElementById('noreyoAi556');}
+function legacyWrap(){return document.getElementById('noreyoAi555');}
 function lockedScrollY(){
   const top=parseFloat(document.body?.style?.top||'');
   if(Number.isFinite(top)&&top<0)return Math.max(0,-top);
@@ -34,18 +30,85 @@ function clearAiTransientState(restoreScroll){
   if(restoreScroll&&hadLock){
     try{window.scrollTo(0,restoreY);}catch(_){ }
   }
-  return hadLock||!!w?.classList||!!old?.classList;
+  return hadLock||!!w||!!old;
 }
-function onPageHide(){
-  clearAiTransientState(true);
+
+function requestedMealCode(){
+  try{return typeof mealPlanFilter==='string'?String(mealPlanFilter||'ANY').toUpperCase():'ANY';}catch(_){return'ANY';}
 }
+function codeFromBoard(board){
+  try{
+    if(window.NOREYO_V548?.codeFromBoard)return String(window.NOREYO_V548.codeFromBoard(board)||'ANY').toUpperCase();
+  }catch(_){ }
+  const b=String(board||'').toLowerCase();
+  if(/all\s*[- ]?inclusive|\bai\d*\b|\bti\b/.test(b))return'AI';
+  if(/vollpension|full\s*board|\bfb\d*\b/.test(b))return'FB';
+  if(/halbpension|half\s*board|\bhb\d*\b|\bbd\b/.test(b))return'HB';
+  if(/frühstück|fruhstuck|breakfast|\bbb\d*\b|\bbi\b/.test(b))return'BB';
+  if(/nur\s*übernachtung|nur\s*ubernachtung|room\s*only|\bro\d*\b/.test(b))return'RO';
+  return'ANY';
+}
+function mealLabel(){
+  try{return typeof mealPlanLabel==='function'?String(mealPlanLabel()||'Verpflegung'):'Verpflegung';}catch(_){return'Verpflegung';}
+}
+function selectedBoardConfirmed(o){
+  const wanted=requestedMealCode();
+  if(wanted==='ANY')return true;
+  return codeFromBoard(o?.board)===wanted;
+}
+function auditDetailMeal(o){
+  const wanted=requestedMealCode();
+  if(wanted==='ANY')return false;
+  const root=document.getElementById('detailContent');
+  if(!root)return false;
+  const label=mealLabel().toLowerCase();
+  const confirmed=selectedBoardConfirmed(o);
+  let changed=false;
+
+  root.querySelectorAll('.noreyo-detail-chip').forEach(chip=>{
+    const text=String(chip.textContent||'').toLowerCase();
+    if(!text.includes(label))return;
+    if(!confirmed){
+      chip.remove();
+      changed=true;
+    }
+  });
+
+  if(!confirmed){
+    const score=root.querySelector('.noreyo-detail-score strong');
+    const why=root.querySelector('.noreyo-detail-why p');
+    if(score&&score.textContent!=='TARIF PRÜFEN'){score.textContent='TARIF PRÜFEN';changed=true;}
+    const copy=`Die gewählte Verpflegung „${mealLabel()}“ ist in diesem geöffneten Tarif nicht bestätigt. Bitte prüfe Verpflegung und Tarif vor der Auswahl.`;
+    if(why&&why.textContent!==copy){why.textContent=copy;changed=true;}
+  }
+  return changed;
+}
+function installDetailHook(){
+  try{
+    if(typeof renderDetail!=='function'||renderDetail.__noreyoV633)return;
+    const prior=renderDetail;
+    const wrapped=function(o){
+      const result=prior.apply(this,arguments);
+      auditDetailMeal(o);
+      return result;
+    };
+    wrapped.__noreyoV633=true;
+    renderDetail=wrapped;
+  }catch(_){ }
+}
+function onPageHide(){clearAiTransientState(true);}
 function onPageShow(){
-  const body=document.body;if(!body)return;
-  if(body.classList.contains('noreyo-v556-lock')&&!aiWrap()?.classList.contains('show')){
+  const body=document.body;
+  if(body&&body.classList.contains('noreyo-v556-lock')&&!aiWrap()?.classList.contains('show')){
     clearAiTransientState(false);
   }
+  installDetailHook();
 }
+
+installDetailHook();
 window.addEventListener('pagehide',onPageHide,{passive:true});
 window.addEventListener('pageshow',onPageShow,{passive:true});
-window.NOREYO_V624=Object.freeze({BUILD,clearAiTransientState,lockedScrollY});
+window.NOREYO_V624=Object.freeze({
+  BUILD,clearAiTransientState,lockedScrollY,requestedMealCode,codeFromBoard,selectedBoardConfirmed,auditDetailMeal
+});
 })();
