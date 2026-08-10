@@ -1,13 +1,16 @@
 (function(){
   'use strict';
+  const BUILD='5.87';
   let raf=0;
 
   function currentMode(){
-    try{if(typeof productMode==='string')return productMode;}catch(_){ }
     const active=document.querySelector('#discover .product-mode.on');
     const t=(active?.textContent||'').toLowerCase();
+    if(t.includes('kreuzfahrt'))return 'cruise';
     if(t.includes('hotel'))return 'hotel';
     if(t.includes('flug'))return 'flight';
+    if(t.includes('pauschal'))return 'package';
+    try{if(typeof productMode==='string')return productMode;}catch(_){ }
     return 'package';
   }
 
@@ -31,6 +34,9 @@
     const card=document.querySelector('#discover .search-card');
     if(!card)return;
     const mode=currentMode();
+    card.querySelectorAll('.actions .ai').forEach(el=>{el.hidden=mode==='flight';});
+    if(mode==='cruise')return;
+
     card.classList.add('noreyo-v551-search');
     card.dataset.noreyoMode=mode;
 
@@ -55,7 +61,6 @@
       }else if(mode==='flight'){
         let ff=card.querySelector('[data-noreyo-v551="flight-filter"]');
         if(!ff){ff=makeFlightFilter();grid.appendChild(ff);}
-        card.querySelectorAll('.actions .ai').forEach(el=>{el.hidden=true;});
       }
     }
 
@@ -74,10 +79,31 @@
   }
 
   function schedule(){if(raf)return;raf=requestAnimationFrame(()=>{raf=0;unify();});}
+  function mutationRelevant(records){
+    for(const r of records){
+      for(const n of r.addedNodes||[]){
+        if(n.nodeType!==1)continue;
+        if(n.matches?.('.search-card,.booking-command-grid,.product-mode,.liveSearchButton,.noreyo-v541-booking-cta')||
+           n.querySelector?.('.search-card,.booking-command-grid,.product-mode,.liveSearchButton,.noreyo-v541-booking-cta'))return true;
+      }
+    }
+    return false;
+  }
+  try{
+    if(typeof setProductMode==='function'&&!setProductMode.__noreyoV551Schedule){
+      const prior=setProductMode;
+      const wrapped=function(){const r=prior.apply(this,arguments);schedule();return r;};
+      wrapped.__noreyoV551Schedule=true;setProductMode=wrapped;
+    }
+  }catch(_){ }
+
   unify();
   setTimeout(unify,80);setTimeout(unify,240);setTimeout(unify,500);
   const discover=document.getElementById('discover');
-  if(discover&&typeof MutationObserver!=='undefined')new MutationObserver(schedule).observe(discover,{childList:true,subtree:true});
+  if(discover&&typeof MutationObserver!=='undefined'){
+    new MutationObserver(records=>{if(mutationRelevant(records))schedule();})
+      .observe(discover,{childList:true,subtree:true});
+  }
   window.addEventListener('pageshow',schedule,{passive:true});
-  window.NOREYO_V551=Object.freeze({unify,currentMode});
+  window.NOREYO_V551=Object.freeze({unify,currentMode,version:BUILD});
 })();
