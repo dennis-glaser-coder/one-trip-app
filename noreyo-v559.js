@@ -1,10 +1,10 @@
 (function(){
 'use strict';
-const BUILD='6.75';
+const BUILD='6.76';
 const labelKey={
  'Balkon':'Zimmer0','Meerblick':'Zimmer1','Terrasse':'Zimmer2','Mind. 4 Sterne':'Hotel0','Adults Only':'Hotel1','Spa / Wellness':'Hotel4','Fitness':'Hotel5','Sandstrand':'Lage0','Direkt am Strand':'Lage1','Ruhige Lage':'Lage2','Restaurants zu Fuß':'Lage3','Kurzer Transfer':'Lage4','Kostenlos stornierbar':'Preis2','Direktflug':'Flug0','Aufgabegepäck':'Flug1'
 };
-let overrides={},raf=0,observer=null;
+let overrides={},raf=0,observer=null,observerRoot=null;
 
 function norm(v){return String(v||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/ß/g,'ss');}
 function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
@@ -86,13 +86,25 @@ function relevant(muts){
   }
   return false;
 }
+function preferredObserverRoot(){return document.getElementById('noreyoAi556')||document.body||null;}
 function installObserver(){
-  if(observer||!document.body||typeof MutationObserver==='undefined')return;
-  observer=new MutationObserver(muts=>{if(relevant(muts)){resetMarker();schedule();}});
-  observer.observe(document.body,{childList:true,subtree:true});
+  if(typeof MutationObserver==='undefined')return;
+  const next=preferredObserverRoot();if(!next)return;
+  if(observer&&observerRoot===next)return;
+  if(observer){observer.disconnect();observer=null;}
+  observerRoot=next;
+  observer=new MutationObserver(muts=>{
+    if(relevant(muts)){
+      installObserver();
+      resetMarker();
+      schedule();
+    }
+  });
+  observer.observe(next,{childList:true,subtree:true});
 }
 function cleanup(){
   if(observer){observer.disconnect();observer=null;}
+  observerRoot=null;
   if(raf){cancelAnimationFrame(raf);raf=0;}
 }
 function restore(){installStyle();resetMarker();decorate();installObserver();}
@@ -103,5 +115,5 @@ document.addEventListener('click',e=>{
 restore();
 window.addEventListener('pagehide',cleanup,{passive:true});
 window.addEventListener('pageshow',restore,{passive:true});
-window.NOREYO_V559=Object.freeze({BUILD,decorate,relevant,cleanup,installObserver,get observing(){return !!observer;}});
+window.NOREYO_V559=Object.freeze({BUILD,decorate,relevant,cleanup,installObserver,preferredObserverRoot,get observing(){return !!observer;},get scopedToModal(){return observerRoot===document.getElementById('noreyoAi556')&&!!observerRoot;}});
 })();
