@@ -138,8 +138,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [ -f site.zip ]; then
-            unzip -l site.zip | grep -Eq '(^|[[:space:]])index\.html$'
-          else
-            echo "site.zip is not present in this checkout; bootstrap validation still passed."
-          fi
+          test -f site.zip
+          unzip -l site.zip | grep -Eq '(^|[[:space:]])index\.html$'
+
+      - name: Upload packed site QA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: noreyo-site-qa
+          path: site.zip
+          if-no-files-found: error
+          retention-days: 1
