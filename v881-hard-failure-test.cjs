@@ -1,0 +1,9 @@
+const fs=require('fs'),vm=require('vm');
+const code=fs.readFileSync('./noreyo-bootstrap-v881.js','utf8');
+let appended=[],reloads=0;
+const status={textContent:''},bar={style:{}};
+const box={style:{},attrs:{},children:[],textContent:'',setAttribute(k,v){this.attrs[k]=v},querySelector(){return this.children.find(x=>x.attrs?.['data-noreyo-v881-retry']==='1')||null},appendChild(x){this.children.push(x)}};
+const doc={getElementById(id){return id==='status'?status:id==='bar'?bar:id==='error'?box:null},createElement(tag){if(tag==='script')return{src:'',onload:null,onerror:null,remove(){}};if(tag==='br')return{tag};return{tag,attrs:{},textContent:'',className:'',type:'',setAttribute(k,v){this.attrs[k]=v},addEventListener(t,fn){if(t==='click')this.onclick=fn},focus(){}}},head:{appendChild(s){appended.push(s.src);queueMicrotask(()=>s.onerror?.())}}};
+const ctx={console,document:doc,window:{},location:{reload(){reloads++}},Promise,Object,Error,Date,queueMicrotask,setTimeout,clearTimeout};
+vm.createContext(ctx);vm.runInContext(code,ctx);
+setTimeout(()=>{const api=ctx.window.NOREYO_V881;const retry=box.querySelector('[data-noreyo-v881-retry="1"]');const attempts=appended.filter(x=>x.includes('v864')).length===2;const hard=status.textContent==='NOREYO konnte nicht geladen werden'&&bar.style.display==='none'&&box.attrs.role==='alert'&&box.attrs['aria-live']==='assertive';const ok=attempts&&hard&&!!retry&&api.state().status==='failed';if(retry?.onclick)retry.onclick();const reloadOk=reloads===1;console.log(ok&&reloadOk?'PASS V8.81 hard inner failure exposes accessible reload recovery':'FAIL '+JSON.stringify({appended,status:status.textContent,box:box.attrs,state:api.state(),reloads}));process.exit(ok&&reloadOk?0:1);},800);
