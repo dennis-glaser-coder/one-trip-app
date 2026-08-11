@@ -1,7 +1,8 @@
-/* NOREYO V6.99 bootstrap — installs the Request-object integrity boundary before the current V6.98 app bootstrap. */
+/* NOREYO V6.99 bootstrap — Request-object integrity survives the site.zip document replacement.
+   V6.99 is installed before boot and injected again at the end of the generated app document. */
 (()=>{
 'use strict';
-const BUILD='6.99-safe';
+const BUILD='6.99-safe',GUARD='./noreyo-v699.js?build=699',BASE='./noreyo-bootstrap-v698.js?build=699';
 const statusEl=document.getElementById('status');
 function setStatus(t){if(statusEl)statusEl.textContent=t;}
 function fail(error){
@@ -16,13 +17,35 @@ function load(src){return new Promise((resolve,reject)=>{
   const timer=setTimeout(()=>finish(false,new Error('Script-Timeout: '+src)),15000);
   s.src=src;s.onload=()=>finish(true);s.onerror=()=>finish(false);document.head.appendChild(s);
 });}
+function armDocumentWriteInjection(){
+  try{
+    if(typeof Document==='undefined'||typeof Document.prototype.write!=='function')return()=>{};
+    const proto=Document.prototype,prior=proto.write;let active=true,timer=0;
+    const restore=()=>{if(proto.write===wrapped)proto.write=prior;active=false;if(timer){clearTimeout(timer);timer=0;}};
+    const wrapped=function(...parts){
+      if(active&&this===document){
+        let injected=false;
+        parts=parts.map(part=>{
+          if(injected||typeof part!=='string'||!part.includes('</body>'))return part;
+          injected=true;
+          return part.replace('</body>','<script src="'+GUARD+'"></scr'+'ipt></body>');
+        });
+        if(injected)restore();
+      }
+      return prior.apply(this,parts);
+    };
+    proto.write=wrapped;timer=setTimeout(restore,30000);return restore;
+  }catch(_){return()=>{};}
+}
 async function boot(){
+  let disarm=()=>{};
   try{
     setStatus('NOREYO '+BUILD+' wird vorbereitet …');
-    await load('./noreyo-v699.js?build=699');
-    await load('./noreyo-bootstrap-v698.js?build=699');
-  }catch(error){fail(error);}
+    await load(GUARD);
+    disarm=armDocumentWriteInjection();
+    await load(BASE);
+  }catch(error){disarm();fail(error);}
 }
-window.NOREYO_BOOTSTRAP_PRELOAD=Object.freeze({BUILD});
+window.NOREYO_BOOTSTRAP_PRELOAD=Object.freeze({BUILD,GUARD,BASE,armDocumentWriteInjection});
 boot();
 })();
