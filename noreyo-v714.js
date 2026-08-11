@@ -1,0 +1,118 @@
+/* NOREYO V7.14 — safe multi-occupancy target normalization.
+   Preserves every occupancy while filtering malformed hotel IDs before the Request
+   transport. Invalid target values can no longer be stringified into fake IDs. */
+(function(){
+'use strict';
+const BUILD='7.14';
+function isSearchTravel(input){
+  const url=typeof input==='string'?input:String(input?.url||'');
+  return url.includes('/functions/v1/search-travel');
+}
+function parsedBody(init){
+  if(typeof init?.body!=='string')return null;
+  try{return JSON.parse(init.body);}catch(_){return null;}
+}
+function isMulti(raw){
+  return !raw?.action&&Array.isArray(raw?.occupancies)&&raw.occupancies.length>1;
+}
+function validHotelId(value){
+  if(typeof value!=='string'&&typeof value!=='number')return false;
+  return /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}$/.test(String(value).trim());
+}
+function cleanHotelIds(ids){
+  if(!Array.isArray(ids))return[];
+  const out=[];
+  for(const value of ids){
+    if(!validHotelId(value))continue;
+    const id=String(value).trim();
+    if(!out.includes(id))out.push(id);
+    if(out.length>=20)break;
+  }
+  return out;
+}
+function destinationFallbackIata(){
+  try{
+    const key=typeof normalizeLookup==='function'?normalizeLookup(dest):String(dest||'').trim().toLowerCase();
+    return String(destinationIata?.[key]||destinationIata?.[String(dest||'').toLowerCase()]||'').toUpperCase();
+  }catch(_){return'';}
+}
+function sanitize(raw){
+  const body={...(raw||{})};
+  body.occupancies=(Array.isArray(body.occupancies)?body.occupancies:[]).map(occ=>({
+    adults:Number(occ?.adults),
+    children:Array.isArray(occ?.children)?occ.children.map(Number):[]
+  }));
+  body.currency='EUR';
+  body.guestNationality='DE';
+  const ids=cleanHotelIds(body.hotelIds);
+  if(ids.length)body.hotelIds=ids;
+  else delete body.hotelIds;
+  if(!body.hotelIds?.length){
+    let iata=String(body.iataCode||'').trim().toUpperCase();
+    if(!/^[A-Z]{3}$/.test(iata))iata=destinationFallbackIata();
+    if(/^[A-Z]{3}$/.test(iata))body.iataCode=iata;
+    else delete body.iataCode;
+  }else{
+    delete body.iataCode;
+  }
+  if(body.maxRatesPerHotel!==undefined)
+    body.maxRatesPerHotel=Math.max(1,Math.min(10,Math.round(Number(body.maxRatesPerHotel)||3)));
+  if(body.limit!==undefined)
+    body.limit=Math.max(1,Math.min(100,Math.round(Number(body.limit)||40)));
+  return body;
+}
+function minimal(raw){
+  const clean=sanitize(raw),out={
+    occupancies:clean.occupancies,
+    currency:'EUR',
+    guestNationality:'DE',
+    checkin:clean.checkin,
+    checkout:clean.checkout,
+    includeHotelData:true,
+    roomMapping:true,
+    maxRatesPerHotel:Math.max(1,Math.min(10,Math.round(Number(clean.maxRatesPerHotel)||3))),
+    limit:Math.max(1,Math.min(100,Math.round(Number(clean.limit)||40)))
+  };
+  if(clean.hotelIds?.length)out.hotelIds=clean.hotelIds;
+  else if(/^[A-Z]{3}$/.test(String(clean.iataCode||'')))out.iataCode=clean.iataCode;
+  return out;
+}
+function requestFor(input,init,raw){
+  const url=new URL(input,location.href).href,clean=sanitize(raw),headers=new Headers(init?.headers||{});
+  if(!headers.has('content-type'))headers.set('content-type','application/json');
+  return new Request(url,{...init,headers,body:JSON.stringify(clean)});
+}
+async function retryable(response){
+  if(!response||response.ok)return false;
+  try{
+    const payload=await response.clone().json();
+    if(String(payload?.error?.code||'')==='INVALID_SEARCH_REQUEST')return false;
+    const message=String(payload?.error?.message||payload?.message||'');
+    return /required request field|wrong input|missing/i.test(message);
+  }catch(_){return false;}
+}
+function install(){
+  try{
+    if(typeof window.fetch!=='function'||window.fetch.__noreyoV714)return false;
+    const prior=window.fetch.bind(window);
+    const wrapped=async function(input,init){
+      const raw=parsedBody(init);
+      if(typeof input!=='string'||!isSearchTravel(input)||!isMulti(raw))return prior(input,init);
+      let first;
+      try{first=requestFor(input,init,raw);}catch(_){return prior(input,init);}
+      const response=await prior(first);
+      if(!(await retryable(response)))return response;
+      let second;
+      try{
+        const url=new URL(input,location.href).href,headers=new Headers(init?.headers||{});
+        if(!headers.has('content-type'))headers.set('content-type','application/json');
+        second=new Request(url,{...init,headers,body:JSON.stringify(minimal(raw))});
+      }catch(_){return response;}
+      return prior(second);
+    };
+    wrapped.__noreyoV714=true;window.fetch=wrapped;return true;
+  }catch(_){return false;}
+}
+install();window.addEventListener('pageshow',install,{passive:true});
+window.NOREYO_V714=Object.freeze({BUILD,isSearchTravel,parsedBody,isMulti,validHotelId,cleanHotelIds,destinationFallbackIata,sanitize,minimal,requestFor,retryable,install});
+})();
