@@ -1,0 +1,10 @@
+const fs=require('fs'),vm=require('vm');
+const code=fs.readFileSync('./noreyo-v872.js','utf8');
+let captured=null,calls=0;
+const ctx={console,String,Object,Array,Number,JSON,Headers,Request,Response,window:{addEventListener(){},fetch:async(input,init)=>{calls++;const text=typeof init?.body==='string'?init.body:input instanceof Request?await input.clone().text():'';captured=text?JSON.parse(text):null;return new Response('{}',{status:200});}}};
+vm.createContext(ctx);vm.runInContext(code,ctx);const a=ctx.window.NOREYO_V872;
+let fail=0;
+let c=a.canonical({occupancies:[{adults:'2',children:[{age:'5'},{age:1}]}]});let ok=JSON.stringify(c.occupancies[0])==='{\"adults\":2,\"children\":[5,1]}';console.log(ok?'PASS object child ages canonicalized to numbers':'FAIL '+JSON.stringify(c));if(!ok)fail++;
+c=a.canonical({occupancies:[{adults:2,childAges:['5','1']}]});ok=JSON.stringify(c.occupancies[0])==='{\"adults\":2,\"children\":[5,1]}';console.log(ok?'PASS childAges alias canonicalized':'FAIL '+JSON.stringify(c));if(!ok)fail++;
+c=a.canonical({occupancies:[{adults:2,children:[5,1],childAges:[5,2]}]});ok=c===null;console.log(ok?'PASS conflicting age aliases left for strict guard to reject':'FAIL '+JSON.stringify(c));if(!ok)fail++;
+(async()=>{captured=null;calls=0;const res=await ctx.window.fetch('https://x.test/functions/v1/search-travel',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({occupancies:[{adults:2,children:[{age:5},{age:1}]}],checkin:'2026-09-01',checkout:'2026-09-08',iataCode:'PMI'})});const clean=captured?.occupancies?.[0]?.children;const good=calls===1&&res.status===200&&JSON.stringify(clean)==='[5,1]';console.log(good?'PASS network receives numeric child ages':'FAIL '+JSON.stringify({calls,captured}));if(!good)fail++;process.exit(fail?1:0);})().catch(e=>{console.error(e);process.exit(1)});
