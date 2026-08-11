@@ -26,21 +26,40 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Validate active bootstrap references
+      - name: Validate active bootstrap dependency closure
         shell: bash
         run: |
           set -euo pipefail
-          active_ref="$(grep -oE 'noreyo-bootstrap-v[0-9]+\.js\?build=[0-9]+' index.html | tail -1)"
-          test -n "$active_ref"
-          active_file="${active_ref%%\?*}"
-          test -f "$active_file"
-          grep -q "const BUILD=" "$active_file"
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
 
-          while IFS= read -r ref; do
-            file="${ref#./}"
-            file="${file%%\?*}"
-            test -f "$file" || { echo "Missing bootstrap asset: $file"; exit 1; }
-          done < <(grep -oE '\./noreyo-[A-Za-z0-9._-]+\.js\?build=[0-9]+' "$active_file" | sort -u)
+          index = Path('index.html').read_text(encoding='utf-8')
+          refs = re.findall(r'noreyo-bootstrap-v\d+\.js\?build=\d+', index)
+          if not refs:
+              raise SystemExit('No active bootstrap reference found in index.html')
+
+          queue = [refs[-1].split('?', 1)[0]]
+          seen = set()
+          dep_re = re.compile(r"\./(noreyo-[A-Za-z0-9._-]+\.js)\?build=\d+")
+
+          while queue:
+              rel = queue.pop(0)
+              if rel in seen:
+                  continue
+              seen.add(rel)
+              path = Path(rel)
+              if not path.is_file():
+                  raise SystemExit(f'Missing bootstrap dependency: {rel}')
+              text = path.read_text(encoding='utf-8')
+              if rel.startswith('noreyo-bootstrap-') and 'const BUILD=' not in text:
+                  raise SystemExit(f'Bootstrap has no BUILD marker: {rel}')
+              for dep in dep_re.findall(text):
+                  if dep not in seen:
+                      queue.append(dep)
+
+          print(f'Validated {len(seen)} active bootstrap/dependency files')
+          PY
 
       - name: Check NOREYO JavaScript syntax
         shell: bash
@@ -69,31 +88,31 @@ jobs:
                   self.current = []
                   self.scripts = []
               def handle_starttag(self, tag, attrs):
-                  if tag.lower() != "script":
+                  if tag.lower() != 'script':
                       return
                   attrs = dict(attrs)
-                  self.capture = "src" not in attrs
+                  self.capture = 'src' not in attrs
                   self.current = []
               def handle_data(self, data):
                   if self.capture:
                       self.current.append(data)
               def handle_endtag(self, tag):
-                  if tag.lower() == "script" and self.capture:
-                      script = "".join(self.current).strip()
+                  if tag.lower() == 'script' and self.capture:
+                      script = ''.join(self.current).strip()
                       if script:
                           self.scripts.append(script)
                       self.capture = False
                       self.current = []
 
           parser = InlineScripts()
-          parser.feed(Path("index.html").read_text(encoding="utf-8"))
+          parser.feed(Path('index.html').read_text(encoding='utf-8'))
           if not parser.scripts:
-              raise SystemExit("No inline index bootstrap script found")
-          out = Path("/tmp/noreyo-inline")
+              raise SystemExit('No inline index bootstrap script found')
+          out = Path('/tmp/noreyo-inline')
           out.mkdir(exist_ok=True)
           for i, script in enumerate(parser.scripts, 1):
-              (out / f"inline-{i}.js").write_text(script, encoding="utf-8")
-          print(f"Extracted {len(parser.scripts)} inline script(s)")
+              (out / f'inline-{i}.js').write_text(script, encoding='utf-8')
+          print(f'Extracted {len(parser.scripts)} inline script(s)')
           PY
 
           for file in /tmp/noreyo-inline/*.js; do
