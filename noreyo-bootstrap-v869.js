@@ -1,0 +1,22 @@
+/* NOREYO V8.69 bootstrap arbiter — async-ready V8.64 + V8.65 + V8.67.
+   Avoids replaying an already-executed inner bootstrap while its asynchronous
+   component chain is still becoming ready. */
+(()=>{
+'use strict';
+const BUILD='8.69-safe',ATTEMPTS=2,RETRY_MS=260,TIMEOUT_MS=15000,READY_TIMEOUT_MS=45000,POLL_MS=25;
+const KEY='__NOREYO_V869_SINGLE_FLIGHT__';
+const COMPONENTS=Object.freeze([
+  {name:'V8.64',src:'./noreyo-bootstrap-v864.js?build=864',asyncReady:true,ready:()=>window.NOREYO_V864?.state?.().status==='ready'},
+  {name:'Favoriten V8.65',src:'./noreyo-v865.js?build=865',ready:()=>window.NOREYO_V865?.BUILD==='8.65'},
+  {name:'Abflug-Kontext V8.67',src:'./noreyo-v867.js?build=867',ready:()=>window.NOREYO_V867?.BUILD==='8.67'}
+]);
+function state(){const old=window[KEY];if(old&&old.status)return old;const s={status:'idle',promise:null,error:null,component:null,attempt:0};try{window[KEY]=s;}catch(_){}return s;}
+function src(base,attempt){return attempt<=1?base:base+(base.includes('?')?'&':'?')+'noreyo_v869_retry='+attempt;}
+function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+async function waitReady(component){if(component.ready())return true;const start=Date.now();while(Date.now()-start<READY_TIMEOUT_MS){await sleep(POLL_MS);if(component.ready())return true;const innerState=component.name==='V8.64'?window.NOREYO_V864?.state?.():null;if(innerState?.status==='failed')throw Object.assign(innerState.error||new Error('V8.64 inner failed'),{replaySafe:false});}return false;}
+function loadOnce(component,attempt){return new Promise((resolve,reject)=>{if(component.ready())return resolve(true);const s=document.createElement('script');let done=false,timer=0,loaded=false;const finish=(ok,error)=>{if(done)return;done=true;if(timer)clearTimeout(timer);s.onload=s.onerror=null;if(!ok&&!loaded){try{s.remove();}catch(_){}}ok?resolve(true):reject(error||new Error(component.name+' konnte nicht geladen werden'));};timer=setTimeout(()=>finish(false,Object.assign(new Error(component.name+' Netzwerk-/Script-Timeout'),{replaySafe:!loaded})),TIMEOUT_MS);s.src=src(component.src,attempt);s.onload=async()=>{loaded=true;if(timer){clearTimeout(timer);timer=0;}if(!component.asyncReady)return finish(component.ready(),Object.assign(new Error(component.name+' meldet keinen gültigen Build'),{replaySafe:false}));try{const ready=await waitReady(component);finish(ready,Object.assign(new Error(component.name+' wurde geladen, aber nicht vollständig bereit'),{replaySafe:false}));}catch(error){finish(false,Object.assign(error,{replaySafe:false}));}};s.onerror=()=>finish(false,Object.assign(new Error(component.name+' konnte nicht geladen werden'),{replaySafe:true}));document.head.appendChild(s);});}
+async function loadComponent(component,st){if(component.ready())return true;st.component=component.name;let last=null;for(let attempt=1;attempt<=ATTEMPTS;attempt++){st.attempt=attempt;try{return await loadOnce(component,attempt);}catch(e){last=e;if(e?.replaySafe===false||attempt>=ATTEMPTS)break;await sleep(RETRY_MS);}}throw last;}
+function fail(error){const status=document.getElementById('status'),bar=document.getElementById('bar'),box=document.getElementById('error');if(bar)bar.style.display='none';if(status)status.textContent='NOREYO konnte nicht geladen werden';if(box){box.style.display='block';box.setAttribute('role','alert');box.setAttribute('aria-live','assertive');box.textContent='Die Verbindung zum Reisemodul ist fehlgeschlagen.';}console.error(error);}
+async function run(){const st=state();if(st.status==='ready')return true;if(st.promise)return st.promise;st.status='loading';st.error=null;st.promise=(async()=>{try{for(const component of COMPONENTS)await loadComponent(component,st);st.status='ready';st.component=null;st.attempt=0;return true;}catch(e){st.status='failed';st.error=e;fail(e);throw e;}})().finally(()=>{st.promise=null;});return st.promise;}
+window.NOREYO_V869=Object.freeze({BUILD,ATTEMPTS,RETRY_MS,TIMEOUT_MS,READY_TIMEOUT_MS,POLL_MS,KEY,COMPONENTS,state,src,sleep,waitReady,loadOnce,loadComponent,run});run().catch(()=>{});
+})();
