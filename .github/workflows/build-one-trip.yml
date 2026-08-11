@@ -1,39 +1,65 @@
-name: Build ONE TRIP
+name: Validate NOREYO
 
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - index.html
+      - site.zip
+      - 'noreyo-*.js'
+      - .github/workflows/build-one-trip.yml
   push:
     branches: [main]
     paths:
+      - index.html
       - site.zip
-      - tools/apply_v528.py
+      - 'noreyo-*.js'
       - .github/workflows/build-one-trip.yml
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  build:
+  validate:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Build V5.28 from verified V5.27 package
+      - name: Validate active bootstrap references
+        shell: bash
         run: |
-          unzip -p site.zip index.html > index.html
-          python tools/apply_v528.py
+          set -euo pipefail
+          active_ref="$(grep -oE 'noreyo-bootstrap-v[0-9]+\.js\?build=[0-9]+' index.html | tail -1)"
+          test -n "$active_ref"
+          active_file="${active_ref%%\?*}"
+          test -f "$active_file"
+          grep -q "const BUILD=" "$active_file"
 
-      - name: Commit generated index
+          while IFS= read -r ref; do
+            file="${ref#./}"
+            file="${file%%\?*}"
+            test -f "$file" || { echo "Missing bootstrap asset: $file"; exit 1; }
+          done < <(grep -oE '\./noreyo-[A-Za-z0-9._-]+\.js\?build=[0-9]+' "$active_file" | sort -u)
+
+      - name: Check NOREYO JavaScript syntax
+        shell: bash
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add index.html
-          if git diff --cached --quiet; then
-            echo "index.html already up to date"
+          set -euo pipefail
+          count=0
+          while IFS= read -r -d '' file; do
+            node --check "$file"
+            count=$((count + 1))
+          done < <(find . -maxdepth 1 -type f -name 'noreyo-*.js' -print0)
+          test "$count" -gt 0
+          echo "Checked $count JavaScript files"
+
+      - name: Validate packaged site structure
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f site.zip ]; then
+            unzip -l site.zip | grep -Eq '(^|[[:space:]])index\.html$'
           else
-            git commit -m "Build ONE TRIP V5.28"
-            git push
+            echo "site.zip is not present in this checkout; bootstrap validation still passed."
           fi
-
-# trigger build after connector setup
