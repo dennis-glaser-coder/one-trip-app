@@ -1,0 +1,9 @@
+const fs=require('fs'),vm=require('vm');
+const code=fs.readFileSync('./noreyo-v876.js','utf8');
+const searchState={checkin:'2026-09-01',checkout:'2026-09-08'};
+const ctx={console,String,Object,window:{addEventListener(){},NOREYO_V846:{parseNamedRange(t){return t==='12 Sep bis 19 Sep'?{checkin:'2026-09-12',checkout:'2026-09-19'}:null}},NOREYO_V859:{parseElidedRange(t){return t==='20. bis 27. September'?{checkin:'2026-09-20',checkout:'2026-09-27'}:null}},NOREYO_V861:{repairPlan(){return null}},NOREYO_V853:{repairPlan(){return null}}},document:{addEventListener(){},getElementById(){return null}},searchState,updateSearchUI(){},updateCounts(){},persistState(){},setTimeout,clearTimeout};
+vm.createContext(ctx);vm.runInContext(code,ctx);const a=ctx.window.NOREYO_V876;
+let fail=0;
+let d=a.decision('12 Sep bis 19 Sep',{checkin:'2026-09-01',checkout:'2026-09-08'});let ok=d?.reason==='full-range'&&d.checkin==='2026-09-12';console.log(ok?'PASS full range has deterministic final plan':'FAIL '+JSON.stringify(d));if(!ok)fail++;
+const old=a.schedule('12 Sep bis 19 Sep',{checkin:'2026-09-01',checkout:'2026-09-08'});const newest=a.schedule('20. bis 27. September',{checkin:'2026-09-01',checkout:'2026-09-08'});const stale=a.applyLatest('12 Sep bis 19 Sep',{checkin:'2026-09-01',checkout:'2026-09-08'},old)===false;console.log(stale?'PASS stale generation rejected immediately':'FAIL stale');if(!stale)fail++;
+setTimeout(()=>{const final=searchState.checkin==='2026-09-20'&&searchState.checkout==='2026-09-27';console.log(final?'PASS scheduled newest date wins after debounce':'FAIL '+JSON.stringify(searchState));if(!final)fail++;process.exit(fail?1:0);},150);
