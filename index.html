@@ -58,6 +58,7 @@ function load(){
     if(timer){clearTimeout(timer);timer=0;}
     script.onload=script.onerror=null;
     if(ok){done=true;return;}
+    try{script.remove();}catch(_){}
     if(attempt<ATTEMPTS){setTimeout(load,RETRY_MS);return;}
     fail(reason);
   };
