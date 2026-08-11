@@ -1,0 +1,11 @@
+const fs=require('fs'),vm=require('vm');
+const code=fs.readFileSync('./noreyo-v870.js','utf8');
+let applied=[];
+const base={setAirports(c){applied=c.slice();return true},parseDepartures(t){if(/ab Düsseldorf/.test(t))return['DUS'];if(/von Frankfurt/.test(t))return['FRA'];return[]},airportHits(t){return /Frankfurt|Düsseldorf/.test(t)?[{code:'X'}]:[]},mentionsDeparture(t){return /\bab\b|\bvon\b/.test(t)}};
+const ctx={console,String,Object,Array,window:{addEventListener(){},NOREYO_V800:base,NOREYO_V867:{hasTransportHit(t){return /Transfer von Frankfurt/.test(t)},safeDepartures(t){return /ab Düsseldorf/.test(t)?['DUS']:[]}},NOREYO_V863:{hasSuppressedHit(){return false}},NOREYO_V851:{parseAirportKeyword(){return[]}}},document:{addEventListener(){},getElementById(){return null}},setTimeout,clearTimeout};
+vm.createContext(ctx);vm.runInContext(code,ctx);const a=ctx.window.NOREYO_V870;
+let fail=0;
+let d=a.resolve('Transfer von Frankfurt zum Hotel',['PAD']);let ok=JSON.stringify(d.codes)==='["PAD"]'&&d.reason==='ground-transport';console.log(ok?'PASS transport-only text preserves previous departure':'FAIL '+JSON.stringify(d));if(!ok)fail++;
+d=a.resolve('Transfer von Frankfurt zum Hotel, ab Düsseldorf',['PAD']);ok=JSON.stringify(d.codes)==='["DUS"]';console.log(ok?'PASS explicit newer departure wins over transfer origin':'FAIL '+JSON.stringify(d));if(!ok)fail++;
+const old=a.schedule('Transfer von Frankfurt zum Hotel',['PAD']);const newest=a.schedule('ab Düsseldorf',['PAD']);
+setTimeout(()=>{const stale=a.applyLatest('von Frankfurt',['PAD'],old)===false;const current=a.applyLatest('ab Düsseldorf',['PAD'],newest);const final=JSON.stringify(applied)==='["DUS"]';console.log(stale&&current&&final?'PASS stale generation cannot overwrite newest departure':'FAIL '+JSON.stringify({old,newest,applied,stale,current}));if(!(stale&&current&&final))fail++;process.exit(fail?1:0);},130);
