@@ -1,8 +1,8 @@
-/* NOREYO V6.89 bootstrap — preserves base sorting without active match preferences. */
+/* NOREYO V6.90 bootstrap — preserves base sorting and aligns active search request ownership. */
 (()=>{
 'use strict';
-const BUILD='6.89-safe';
-const SITE_BUILD='noreyo-689';
+const BUILD='6.90-safe';
+const SITE_BUILD='noreyo-690';
 const HOTFIX=`
 @media(max-width:600px){
   .app-head{padding-top:calc(42px + env(safe-area-inset-top))!important;padding-left:18px!important;padding-right:18px!important;padding-bottom:12px!important}
@@ -28,7 +28,7 @@ const SCRIPT_ASSETS=[
  ['noreyo-v556.js',587],['noreyo-v557.js',667],['noreyo-v558.js',658],['noreyo-v584.js',670],
  ['noreyo-v606.js',627],['noreyo-v585.js',669],['noreyo-v607.js',656],['noreyo-v612.js',630],
  ['noreyo-v591.js',635],['noreyo-v624.js',652],['noreyo-v636.js',660],['noreyo-v644.js',659],
- ['noreyo-v673.js',673],['noreyo-v677.js',677],['noreyo-v679.js',684],['noreyo-v681.js',681],['noreyo-v683.js',686],['noreyo-v688.js',688]
+ ['noreyo-v673.js',690],['noreyo-v677.js',677],['noreyo-v679.js',684],['noreyo-v681.js',681],['noreyo-v683.js',686],['noreyo-v688.js',688]
 ];
 const statusEl=document.getElementById('status');
 const setStatus=t=>{if(statusEl)statusEl.textContent=t;};
