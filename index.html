@@ -12,6 +12,7 @@
 <style>
 html,body{margin:0;min-height:100%;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sans-serif;background:#07111f;color:#fff}
 #boot{min-height:100vh;display:grid;place-items:center;padding:24px;text-align:center;box-sizing:border-box}.boot-card{max-width:430px}.logo{font-size:34px;font-weight:900;letter-spacing:3.4px}.sub{margin-top:10px;opacity:.68;font-size:14px}.bar{height:4px;background:#ffffff20;border-radius:99px;overflow:hidden;margin:22px auto 0;max-width:220px}.bar:after{content:"";display:block;width:45%;height:100%;background:#fff;border-radius:99px;animation:load 1s ease-in-out infinite alternate}@keyframes load{to{transform:translateX(125%)}}#error{display:none;white-space:pre-wrap;line-height:1.45}.boot-retry{appearance:none;border:0;border-radius:14px;padding:12px 18px;min-height:44px;margin-top:18px;background:#fff;color:#07111f;font:800 14px/1 -apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sans-serif;cursor:pointer}
+@supports (height:100dvh){#boot{min-height:100dvh}}
 </style>
 </head>
 <body>
@@ -19,7 +20,7 @@ html,body{margin:0;min-height:100%;font-family:-apple-system,BlinkMacSystemFont,
 <script>
 (()=>{
 'use strict';
-const SRC='./noreyo-bootstrap-v1031.js?build=1031',ATTEMPTS=2,RETRY_MS=300,TIMEOUT_MS=15000;
+const SRC='./noreyo-bootstrap-v1033.js?build=1033',ATTEMPTS=2,RETRY_MS=300,TIMEOUT_MS=15000;
 let attempt=0,timer=0,done=false;
 const status=document.getElementById('status'),bar=document.getElementById('bar'),error=document.getElementById('error');
 function fail(message){if(done)return;done=true;if(timer){clearTimeout(timer);timer=0;}if(bar)bar.style.display='none';if(status)status.textContent='NOREYO konnte nicht geladen werden';if(!error)return;error.style.display='block';error.setAttribute('role','alert');error.setAttribute('aria-live','assertive');error.textContent='Die Verbindung zum Reisemodul ist fehlgeschlagen.';const button=document.createElement('button');button.type='button';button.className='boot-retry';button.textContent='Erneut versuchen';button.addEventListener('click',()=>location.reload());error.appendChild(document.createElement('br'));error.appendChild(button);try{button.focus({preventScroll:true});}catch(_){}console.error(message||'NOREYO bootstrap failed');}
