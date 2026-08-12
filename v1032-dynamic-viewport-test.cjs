@@ -1,0 +1,13 @@
+const fs=require('fs'),vm=require('vm');
+const code=fs.readFileSync('./noreyo-v1032.js','utf8');
+const map={};
+const head={appendChild(x){map[x.id]=x}};
+const document={head,documentElement:head,getElementById(id){return map[id]||null},createElement(){return{id:'',textContent:''}}};
+const ctx={console,Object,window:{addEventListener(){}},document};
+vm.createContext(ctx);vm.runInContext(code,ctx);
+const a=ctx.window.NOREYO_V1032;let fail=0;
+let ok=a.verify()&&a.css().includes('100dvh')&&a.css().includes('.view');
+console.log(ok?'PASS dynamic viewport CSS installed':'FAIL css');if(!ok)fail++;
+ok=a.install()===false&&Object.keys(map).length===1;
+console.log(ok?'PASS dynamic viewport install idempotent':'FAIL idempotency');if(!ok)fail++;
+process.exit(fail?1:0);
