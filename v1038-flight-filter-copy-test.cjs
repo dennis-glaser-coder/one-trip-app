@@ -1,0 +1,7 @@
+const fs=require('fs'),vm=require('vm');const code=fs.readFileSync('./noreyo-v1038.js','utf8');
+const ctx={console,String,Object,window:{addEventListener(){}},document:{body:null},NodeFilter:{SHOW_TEXT:4},MutationObserver:function(){this.observe=()=>{};this.disconnect=()=>{}},requestAnimationFrame(){return 1},cancelAnimationFrame(){}};
+vm.createContext(ctx);vm.runInContext(code,ctx);const a=ctx.window.NOREYO_V1038;let fail=0;
+let x=a.replaceText('Diese Flugwünsche werden gespeichert. Die separate Flugsuche wendet sie aktuell noch nicht als harte Filter an.');let ok=/berücksichtigt/.test(x)&&/konservativ/.test(x)&&!/noch nicht als harte Filter/.test(x);console.log(ok?'PASS flight intro reflects current enforcement':'FAIL intro '+x);if(!ok)fail++;
+x=a.replaceText('Wird gespeichert; aktuell noch nicht automatisch auf die separaten Flugangebote angewendet.');ok=/harte Grenze/.test(x)&&/konservativ gesperrt/.test(x);console.log(ok?'PASS max-flight copy reflects conservative enforcement':'FAIL range '+x);if(!ok)fail++;
+x=a.replaceText('Verpflegungen aktuell verfügbar');ok=x==='Verpflegungen aktuell verfügbar';console.log(ok?'PASS unrelated capability copy remains untouched':'FAIL unrelated '+x);if(!ok)fail++;
+process.exit(fail?1:0);
