@@ -1,0 +1,31 @@
+/* NOREYO V10.77 bootstrap — V10.75 plus complete filter accessibility semantics. */
+(()=>{
+'use strict';
+const BUILD='10.77-safe',ATTEMPTS=2,RETRY_MS=260,TIMEOUT_MS=15000,READY_TIMEOUT_MS=45000,POLL_MS=25,KEY='__NOREYO_V1077_SINGLE_FLIGHT__';
+const COMPONENTS=Object.freeze([
+  {name:'V10.49',src:'./noreyo-bootstrap-v1049.js?build=1049',asyncReady:true,ready:()=>window.NOREYO_V1049?.state?.().status==='ready'},
+  {name:'Search signature V10.50',src:'./noreyo-v1050.js?build=1050',ready:()=>window.NOREYO_V1050?.BUILD==='10.50'},
+  {name:'Flex planner invalidation V10.52',src:'./noreyo-v1052.js?build=1052',ready:()=>window.NOREYO_V1052?.BUILD==='10.52'},
+  {name:'Sort persistence V10.54',src:'./noreyo-v1054.js?build=1054',ready:()=>window.NOREYO_V1054?.BUILD==='10.54'},
+  {name:'Direct-hotel confidence V10.56',src:'./noreyo-v1056.js?build=1056',ready:()=>window.NOREYO_V1056?.BUILD==='10.56'},
+  {name:'Hotel brand ambiguity V10.58',src:'./noreyo-v1058.js?build=1058',ready:()=>window.NOREYO_V1058?.BUILD==='10.58'},
+  {name:'Hotel result state V10.60',src:'./noreyo-v1060.js?build=1060',ready:()=>window.NOREYO_V1060?.BUILD==='10.60'},
+  {name:'Detail refresh truth V10.62',src:'./noreyo-v1062.js?build=1062',ready:()=>window.NOREYO_V1062?.BUILD==='10.62'},
+  {name:'Hotel ambiguity UI V10.64',src:'./noreyo-v1064.js?build=1064',ready:()=>window.NOREYO_V1064?.BUILD==='10.64'},
+  {name:'Single-token hotel identity V10.66',src:'./noreyo-v1066.js?build=1066',ready:()=>window.NOREYO_V1066?.BUILD==='10.66'},
+  {name:'Traveller refresh V10.68',src:'./noreyo-v1068.js?build=1068',ready:()=>window.NOREYO_V1068?.BUILD==='10.68'},
+  {name:'Filter no-op V10.70',src:'./noreyo-v1070.js?build=1070',ready:()=>window.NOREYO_V1070?.BUILD==='10.70'},
+  {name:'Meal no-op V10.72',src:'./noreyo-v1072.js?build=1072',ready:()=>window.NOREYO_V1072?.BUILD==='10.72'},
+  {name:'Traveller opening guard V10.74',src:'./noreyo-v1074.js?build=1074',ready:()=>window.NOREYO_V1074?.BUILD==='10.74'},
+  {name:'Filter accessibility V10.76',src:'./noreyo-v1076.js?build=1076',ready:()=>window.NOREYO_V1076?.BUILD==='10.76'}
+]);
+function state(){const o=window[KEY];if(o?.status)return o;const s={status:'idle',promise:null,error:null,component:null,attempt:0};try{window[KEY]=s}catch(_){}return s}
+function src(b,a){return a<=1?b:b+(b.includes('?')?'&':'?')+'noreyo_v1077_retry='+a}
+function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
+async function waitReady(c){if(c.ready())return true;const start=Date.now();while(Date.now()-start<READY_TIMEOUT_MS){await sleep(POLL_MS);if(c.ready())return true;if(c.name==='V10.49'){const i=window.NOREYO_V1049?.state?.();if(i?.status==='failed')throw Object.assign(i.error||new Error('V10.49 inner failed'),{replaySafe:false})}}return false}
+function loadOnce(c,a){return new Promise((resolve,reject)=>{if(c.ready())return resolve(true);const s=document.createElement('script');let done=false,t=0,loaded=false;const finish=(ok,e)=>{if(done)return;done=true;if(t)clearTimeout(t);s.onload=s.onerror=null;if(!ok&&!loaded){try{s.remove()}catch(_){}}ok?resolve(true):reject(e||new Error(c.name+' konnte nicht geladen werden'))};t=setTimeout(()=>finish(false,Object.assign(new Error(c.name+' Netzwerk-/Script-Timeout'),{replaySafe:!loaded})),TIMEOUT_MS);s.src=src(c.src,a);s.onload=async()=>{loaded=true;if(t){clearTimeout(t);t=0}if(!c.asyncReady)return finish(c.ready(),Object.assign(new Error(c.name+' meldet keinen gültigen Build'),{replaySafe:false}));try{finish(await waitReady(c),Object.assign(new Error(c.name+' wurde geladen, aber nicht vollständig bereit'),{replaySafe:false}))}catch(e){finish(false,Object.assign(e,{replaySafe:false}))}};s.onerror=()=>finish(false,Object.assign(new Error(c.name+' konnte nicht geladen werden'),{replaySafe:true}));document.head.appendChild(s)})}
+async function loadComponent(c,st){if(c.ready())return true;st.component=c.name;let last=null;for(let a=1;a<=ATTEMPTS;a++){st.attempt=a;try{return await loadOnce(c,a)}catch(e){last=e;if(e?.replaySafe===false||a>=ATTEMPTS)break;await sleep(RETRY_MS)}}throw last}
+function fail(e){const status=document.getElementById('status'),bar=document.getElementById('bar'),box=document.getElementById('error');if(bar)bar.style.display='none';if(status)status.textContent='NOREYO konnte nicht geladen werden';if(box){box.style.display='block';box.setAttribute('role','alert');box.setAttribute('aria-live','assertive');if(!box.querySelector('[data-noreyo-v1077-retry="1"]')){box.textContent='Die Verbindung zum Reisemodul ist fehlgeschlagen.';const br=document.createElement('br'),button=document.createElement('button');button.type='button';button.className='boot-retry';button.setAttribute('data-noreyo-v1077-retry','1');button.textContent='Erneut versuchen';button.addEventListener('click',()=>location.reload());box.appendChild(br);box.appendChild(button);try{button.focus({preventScroll:true})}catch(_){}}}console.error(e)}
+async function run(){const st=state();if(st.status==='ready')return true;if(st.promise)return st.promise;st.status='loading';st.promise=(async()=>{try{for(const c of COMPONENTS)await loadComponent(c,st);st.status='ready';st.component=null;st.attempt=0;return true}catch(e){st.status='failed';st.error=e;fail(e);throw e}})().finally(()=>{st.promise=null});return st.promise}
+window.NOREYO_V1077=Object.freeze({BUILD,COMPONENTS,state,run});run().catch(()=>{});
+})();
