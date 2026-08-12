@@ -1,0 +1,10 @@
+const fs=require('fs'),vm=require('vm');
+const code=fs.readFileSync('./noreyo-v916.js','utf8');
+const ctx={console,Date,String,Number,Object,Array,Math,JSON,window:{addEventListener(){}},persistState(){ctx.persisted++},updateProfileStats(){},persisted:0,searchState:{airports:[' dus ','<img>','DUS','fra','LONG']},savedFavorites:[null,{key:' a ',hotel:'\u0000Hotel',airports:['pmi','<x>'],price:'99.5',stars:9,childAges:[2,99],adults:0},{key:'a',hotel:'dup'}],savedTrips:[{key:'t',destination:'Mallorca',price:'NaN'}],priceAlerts:[{key:'bad'},{key:'a1',target:'oops',offer:{key:'o1',hotel:'X',price:120,airports:['DUS']}}]};
+vm.createContext(ctx);vm.runInContext(code,ctx);const a=ctx.window.NOREYO_V916;let fail=0;
+let ok=JSON.stringify(a.airports([' dus ','<img>','DUS','fra']))===JSON.stringify(['DUS','FRA']);console.log(ok?'PASS airport normalization/dedupe':'FAIL airport');if(!ok)fail++;
+ok=ctx.savedFavorites.length===1&&ctx.savedFavorites[0].airports[0]==='PMI'&&ctx.savedFavorites[0].stars===5;console.log(ok?'PASS saved snapshots sanitized/deduped':'FAIL snapshots '+JSON.stringify(ctx.savedFavorites));if(!ok)fail++;
+ok=ctx.savedTrips[0].price===null;console.log(ok?'PASS invalid saved price normalized to null':'FAIL saved price');if(!ok)fail++;
+ok=ctx.priceAlerts.length===1&&ctx.priceAlerts[0].target===120;console.log(ok?'PASS malformed alerts dropped and invalid target falls back':'FAIL alerts '+JSON.stringify(ctx.priceAlerts));if(!ok)fail++;
+ok=ctx.persisted===1;console.log(ok?'PASS sanitized state persisted once':'FAIL persist '+ctx.persisted);if(!ok)fail++;
+if(fail)process.exit(1);
