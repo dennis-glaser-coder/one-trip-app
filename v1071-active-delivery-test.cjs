@@ -1,0 +1,1 @@
+const fs=require('fs');const html=fs.readFileSync('./index.html','utf8');const ok=html.includes("const SRC='./noreyo-bootstrap-v1071.js?build=1071'");console.log(ok?'PASS index activates V10.71':'FAIL index not on V10.71');process.exit(ok?0:1);
