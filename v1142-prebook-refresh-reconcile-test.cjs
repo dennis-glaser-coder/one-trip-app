@@ -1,5 +1,24 @@
 const fs=require('fs'),vm=require('vm');const code=fs.readFileSync('./noreyo-v1142.js','utf8');
-let seen=[],oldPrebookCaptures=0;const responsePayload={data:{prebookId:'p1',active:true,price:222.5,currency:'EUR',roomTypes:[{rates:[{cancellationPolicies:{refundableTag:'RFN',cancelPolicyInfos:[{amount:50,cancelTime:'2026-09-01T00:00:00Z'}]}}]}]}};
-const ctx={console,Number,String,Object,Array,JSON,Date,Response,Request,window:{addEventListener(){},NOREYO_HOTEL_PREBOOK:{prebookId:'p1',offerId:'o1',price:200,currency:'EUR'},NOREYO_V1126:{safeSummary(list){return list.length?{kind:'refundable',text:'safe'}:{kind:'unknown',text:'unknown'}}},NOREYO_V1118:{summary(){return{kind:'unknown',text:'legacy'}},schedule(){}},NOREYO_V1132:{schedule(){}},NOREYO_V1134:{schedule(){}},NOREYO_V1128:{checkoutReady(){return true}},fetch:async(input)=>{const url=typeof input==='string'?input:input.url;seen.push(url);if(url.includes('/functions/v1/hotel-prebook'))oldPrebookCaptures++;return new Response(JSON.stringify(responsePayload),{status:200,headers:{'content-type':'application/json','X-Noreyo-Provider-Route':'hotels/prebook-status'}})}},document:{body:null},MutationObserver:function(){this.observe=()=>{};this.disconnect=()=>{}},requestAnimationFrame(){return 1},cancelAnimationFrame(){}};
+let seen=[],oldPrebookCaptures=0;
+const responsePayload={data:{prebookId:'p1',active:true,price:222.5,currency:'EUR',roomTypes:[{rates:[{cancellationPolicies:{refundableTag:'RFN',cancelPolicyInfos:[{amount:50,cancelTime:'2026-09-01T00:00:00Z'}]}}]}]}};
+const ctx={console,Number,String,Object,Array,JSON,Date,Response,Request,
+ window:{addEventListener(){},NOREYO_HOTEL_PREBOOK:{prebookId:'p1',offerId:'o1',price:200,currency:'EUR'},NOREYO_V1126:{safeSummary(list){if(!list.length||list.some(p=>!Array.isArray(p?.cancelPolicyInfos)))return{kind:'unknown',text:'unknown'};return{kind:'refundable',text:'safe'}}},NOREYO_V1118:{summary(){return{kind:'unknown',text:'legacy'}},schedule(){}},NOREYO_V1132:{schedule(){}},NOREYO_V1134:{schedule(){}},NOREYO_V1128:{checkoutReady(){return true}},fetch:async(input)=>{const url=typeof input==='string'?input:input.url;seen.push(url);if(url.includes('/functions/v1/hotel-prebook'))oldPrebookCaptures++;return new Response(JSON.stringify(responsePayload),{status:200,headers:{'content-type':'application/json','X-Noreyo-Provider-Route':'hotels/prebook-status'}})}},
+ document:{body:null},MutationObserver:function(){this.observe=()=>{};this.disconnect=()=>{}},requestAnimationFrame(){return 1},cancelAnimationFrame(){}};
 vm.createContext(ctx);vm.runInContext(code,ctx);const a=ctx.window.NOREYO_V1142;let fail=0;
-(async()=>{let ok=ctx.window.NOREYO_V1128.checkoutReady()===false;console.log(ok?'PASS checkout locked before complete refreshed PREBOOK details':'FAIL initial');if(!ok)fail++;await ctx.window.fetch('https://x.supabase.co/functions/v1/hotel-prebook-status',{method:'POST'});ok=seen[0].includes('/functions/v1/hotel-checkout-status')&&!seen[0].includes('/hotel-prebook-status')&&oldPrebookCaptures===0;console.log(ok?'PASS status call bypasses legacy hotel-prebook URL collision':'FAIL route');if(!ok)fail++;ok=ctx.window.NOREYO_HOTEL_PREBOOK.price===222.5&&ctx.window.NOREYO_HOTEL_PREBOOK_TERMS.summary.kind==='refundable'&&a.complete()&&ctx.window.NOREYO_V1128.checkoutReady()===true;console.log(ok?'PASS refreshed final price/terms reconcile and unlock gate':'FAIL capture');if(!ok)fail++;ctx.window.NOREYO_HOTEL_PREBOOK={prebookId:'p2',offerId:'o2'};a.sync();ok=!ctx.window.NOREYO_HOTEL_REVALIDATED_DETAILS&&ctx.window.NOREYO_V1128.checkoutReady()===false;console.log(ok?'PASS new PREBOOK clears refreshed-detail readiness':'FAIL lifecycle');if(!ok)fail++;process.exit(fail?1:0);})().catch(e=>{console.error(e);process.exit(1)});
+(async()=>{
+ let ok=ctx.window.NOREYO_V1128.checkoutReady()===false;
+ console.log(ok?'PASS checkout locked before complete refreshed PREBOOK details':'FAIL initial');if(!ok)fail++;
+ await ctx.window.fetch('https://x.supabase.co/functions/v1/hotel-prebook-status',{method:'POST'});
+ ok=seen[0].includes('/functions/v1/hotel-checkout-status')&&!seen[0].includes('/hotel-prebook-status')&&oldPrebookCaptures===0;
+ console.log(ok?'PASS status call bypasses legacy hotel-prebook URL collision':'FAIL route');if(!ok)fail++;
+ ok=ctx.window.NOREYO_HOTEL_PREBOOK.price===222.5&&ctx.window.NOREYO_HOTEL_PREBOOK_TERMS.summary.kind==='refundable'&&a.complete()&&ctx.window.NOREYO_V1128.checkoutReady()===true;
+ console.log(ok?'PASS refreshed final price/terms reconcile and unlock gate':'FAIL capture');if(!ok)fail++;
+ ctx.window.NOREYO_HOTEL_PREBOOK={prebookId:'p2',offerId:'o2'};
+ a.sync();ok=!ctx.window.NOREYO_HOTEL_REVALIDATED_DETAILS&&ctx.window.NOREYO_V1128.checkoutReady()===false;
+ console.log(ok?'PASS new PREBOOK clears refreshed-detail readiness':'FAIL lifecycle');if(!ok)fail++;
+ const incomplete={data:{prebookId:'p2',active:true,price:240,currency:'EUR',roomTypes:[{rates:[{cancellationPolicies:{refundableTag:'RFN',cancelPolicyInfos:null}}]}]}};
+ a.capture(incomplete);
+ ok=a.complete()===false&&ctx.window.NOREYO_HOTEL_PREBOOK_TERMS.summary.kind==='unknown'&&ctx.window.NOREYO_V1128.checkoutReady()===false;
+ console.log(ok?'PASS missing cancellation rows remain incomplete and block checkout':'FAIL incomplete');if(!ok)fail++;
+ process.exit(fail?1:0);
+})().catch(e=>{console.error(e);process.exit(1)});
