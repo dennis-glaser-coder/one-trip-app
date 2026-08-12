@@ -1,0 +1,12 @@
+const fs=require('fs'),vm=require('vm');const code=fs.readFileSync('./noreyo-v1112.js','utf8');
+let row=null;function Row(){this.textContent='';this.attrs={};this.classList={toggle:(k,v)=>{this.changed=v}};}Row.prototype.setAttribute=function(k,v){this.attrs[k]=String(v)};Row.prototype.remove=function(){row=null};
+const status={querySelector(){return row},appendChild(x){row=x}};
+const ctx={console,Number,String,Object,Math,Intl,window:{addEventListener(){},renderDetail(o){return o}},document:{body:null,querySelector(){return status},createElement(){return new Row()}},MutationObserver:function(){this.observe=()=>{};this.disconnect=()=>{}},requestAnimationFrame(){return 1},cancelAnimationFrame(){}};
+vm.createContext(ctx);vm.runInContext(code,ctx);const a=ctx.window.NOREYO_V1112;let fail=0;
+ctx.window.renderDetail({price:800,currency:'EUR'});ctx.window.NOREYO_HOTEL_PREBOOK={price:845.5,currency:'EUR'};
+let m=a.model(),ok=m.changed&&m.delta===45.5;console.log(ok?'PASS hotel PREBOOK detects final price increase':'FAIL delta '+JSON.stringify(m));if(!ok)fail++;
+a.render();ok=row?.textContent.includes('zuvor')&&row.textContent.includes('jetzt')&&row.textContent.includes('+45,50');console.log(ok?'PASS price change is explicit in checkout feedback':'FAIL copy '+row?.textContent);if(!ok)fail++;
+ctx.window.NOREYO_HOTEL_PREBOOK={price:800,currency:'EUR'};a.render();ok=row?.textContent.includes('Preis unverändert');console.log(ok?'PASS unchanged PREBOOK price is explicit':'FAIL unchanged '+row?.textContent);if(!ok)fail++;
+ctx.window.NOREYO_HOTEL_PREBOOK={price:null,currency:'EUR'};ok=a.model()===null&&a.finite(null)===null&&a.finite('')===null;console.log(ok?'PASS missing comparable total does not invent zero price':'FAIL unknown');if(!ok)fail++;
+ctx.window.NOREYO_HOTEL_PREBOOK={price:750,currency:'EUR'};a.render();ok=row?.textContent.includes('−50,00');console.log(ok?'PASS price decrease uses correct absolute delta':'FAIL decrease '+row?.textContent);if(!ok)fail++;
+process.exit(fail?1:0);
