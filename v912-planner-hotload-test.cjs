@@ -1,0 +1,10 @@
+const fs=require('fs'),vm=require('vm');const code=fs.readFileSync('noreyo-v912.js','utf8');
+let remembers=0,focuses=0,timers=[];
+const close={attrs:{},getAttribute(k){return this.attrs[k]||''},setAttribute(k,v){this.attrs[k]=v}};
+const el={attrs:{},dataset:{},show:true,classList:{contains(){return el.show}},setAttribute(k,v){el.attrs[k]=v},getAttribute(k){return el.attrs[k]||''},querySelector(sel){return sel==='.planner-close'?close:null}};
+const ctx={console,window:{addEventListener(){},NOREYO_V896:{rememberFocus(){remembers++},focusDialog(){focuses++}}},document:{getElementById(id){return id==='plannerSheet'?el:id==='plannerTitle'?{}:null}},MutationObserver:function(){this.observe=()=>{};this.disconnect=()=>{}},requestAnimationFrame(){return 1},cancelAnimationFrame(){},setTimeout(fn){timers.push(fn)}};
+vm.createContext(ctx);vm.runInContext(code,ctx);const a=ctx.window.NOREYO_V912;let fail=0;
+a.rehydrate();timers.splice(0).forEach(fn=>fn());let ok=remembers===1&&focuses===1&&el.attrs.role==='dialog'&&el.attrs['aria-modal']==='true'&&close.attrs['aria-label']==='Auswahl schließen';console.log(ok?'PASS already-open planner is rehydrated once':'FAIL '+JSON.stringify({remembers,focuses,attrs:el.attrs}));if(!ok)fail++;
+a.rehydrate();timers.splice(0).forEach(fn=>fn());ok=remembers===1&&focuses===1;console.log(ok?'PASS repeated sync does not steal focus again':'FAIL repeat');if(!ok)fail++;
+el.show=false;a.sync();el.show=true;a.rehydrate();timers.splice(0).forEach(fn=>fn());ok=remembers===2&&focuses===2;console.log(ok?'PASS close/reopen allows fresh focus lifecycle':'FAIL reopen');if(!ok)fail++;
+process.exit(fail?1:0);
