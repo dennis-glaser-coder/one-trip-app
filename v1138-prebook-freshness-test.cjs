@@ -1,0 +1,7 @@
+const fs=require('fs'),vm=require('vm');const code=fs.readFileSync('./noreyo-v1138.js','utf8');
+const now=Date.now();const ctx={console,Date,Number,String,Object,Math,setTimeout(){return 1},clearTimeout(){},window:{addEventListener(){},NOREYO_HOTEL_PREBOOK:{prebookId:'p1'},NOREYO_HOTEL_PREBOOK_STATUS:{prebookId:'p1',active:true,checkedAt:new Date(now-30000).toISOString()},NOREYO_V1136:{render(){return true}},NOREYO_V1128:{checkoutReady(){return true}}},document:{body:null,querySelector(){return null}},MutationObserver:function(){this.observe=()=>{};this.disconnect=()=>{}},requestAnimationFrame(){return 1},cancelAnimationFrame(){}};
+vm.createContext(ctx);vm.runInContext(code,ctx);const a=ctx.window.NOREYO_V1138;let fail=0;
+let ok=a.fresh(now)===true&&ctx.window.NOREYO_V1128.checkoutReady()===true;console.log(ok?'PASS recent PREBOOK status remains checkout-ready':'FAIL recent');if(!ok)fail++;
+ctx.window.NOREYO_HOTEL_PREBOOK_STATUS={prebookId:'p1',active:true,checkedAt:new Date(now-61000).toISOString()};ok=a.fresh(now)===false&&ctx.window.NOREYO_V1128.checkoutReady()===false;console.log(ok?'PASS PREBOOK status older than 60s relocks checkout':'FAIL stale');if(!ok)fail++;
+ctx.window.NOREYO_HOTEL_PREBOOK_STATUS={prebookId:'p2',active:true,checkedAt:new Date(now).toISOString()};ok=a.fresh(now)===false;console.log(ok?'PASS fresh status for wrong prebookId is rejected':'FAIL wrong');if(!ok)fail++;
+process.exit(fail?1:0);
