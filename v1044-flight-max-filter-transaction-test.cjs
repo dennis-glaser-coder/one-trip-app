@@ -1,0 +1,11 @@
+const fs=require('fs'),vm=require('vm');
+const code=fs.readFileSync('./noreyo-v1044.js','utf8');
+const store=new Map();let scheduled=0,opened=0,closed=0,applied=0;
+const ctx={console,Object,String,localStorage:{getItem(k){return store.has(k)?store.get(k):null},setItem(k,v){store.set(k,String(v))},removeItem(k){store.delete(k)}},window:{NOREYO_V1040:{schedule(){scheduled++}},openFilter(){opened++},closeFilter(){closed++},applyPrefs(){applied++;this.closeFilter();}}};
+vm.createContext(ctx);vm.runInContext(code,ctx);const api=ctx.window.NOREYO_V1044;let fail=0;
+ctx.window.openFilter();store.set(api.MARKER,'1');ctx.window.closeFilter();let ok=!store.has(api.MARKER)&&!api.active()&&opened===1&&closed===1;console.log(ok?'PASS filter cancel removes newly-created explicit marker':'FAIL cancel-created');if(!ok)fail++;
+store.set(api.MARKER,'1');ctx.window.openFilter();store.delete(api.MARKER);ctx.window.closeFilter();ok=store.get(api.MARKER)==='1';console.log(ok?'PASS filter cancel restores pre-existing explicit marker':'FAIL cancel-existing');if(!ok)fail++;
+store.delete(api.MARKER);ctx.window.openFilter();store.set(api.MARKER,'1');ctx.window.applyPrefs();ok=store.get(api.MARKER)==='1'&&!api.active()&&applied===1;console.log(ok?'PASS filter apply commits explicit marker':'FAIL commit');if(!ok)fail++;
+ctx.window.closeFilter();ok=store.get(api.MARKER)==='1';console.log(ok?'PASS later close does not restore stale marker':'FAIL stale');if(!ok)fail++;
+console.log(scheduled>=2?'PASS marker restoration reschedules flight constraint truth':'FAIL schedule');if(scheduled<2)fail++;
+process.exit(fail?1:0);
