@@ -1,0 +1,10 @@
+const fs=require('fs'),vm=require('vm');
+const code=fs.readFileSync(require('path').join(__dirname,'noreyo-v894.js'),'utf8');
+const head={children:[],appendChild(x){this.children.push(x)}};
+const mk=()=>({attrs:{},dataset:{},getAttribute(k){return this.attrs[k]||null},setAttribute(k,v){this.attrs[k]=String(v)},querySelector(){return null}});
+const planner=mk(),filter=mk();
+const ctx={console,Object,String,window:{addEventListener(){}},document:{head,documentElement:head,body:{},getElementById(id){return head.children.find(x=>x.id===id)||null},createElement(){return{}},querySelectorAll(sel){if(sel==='.planner-close')return[planner];if(sel==='#sheet .close')return[filter];return[]}},MutationObserver:function(){this.observe=()=>{};this.disconnect=()=>{}},requestAnimationFrame(){return 1},cancelAnimationFrame(){}};
+vm.createContext(ctx);vm.runInContext(code,ctx);const a=ctx.window.NOREYO_V894;let fail=0;
+let ok=/min-height:44px/.test(a.styleText())&&/\.product-mode/.test(a.styleText())&&/#sheet \.seg>button/.test(a.styleText());console.log(ok?'PASS 44px touch target CSS':'FAIL CSS');if(!ok)fail++;
+a.labelControls();ok=planner.attrs['aria-label']==='Auswahl schließen'&&filter.attrs['aria-label']==='Filter schließen';console.log(ok?'PASS close controls labelled':'FAIL labels');if(!ok)fail++;
+process.exit(fail?1:0);
