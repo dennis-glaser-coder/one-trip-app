@@ -1,0 +1,10 @@
+const fs=require('fs'),vm=require('vm');
+const code=fs.readFileSync('./noreyo-v1070.js','utf8');
+let applied=0,closed=0,toasts=[];const store=new Map();
+const ctx={console,JSON,Object,String,Array,Set,states:{Hotel0:'wish',Zimmer0:'any'},limits:{maxHotelPrice:3000,maxFlightMinutes:270},excluded:new Set(['Nachtflug']),confirmedOnly:true,filterOrigin:'search',localStorage:{getItem(k){return store.has(k)?store.get(k):null},setItem(k,v){store.set(k,String(v))},removeItem(k){store.delete(k)}},updateCounts(){},refreshQuickStates(){},refreshPremiumFilterChips(){},closeFilter(){closed++},showToast(m){toasts.push(m)},go(){},window:{addEventListener(){},openFilter(){return true},applyPrefs(){applied++;return true}}};
+vm.createContext(ctx);vm.runInContext(code,ctx);const a=ctx.window.NOREYO_V1070;let fail=0;
+ctx.window.openFilter();let result=ctx.window.applyPrefs();let ok=result===false&&applied===0&&closed===1&&toasts.at(-1)==='Filter unverändert';console.log(ok?'PASS unchanged filter apply skips packed live-search path':'FAIL noop');if(!ok)fail++;
+ctx.window.openFilter();ctx.states.Hotel0='must';ctx.window.applyPrefs();ok=applied===1;console.log(ok?'PASS real filter state change reaches packed apply path':'FAIL state');if(!ok)fail++;
+ctx.states.Hotel0='wish';ctx.window.openFilter();store.set('noreyoFlightMaxExplicitV1040','1');ctx.window.applyPrefs();ok=applied===2;console.log(ok?'PASS explicit max-flight marker counts as change':'FAIL marker');if(!ok)fail++;
+const s1=a.stable({b:2,a:{z:1,y:2}}),s2=a.stable({a:{y:2,z:1},b:2});ok=JSON.stringify(s1)===JSON.stringify(s2);console.log(ok?'PASS deterministic filter signature':'FAIL stable');if(!ok)fail++;
+process.exit(fail?1:0);
