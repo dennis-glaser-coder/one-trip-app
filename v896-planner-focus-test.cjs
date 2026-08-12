@@ -1,0 +1,20 @@
+const fs=require('fs'),vm=require('vm'),path=require('path');
+const code=fs.readFileSync(path.join(__dirname,'noreyo-v896.js'),'utf8');
+function Element(){this.attrs={};this.isConnected=true;this.children=[];this.focused=false;}
+Element.prototype.getAttribute=function(k){return this.attrs[k]||null};
+Element.prototype.setAttribute=function(k,v){this.attrs[k]=String(v)};
+Element.prototype.hasAttribute=function(k){return this.attrs[k]!=null};
+Element.prototype.focus=function(){document.activeElement=this;this.focused=true};
+Element.prototype.contains=function(x){return x===this||this.children.includes(x)};
+Element.prototype.querySelectorAll=function(){return this.children};
+Element.prototype.querySelector=function(sel){return sel==='.planner-close'?close:null};
+const trigger=new Element(),root=new Element(),close=new Element();root.children=[close];
+root.classList={contains(x){return x==='show'},remove(){this.removed=true}};
+root.getBoundingClientRect=()=>({width:300,height:400});close.getBoundingClientRect=()=>({width:44,height:44});
+let closed=0,prevented=0,stopped=0;
+const document={body:new Element(),activeElement:trigger,getElementById(id){return id==='plannerSheet'?root:id==='plannerBackdrop'?new Element():null},addEventListener(){},removeEventListener(){}};
+const ctx={console,Element,document,window:{addEventListener(){}},closePlanner(){closed++;root.classList.contains=()=>false},getComputedStyle(){return{display:'block',visibility:'visible'}},MutationObserver:function(){this.observe=()=>{};this.disconnect=()=>{}},requestAnimationFrame(){return 1},cancelAnimationFrame(){},setTimeout(fn){fn()}};
+vm.createContext(ctx);vm.runInContext(code,ctx);const a=ctx.window.NOREYO_V896;let fail=0;
+a.rememberFocus();a.focusDialog();let ok=document.activeElement===close&&root.attrs['aria-labelledby']==='plannerTitle'&&close.attrs['aria-label']==='Auswahl schließen';console.log(ok?'PASS planner focuses labelled close':'FAIL focus');if(!ok)fail++;
+a.onKeydown({key:'Escape',preventDefault(){prevented++},stopPropagation(){stopped++}});ok=closed===1&&prevented===1&&stopped===1&&document.activeElement===trigger;console.log(ok?'PASS Escape closes and restores focus':'FAIL escape');if(!ok)fail++;
+process.exit(fail?1:0);
