@@ -1,0 +1,10 @@
+const fs=require('fs'),vm=require('vm');
+const code=fs.readFileSync('./noreyo-v1068.js','utf8');
+let searches=0,toasts=0,mode='same';
+const ctx={console,JSON,Number,Array,Object,Promise,searchState:{adults:2,childAges:[5]},productMode:'hotel',detailEditContext:null,currentViewId(){return 'results'},showToast(){toasts++},window:{addEventListener(){},searchTrips(){searches++;return Promise.resolve(true)},applyTravellers(){if(mode==='adult')ctx.searchState.adults=3;if(mode==='child')ctx.searchState.childAges=[5,8];return true;}},document:{querySelector(){return null}},setTimeout(fn){fn();return 1},clearTimeout(){}};
+vm.createContext(ctx);vm.runInContext(code,ctx);let fail=0;
+mode='same';ctx.window.applyTravellers();let ok=searches===0&&toasts===0;console.log(ok?'PASS unchanged travellers do not refresh live results':'FAIL unchanged');if(!ok)fail++;
+mode='adult';ctx.window.applyTravellers();ok=searches===1&&toasts===1&&ctx.searchState.adults===3;console.log(ok?'PASS adult change refreshes once':'FAIL adult');if(!ok)fail++;
+mode='child';ctx.window.applyTravellers();ok=searches===2&&toasts===2&&JSON.stringify(ctx.searchState.childAges)==='[5,8]';console.log(ok?'PASS child-age change refreshes once':'FAIL child');if(!ok)fail++;
+ctx.productMode='flight';mode='same';ctx.window.applyTravellers();ok=searches===2;console.log(ok?'PASS flight mode bypasses hotel refresh':'FAIL flight');if(!ok)fail++;
+process.exit(fail?1:0);
