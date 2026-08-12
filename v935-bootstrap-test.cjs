@@ -1,0 +1,4 @@
+const fs=require('fs'),vm=require('vm');const code=fs.readFileSync('noreyo-bootstrap-v935.js','utf8');let appended=[];
+const doc={getElementById(){return null},createElement(){return{src:'',onload:null,onerror:null,remove(){}}},head:{appendChild(s){appended.push(s.src);queueMicrotask(()=>{if(s.src.includes('v933')){ctx.window.NOREYO_V933={state:()=>({status:'ready'})};s.onload?.();}else if(s.src.includes('v934')){ctx.window.NOREYO_V934={BUILD:'9.34'};s.onload?.();}else s.onerror?.();});}}};
+const ctx={console,document:doc,window:{},Promise,Object,Error,Date,queueMicrotask,setTimeout,clearTimeout};vm.createContext(ctx);vm.runInContext(code,ctx);
+setTimeout(async()=>{const a=ctx.window.NOREYO_V935;await a.run();const ok=appended[0]?.includes('v933')&&appended[1]?.includes('v934')&&a.state().status==='ready';console.log(ok?'PASS V9.35 delivery order':'FAIL '+JSON.stringify({appended,state:a.state()}));process.exit(ok?0:1);},500);
