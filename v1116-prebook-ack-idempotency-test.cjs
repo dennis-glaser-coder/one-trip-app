@@ -1,0 +1,12 @@
+const fs=require('fs'),vm=require('vm');const code=fs.readFileSync('./noreyo-v1116.js','utf8');
+let cleaned=0,box=null,writeCount=0;
+function Btn(){this._text='';this.disabled=false;this.attrs={};this.className='noreyo-v1114-confirm';}Object.defineProperty(Btn.prototype,'textContent',{get(){return this._text},set(v){this._text=v;writeCount++}});Btn.prototype.getAttribute=function(k){return this.attrs[k]??null};Btn.prototype.setAttribute=function(k,v){this.attrs[k]=String(v);writeCount++};function Box(){this.btn=null;this.className='';}Box.prototype.querySelector=function(){return this.btn};Box.prototype.append=function(p,b){this.btn=b};
+const status={querySelector(){return box},appendChild(x){box=x}};let accepted=false;
+const ctx={console,String,Object,Date,window:{addEventListener(){},NOREYO_HOTEL_PREBOOK:{prebookId:'pb1'},NOREYO_V1114:{cleanup(){cleaned++},snap(){return ctx.window.NOREYO_HOTEL_PREBOOK},model(){return{changed:true}},isAccepted(){return accepted},accepted(){return accepted?{prebookId:'pb1'}:null},clearAccepted(){accepted=false;return true}}},document:{body:null,querySelector(){return status},createElement(tag){return tag==='button'?new Btn():new Box()},addEventListener(){},removeEventListener(){}},MutationObserver:function(){this.observe=()=>{};this.disconnect=()=>{}},requestAnimationFrame(){return 1},cancelAnimationFrame(){}};
+vm.createContext(ctx);vm.runInContext(code,ctx);const a=ctx.window.NOREYO_V1116;let fail=0;
+let ok=cleaned===1;console.log(ok?'PASS superseded V11.14 observer/listener retired':'FAIL cleanup');if(!ok)fail++;
+ok=a.render()===true&&box?.btn?.textContent==='Preisänderung bestätigen';console.log(ok?'PASS acknowledgement UI initially reconciled':'FAIL first');if(!ok)fail++;
+const writes=writeCount;ok=a.render()===false&&writeCount===writes;console.log(ok?'PASS unchanged acknowledgement render performs zero DOM writes':'FAIL idempotent '+JSON.stringify({writes,writeCount}));if(!ok)fail++;
+accepted=true;ok=a.render()===true&&box.btn.disabled===true&&box.btn.textContent.includes('bestätigt');console.log(ok?'PASS accepted state reconciles once':'FAIL accepted');if(!ok)fail++;
+const writes2=writeCount;ok=a.render()===false&&writeCount===writes2;console.log(ok?'PASS accepted steady state is also idempotent':'FAIL accepted-loop');if(!ok)fail++;
+process.exit(fail?1:0);
