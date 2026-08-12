@@ -1,0 +1,11 @@
+const fs=require('fs'),vm=require('vm');const code=fs.readFileSync('./noreyo-v1042.js','utf8');
+function El(){this.dataset={};this.attrs={};this.disabled=false;this.textContent='Angebot auswählen';this.map={};}
+El.prototype.getAttribute=function(k){return this.attrs[k]??null};El.prototype.setAttribute=function(k,v){this.attrs[k]=String(v)};El.prototype.querySelector=function(s){return this.map[s]||null};El.prototype.querySelectorAll=function(s){return s==='.noreyo-v943-offer'?(this.cards||[]):[]};
+const btn=new El(),card=new El();card.dataset.flightOfferIndex='0';card.map['.noreyo-v943-select']=btn;const b=new El();b.cards=[card];b.__noreyoV943Offers=[{expiration:'2099-01-01'}];const sheet={classList:{contains(){return true}}},title={textContent:'Flüge'};
+const ctx={console,String,Array,Object,window:{addEventListener(){},NOREYO_V994:{expired(){return false}}},document:{getElementById(id){return id==='plannerBody'?b:id==='plannerSheet'?sheet:id==='plannerTitle'?title:null}},MutationObserver:function(){this.observe=()=>{};this.disconnect=()=>{}},requestAnimationFrame(){return 1},cancelAnimationFrame(){}};
+vm.createContext(ctx);vm.runInContext(code,ctx);const a=ctx.window.NOREYO_V1042;let fail=0;
+btn.dataset.noreyoV1004Bag='1';btn.dataset.noreyoV1008Must='1';a.sync();let ok=btn.disabled&&btn.textContent==='Pflichtkriterium nicht verifiziert';console.log(ok?'PASS strongest remaining non-expiry blocker owns button':'FAIL combined');if(!ok)fail++;
+delete btn.dataset.noreyoV1004Bag;btn.disabled=false;btn.attrs['aria-disabled']='false';btn.textContent='Angebot auswählen';a.sync();ok=btn.disabled&&btn.textContent==='Pflichtkriterium nicht verifiziert';console.log(ok?'PASS clearing baggage cannot override other MUST blocker':'FAIL bag race');if(!ok)fail++;
+delete btn.dataset.noreyoV1008Must;btn.dataset.noreyoV1040Strict='1';btn.disabled=false;a.sync();ok=btn.disabled&&btn.textContent==='Harte Fluggrenze nicht verifiziert';console.log(ok?'PASS strict blocker survives MUST removal':'FAIL strict race');if(!ok)fail++;
+delete btn.dataset.noreyoV1040Strict;a.sync();ok=!btn.disabled&&btn.textContent==='Angebot auswählen';console.log(ok?'PASS button restored only after all blockers clear':'FAIL final restore');if(!ok)fail++;
+process.exit(fail?1:0);
