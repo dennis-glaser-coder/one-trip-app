@@ -1,0 +1,17 @@
+const fs=require('fs'),vm=require('vm');
+const code=fs.readFileSync('noreyo-v1120.js','utf8');
+const ctx={console,Object,String,window:{addEventListener(){},NOREYO_HOTEL_PREBOOK:{offerId:'O1',prebookId:'P1'},NOREYO_HOTEL_PREBOOK_TERMS:{offerId:'O1',summary:{text:'old'}}},document:{body:null},MutationObserver:function(){this.observe=()=>{};this.disconnect=()=>{}},requestAnimationFrame(){return 1},cancelAnimationFrame(){}};
+vm.createContext(ctx);vm.runInContext(code,ctx);const a=ctx.window.NOREYO_V1120;let fail=0;
+let ok=a.upgradeCapturedTerms()===true&&ctx.window.NOREYO_HOTEL_PREBOOK_TERMS.prebookId==='P1'&&a.owned();
+console.log(ok?'PASS captured terms are upgraded to concrete prebook ownership':'FAIL upgrade');if(!ok)fail++;
+ctx.window.NOREYO_HOTEL_PREBOOK={offerId:'O1',prebookId:'P2'};
+ok=a.sync()===true&&!ctx.window.NOREYO_HOTEL_PREBOOK_TERMS;
+console.log(ok?'PASS same offer with new prebookId clears stale cancellation terms':'FAIL new-session');if(!ok)fail++;
+ctx.window.NOREYO_HOTEL_PREBOOK={offerId:'O2',prebookId:'P3'};
+ctx.window.NOREYO_HOTEL_PREBOOK_TERMS={offerId:'O2',prebookId:'P3'};
+ok=a.owned()===true&&a.sync()===false;
+console.log(ok?'PASS matching offer/prebook terms survive':'FAIL matching');if(!ok)fail++;
+delete ctx.window.NOREYO_HOTEL_PREBOOK;
+ok=a.sync()===true&&!ctx.window.NOREYO_HOTEL_PREBOOK_TERMS;
+console.log(ok?'PASS clearing hotel prebook also clears final terms':'FAIL clear');if(!ok)fail++;
+process.exit(fail?1:0);
