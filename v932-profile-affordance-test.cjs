@@ -1,0 +1,9 @@
+const fs=require('fs'),vm=require('vm');const code=fs.readFileSync('noreyo-v932.js','utf8');
+class El{constructor(text=''){this.attrs={onclick:'x',role:'button',tabindex:'0'};this.dataset={noreyoKeyboardButton:'1'};this.textContent=text;this.children={};}hasAttribute(k){return k in this.attrs}removeAttribute(k){delete this.attrs[k]}getAttribute(k){return this.attrs[k]??null}setAttribute(k,v){this.attrs[k]=String(v)}querySelector(s){return this.children[s]||null}querySelectorAll(){return[]}}
+const hero=new El('Mein Profil'),loyal=new El('Treueprogramme'),small={textContent:'Meilen & Vorteile hinterlegen'},svg=new El(),build={textContent:'NOREYO · BUILD 8.90'};loyal.children.small=small;loyal.children['svg.icon.mini']=svg;
+const profile={querySelector(s){return s==='.profile-hero'?hero:s==='.build-version'?build:null},querySelectorAll(s){return s==='.menu-row'?[loyal]:[]}};
+const root={getElementById(id){return id==='profile'?profile:null}};
+const ctx={console,Object,Array,window:{addEventListener(){}},document:{body:null},MutationObserver:function(){this.observe=()=>{};this.disconnect=()=>{}},requestAnimationFrame(){return 1},cancelAnimationFrame(){}};vm.createContext(ctx);vm.runInContext(code,ctx);const a=ctx.window.NOREYO_V932;let fail=0;
+a.fixProfile(root);let ok=!hero.hasAttribute('onclick')&&!hero.hasAttribute('role')&&!hero.hasAttribute('tabindex');console.log(ok?'PASS placeholder profile hero is no longer presented as action':'FAIL hero');if(!ok)fail++;
+ok=loyal.attrs['aria-disabled']==='true'&&!loyal.hasAttribute('onclick')&&small.textContent.includes('Noch nicht verfügbar');console.log(ok?'PASS unavailable loyalty feature is truthful/non-interactive':'FAIL loyalty');if(!ok)fail++;
+ok=build.textContent==='NOREYO · BUILD 9.32';console.log(ok?'PASS profile build label is current':'FAIL build');if(!ok)fail++;process.exit(fail?1:0);
