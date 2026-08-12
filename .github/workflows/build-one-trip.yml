@@ -141,10 +141,56 @@ jobs:
           test -f site.zip
           unzip -l site.zip | grep -Eq '(^|[[:space:]])index\.html$'
 
+      - name: Assemble active browser QA runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/noreyo-runtime-qa
+          mkdir -p /tmp/noreyo-runtime-qa/site
+          cp index.html site.zip /tmp/noreyo-runtime-qa/
+          unzip -q site.zip -d /tmp/noreyo-runtime-qa/site
+          python3 - <<'PY'
+          import re, shutil
+          from pathlib import Path
+
+          root = Path('.')
+          out = Path('/tmp/noreyo-runtime-qa')
+          index = Path('index.html').read_text(encoding='utf-8')
+          refs = re.findall(r'noreyo-bootstrap-v\d+\.js\?build=\d+', index)
+          if not refs:
+              raise SystemExit('No active bootstrap reference found')
+          queue = [refs[-1].split('?', 1)[0]]
+          seen = set()
+          dep_re = re.compile(r"\./(noreyo-[A-Za-z0-9._-]+\.js)\?build=\d+")
+          while queue:
+              rel = queue.pop(0)
+              if rel in seen:
+                  continue
+              seen.add(rel)
+              src = root / rel
+              if not src.is_file():
+                  raise SystemExit(f'Missing active runtime file: {rel}')
+              shutil.copy2(src, out / rel)
+              for dep in dep_re.findall(src.read_text(encoding='utf-8')):
+                  if dep not in seen:
+                      queue.append(dep)
+          (out / 'ACTIVE_RUNTIME_FILES.txt').write_text('\n'.join(sorted(seen)) + '\n', encoding='utf-8')
+          print(f'Assembled {len(seen)} active runtime JavaScript files')
+          PY
+          test -f /tmp/noreyo-runtime-qa/site/index.html
+
       - name: Upload packed site QA artifact
         uses: actions/upload-artifact@v4
         with:
           name: noreyo-site-qa
           path: site.zip
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Upload active browser QA runtime
+        uses: actions/upload-artifact@v4
+        with:
+          name: noreyo-runtime-qa
+          path: /tmp/noreyo-runtime-qa
           if-no-files-found: error
           retention-days: 1
