@@ -1,0 +1,13 @@
+const fs=require('fs'),vm=require('vm');
+const code=fs.readFileSync('./noreyo-v958.js','utf8');
+const buildEl={textContent:'NOREYO · BUILD 9.32'};
+const profile={querySelector(sel){return sel==='.build-version'?buildEl:null}};
+const ctx={console,Object,String,Number,window:{addEventListener(){},NOREYO_V932:{BUILD:'9.32'},NOREYO_V957:{BUILD:'9.57-safe'},NOREYO_V955:{BUILD:'9.55'}},document:{body:{},getElementById(id){return id==='profile'?profile:null}},MutationObserver:function(){this.observe=()=>{};this.disconnect=()=>{}},requestAnimationFrame(){return 1},cancelAnimationFrame(){},setTimeout(fn){fn();return 1},clearTimeout(){}};
+vm.createContext(ctx);vm.runInContext(code,ctx);
+const a=ctx.window.NOREYO_V958;let fail=0;
+let ok=a.activeBuild()==='9.58';console.log(ok?'PASS newest active runtime build wins after V9.58 registers':'FAIL '+a.activeBuild());if(!ok)fail++;
+ctx.window.NOREYO_V959={BUILD:'9.59-safe'};
+ok=a.activeBuild()==='9.59';console.log(ok?'PASS outer safe suffix is stripped':'FAIL '+a.activeBuild());if(!ok)fail++;
+a.fix();ok=buildEl.textContent==='NOREYO · BUILD 9.59';console.log(ok?'PASS visible stale profile build is updated dynamically':'FAIL '+buildEl.textContent);if(!ok)fail++;
+ok=a.fix()===false;console.log(ok?'PASS build-label repair is idempotent':'FAIL idempotency');if(!ok)fail++;
+if(fail)process.exit(1);
