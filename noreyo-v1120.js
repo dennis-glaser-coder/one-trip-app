@@ -32,7 +32,8 @@ function upgradeCapturedTerms(){
   if(!session||!term)return false;
   const pid=String(session.prebookId||'').trim();
   if(!pid||String(term.offerId||'').trim()!==String(session.offerId||'').trim())return false;
-  if(String(term.prebookId||'').trim()===pid)return false;
+  const termPid=String(term.prebookId||'').trim();
+  if(termPid)return false;
   const next=Object.freeze({...term,prebookId:pid});
   window.NOREYO_HOTEL_PREBOOK_TERMS=next;
   return true;
