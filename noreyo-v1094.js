@@ -82,8 +82,8 @@ function sync(){
     clearExpired();
     const state=b.querySelector('.noreyo-v1084-verify-state');
     if(state){
-      state.innerHTML='<b>Verifizierung abgelaufen</b><p>Flugpreise ändern sich schnell. Bitte prüfe dieses Angebot unmittelbar vor dem nächsten Buchungsschritt erneut.</p>';
-      changed=true;
+      const expiredHTML='<b>Verifizierung abgelaufen</b><p>Flugpreise ändern sich schnell. Bitte prüfe dieses Angebot unmittelbar vor dem nächsten Buchungsschritt erneut.</p>';
+      if(state.innerHTML!==expiredHTML){state.innerHTML=expiredHTML;changed=true;}
     }
   }
   const snap=verified();
@@ -99,11 +99,10 @@ function sync(){
     b.insertBefore(gate,back||null);changed=true;
   }
   const exp=expiresAt(snap),expText=formatExpiry(exp);
-  if(hasChanges(snap)&&!accepted(snap)){
-    gate.innerHTML='<b>Aktualisierte Flugdetails bestätigen</b><p>Der Provider meldet Änderungen seit der Suche. Prüfe den aktualisierten Preis und bestätige ihn ausdrücklich, bevor NOREYO den nächsten Buchungsschritt freigibt.</p><button type="button" class="small-action noreyo-v1094-accept">Änderungen bestätigen</button>';
-  }else{
-    gate.innerHTML=`<b>${ready(snap)?'Live-Verifizierung bereit':'Erneute Verifizierung erforderlich'}</b><p>${expText?`Dieses Verify-Ergebnis gilt laut Provider bis ${expText} Uhr.`:'Der Provider hat keine belastbare Ablaufzeit übermittelt; vor Prebook muss erneut live verifiziert werden.'}</p>`;
-  }
+  const nextHTML=hasChanges(snap)&&!accepted(snap)
+    ?'<b>Aktualisierte Flugdetails bestätigen</b><p>Der Provider meldet Änderungen seit der Suche. Prüfe den aktualisierten Preis und bestätige ihn ausdrücklich, bevor NOREYO den nächsten Buchungsschritt freigibt.</p><button type="button" class="small-action noreyo-v1094-accept">Änderungen bestätigen</button>'
+    :`<b>${ready(snap)?'Live-Verifizierung bereit':'Erneute Verifizierung erforderlich'}</b><p>${expText?`Dieses Verify-Ergebnis gilt laut Provider bis ${expText} Uhr.`:'Der Provider hat keine belastbare Ablaufzeit übermittelt; vor Prebook muss erneut live verifiziert werden.'}</p>`;
+  if(gate.innerHTML!==nextHTML){gate.innerHTML=nextHTML;changed=true;}
   armTimer(exp);
   return changed;
 }
