@@ -1,0 +1,14 @@
+const fs=require('fs'),vm=require('vm');
+const code=fs.readFileSync('noreyo-v1180.js','utf8');
+let network=0,own=0,draft=0,render=0;
+let responseFactory=()=>new Response(JSON.stringify({error:{code:'CHECKOUT_OWNERSHIP_DENIED',message:'no'}}),{status:403,headers:{'content-type':'application/json'}});
+const ctx={console,String,Object,Set,Array,Response,Request,window:{addEventListener(){},NOREYO_HOTEL_PREBOOK:{prebookId:'P1'},NOREYO_HOTEL_BOOKING_DRAFT:{prebookId:'P1'},NOREYO_V1178:{identity(){return {token:'u',userId:'1'}},clearOwnership(){own++;return true},currentOwnership(){return {prebookId:'P1',token:'x'}}},NOREYO_V1148:{clear(){draft++;delete ctx.window.NOREYO_HOTEL_BOOKING_DRAFT;return true}},NOREYO_V1144:{render(){render++}},fetch:async()=>{network++;return responseFactory()}}};
+vm.createContext(ctx);vm.runInContext(code,ctx);const a=ctx.window.NOREYO_V1180;let fail=0;
+(async()=>{
+let ok=a.sensitive('https://x.supabase.co/functions/v1/hotel-prebook-status')&&!a.sensitive('https://x.supabase.co/functions/v1/search-travel');console.log(ok?'PASS sensitive checkout endpoints classified narrowly':'FAIL classification');if(!ok)fail++;
+const r=await ctx.window.fetch('https://x.supabase.co/functions/v1/hotel-checkout-status',{method:'POST'});ok=r.status===403&&network===1&&own===1&&draft===1&&!ctx.window.NOREYO_HOTEL_PREBOOK&&!ctx.window.NOREYO_HOTEL_BOOKING_DRAFT&&a.state().lastReason==='CHECKOUT_OWNERSHIP_DENIED';console.log(ok?'PASS ownership denial retires all sensitive local checkout state':'FAIL denial');if(!ok)fail++;
+ctx.window.NOREYO_HOTEL_PREBOOK={prebookId:'P2'};ctx.window.NOREYO_HOTEL_BOOKING_DRAFT={prebookId:'P2'};responseFactory=()=>new Response(JSON.stringify({data:{active:true}}),{status:200,headers:{'content-type':'application/json'}});const good=await ctx.window.fetch('https://x.supabase.co/functions/v1/hotel-prebook-status',{method:'POST'});ok=good.status===200&&!!ctx.window.NOREYO_HOTEL_PREBOOK&&!!ctx.window.NOREYO_HOTEL_BOOKING_DRAFT;console.log(ok?'PASS successful status response preserves checkout state':'FAIL success');if(!ok)fail++;
+ctx.window.NOREYO_V1178.identity=()=>null;ok=a.sync()===true&&!ctx.window.NOREYO_HOTEL_PREBOOK&&!ctx.window.NOREYO_HOTEL_BOOKING_DRAFT&&a.state().lastReason==='AUTH_LOST';console.log(ok?'PASS auth loss retires stale checkout state before reuse':'FAIL auth loss');if(!ok)fail++;
+responseFactory=()=>new Response(JSON.stringify({error:{code:'PROVIDER_TIMEOUT'}}),{status:504,headers:{'content-type':'application/json'}});ctx.window.NOREYO_V1178.identity=()=>({token:'u',userId:'1'});ctx.window.NOREYO_HOTEL_PREBOOK={prebookId:'P3'};await ctx.window.fetch('https://x.supabase.co/functions/v1/hotel-checkout-status',{method:'POST'});ok=!!ctx.window.NOREYO_HOTEL_PREBOOK;console.log(ok?'PASS transient provider failure does not destroy valid checkout state':'FAIL transient');if(!ok)fail++;
+process.exit(fail?1:0);
+})().catch(e=>{console.error(e);process.exit(1)});
