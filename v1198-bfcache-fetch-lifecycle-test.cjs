@@ -1,0 +1,12 @@
+const fs=require('fs'),vm=require('vm');const code=fs.readFileSync('./noreyo-v1198.js','utf8');
+let listeners={pagehide:[],pageshow:[]},removed=[],retired=[],syncs=0;
+function add(type,fn){listeners[type].push(fn)}function remove(type,fn){removed.push([type,fn]);listeners[type]=listeners[type].filter(x=>x!==fn)}
+const deadCleanups={};const windowObj={fetch:function LIVE(){},addEventListener:add,removeEventListener:remove};
+for(const name of ['NOREYO_V1118','NOREYO_V1124','NOREYO_V1142','NOREYO_V1178','NOREYO_V1180','NOREYO_V1182','NOREYO_V1186','NOREYO_V1196']){const cleanup=function(){throw new Error('legacy cleanup must not run')};deadCleanups[name]=cleanup;add('pagehide',cleanup);windowObj[name]={cleanup};}
+windowObj.NOREYO_V1180={...windowObj.NOREYO_V1180,retire(reason){retired.push(reason);return true}};windowObj.NOREYO_V1124={...windowObj.NOREYO_V1124,clearCheckoutState(){retired.push('state');return true}};windowObj.NOREYO_V1142={...windowObj.NOREYO_V1142,clearDetailState(){retired.push('detail');return true}};windowObj.NOREYO_V1178={...windowObj.NOREYO_V1178,clearOwnership(){retired.push('ownership');return true}};windowObj.NOREYO_V1196={...windowObj.NOREYO_V1196,sync(){syncs++;return true}};
+const ctx={console,Object,window:windowObj};vm.createContext(ctx);vm.runInContext(code,ctx);const a=ctx.window.NOREYO_V1198;let fail=0;
+let ok=Object.values(deadCleanups).every(fn=>!listeners.pagehide.includes(fn))&&listeners.pagehide.includes(a.onPageHide);console.log(ok?'PASS all legacy nested fetch pagehide teardowns are detached':'FAIL detach '+JSON.stringify({remaining:listeners.pagehide.length,removed:removed.length}));if(!ok)fail++;
+const fetchBefore=ctx.window.fetch;a.onPageHide();ok=ctx.window.fetch===fetchBefore&&retired.includes('PAGEHIDE')&&retired.includes('state')&&retired.includes('detail')&&retired.includes('ownership');console.log(ok?'PASS pagehide retires sensitive checkout state without mutating fetch chain':'FAIL pagehide '+JSON.stringify({same:ctx.window.fetch===fetchBefore,retired}));if(!ok)fail++;
+ok=a.onPageShow()===true&&ctx.window.fetch===fetchBefore&&syncs===1;console.log(ok?'PASS BFCache pageshow preserves exact live fetch chain and resyncs owner state':'FAIL pageshow '+JSON.stringify({same:ctx.window.fetch===fetchBefore,syncs}));if(!ok)fail++;
+ok=a.install()===false;console.log(ok?'PASS BFCache lifecycle guard install is idempotent':'FAIL idempotent');if(!ok)fail++;
+process.exit(fail?1:0);
