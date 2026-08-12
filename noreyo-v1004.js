@@ -1,0 +1,21 @@
+/* NOREYO V10.04 — truthful flight preference enforcement.
+   The packed preference model exposes Flug0 (Direktflug) and Flug1 (Aufgabegepäck).
+   Current normalized flight offers carry a baggage hint, but no reliable stop count.
+   Enforce confirmed baggage for a MUST, annotate wishes, and explicitly mark
+   Direktflug as unverified instead of pretending the provider result proves it. */
+(function(){
+'use strict';
+const BUILD='10.04';
+let observer=null,raf=0;
+function pref(key){try{return String((typeof states!=='undefined'?states:window.states)?.[key]||'any');}catch(_){return'any';}}
+function body(){return document.getElementById('plannerBody');}
+function flightOpen(){return document.getElementById('plannerSheet')?.classList?.contains('show')&&document.getElementById('plannerTitle')?.textContent?.trim()==='Flüge';}
+function offers(){const b=body();return Array.isArray(b?.__noreyoV943Offers)?b.__noreyoV943Offers:[];}
+function ensureNote(b){let n=b.querySelector('.noreyo-v1004-pref-note');if(n)return n;n=document.createElement('div');n.className='backend-note noreyo-v1004-pref-note';const first=b.firstElementChild;if(first)b.insertBefore(n,first);else b.appendChild(n);return n;}
+function noteText(list=offers()){const baggage=pref('Flug1'),direct=pref('Flug0'),parts=[];if(baggage==='must'){const confirmed=list.filter(o=>o?.baggageIncluded===true).length;parts.push(`Aufgabegepäck ist Pflicht: ${confirmed} von ${list.length} Angeboten bestätigen enthaltenes Gepäck.`);}else if(baggage==='wish'){parts.push('Aufgabegepäck ist ein Wunsch. Angebote mit bestätigtem Gepäck werden entsprechend gekennzeichnet.');}if(direct!=='any')parts.push(`Direktflug ist ${direct==='must'?'Pflicht':'Wunsch'}, kann mit den aktuell normalisierten Flugdaten hier aber noch nicht sicher bestätigt werden.`);return parts.join(' ');}
+function sync(){raf=0;if(!flightOpen())return false;const b=body(),list=offers();if(!b||!list.length)return false;let changed=false;const baggage=pref('Flug1');b.querySelectorAll?.('.noreyo-v943-offer').forEach(card=>{const idx=Number(card.dataset.flightOfferIndex),offer=list[idx];if(!offer)return;const btn=card.querySelector('.noreyo-v943-select');let tag=card.querySelector('.noreyo-v1004-bag');const confirmed=offer.baggageIncluded===true;const status=confirmed?'Aufgabegepäck bestätigt':offer.baggageIncluded===false?'Aufgabegepäck nicht enthalten':'Aufgabegepäck nicht bestätigt';if(baggage!=='any'){if(!tag){tag=document.createElement('small');tag.className='noreyo-v1004-bag';card.querySelector('.flight-status')?.appendChild(tag);changed=true;}if(tag&&tag.textContent!==status){tag.textContent=status;changed=true;}}else if(tag){tag.remove();changed=true;}if(baggage==='must'&&!confirmed&&btn&&!btn.disabled){btn.disabled=true;btn.setAttribute('aria-disabled','true');btn.dataset.noreyoV1004Bag='1';btn.dataset.noreyoV1004Label=btn.textContent||'Angebot auswählen';btn.textContent='Pflichtkriterium Gepäck nicht bestätigt';changed=true;}else if(baggage!=='must'&&btn?.dataset?.noreyoV1004Bag==='1'){const expired=!!window.NOREYO_V994?.expired?.(offer?.expiration);delete btn.dataset.noreyoV1004Bag;if(!expired){btn.disabled=false;btn.setAttribute('aria-disabled','false');btn.textContent=btn.dataset.noreyoV1004Label||'Angebot auswählen';changed=true;}delete btn.dataset.noreyoV1004Label;}});const text=noteText(list),existing=b.querySelector('.noreyo-v1004-pref-note');if(text){const note=existing||ensureNote(b);if(note.textContent!==text){note.textContent=text;changed=true;}}else if(existing){existing.remove();changed=true;}return changed;}
+function schedule(){if(!raf)raf=requestAnimationFrame(sync);}
+function observe(){if(observer){observer.disconnect();observer=null;}const b=body();if(typeof MutationObserver==='undefined'||!b)return false;observer=new MutationObserver(schedule);observer.observe(b,{childList:true,subtree:true});schedule();return true;}
+function cleanup(){if(observer){observer.disconnect();observer=null;}if(raf){cancelAnimationFrame(raf);raf=0;}}
+observe();window.addEventListener('pagehide',cleanup,{passive:true});window.addEventListener('pageshow',observe,{passive:true});window.NOREYO_V1004=Object.freeze({BUILD,pref,body,flightOpen,offers,noteText,sync,schedule,observe,cleanup});
+})();
