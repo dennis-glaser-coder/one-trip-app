@@ -1,0 +1,90 @@
+name: NOREYO Live Family Smoke
+
+on:
+  push:
+    branches:
+      - agent/v585-safety-on-main
+
+permissions:
+  contents: read
+
+jobs:
+  family-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run one live family hotel search through Supabase -> LiteAPI
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, re, urllib.request, urllib.error, zipfile
+          from datetime import date, timedelta
+
+          with zipfile.ZipFile('site.zip') as z:
+              html = z.read('index.html').decode('utf-8', errors='ignore')
+          m = re.search(r"const anonKey='([^']+)'", html)
+          if not m:
+              raise SystemExit('Could not resolve public Supabase anon key from packed client')
+          anon = m.group(1)
+
+          start = date.today() + timedelta(days=45)
+          end = start + timedelta(days=3)
+          endpoint = 'https://fcvffslhnaqlwitaeers.supabase.co/functions/v1/search-travel'
+          queries = ['family-friendly hotels in Mallorca', 'family-friendly hotels in Tenerife']
+          last = None
+
+          for query in queries:
+              payload = {
+                  'occupancies': [{'adults': 2, 'children': [5]}],
+                  'currency': 'EUR',
+                  'guestNationality': 'DE',
+                  'checkin': start.isoformat(),
+                  'checkout': end.isoformat(),
+                  'aiSearch': query,
+                  'includeHotelData': True,
+                  'roomMapping': True,
+                  'maxRatesPerHotel': 1,
+                  'limit': 5,
+                  'timeout': 10,
+                  'sessionId': 'github-live-family-smoke'
+              }
+              req = urllib.request.Request(
+                  endpoint,
+                  data=json.dumps(payload).encode('utf-8'),
+                  method='POST',
+                  headers={
+                      'Content-Type': 'application/json',
+                      'apikey': anon,
+                      'Authorization': f'Bearer {anon}'
+                  }
+              )
+              try:
+                  with urllib.request.urlopen(req, timeout=35) as res:
+                      status = res.status
+                      route = (res.headers.get('X-Noreyo-Provider-Route') or '').strip().lower()
+                      body = json.loads(res.read().decode('utf-8'))
+              except urllib.error.HTTPError as e:
+                  text = e.read().decode('utf-8', errors='replace')[:1000]
+                  raise SystemExit(f'Live family search HTTP {e.code}: {text}')
+
+              if status != 200:
+                  raise SystemExit(f'Unexpected HTTP status: {status}')
+              if route != 'hotels/rates':
+                  raise SystemExit(f'Unexpected provider route: {route!r}')
+              data = body.get('data')
+              if isinstance(data, dict):
+                  data = data.get('data')
+              if not isinstance(data, list):
+                  raise SystemExit('Provider response does not expose a hotel-rate list')
+              last = (query, len(data))
+              print(f'Live family search {query!r}: HTTP 200, route={route}, rate_items={len(data)}')
+              if data:
+                  print('PASS live Supabase/LiteAPI family hotel search returned bookable rate data')
+                  break
+          else:
+              raise SystemExit(f'Both live family searches returned zero rate items; last={last}')
+          PY
