@@ -1,0 +1,8 @@
+/* NOREYO V9.24 — sanitize provider error copy before packed-core HTML rendering. */
+(()=>{'use strict';const BUILD='9.24';
+function isProvider(input){const u=typeof input==='string'?input:String(input?.url||'');return /\/functions\/v1\/(search-travel|hotel-reviews|hotel-detail)(?:\?|$)/.test(u)}
+function plain(v){return String(v??'').replace(/<[^>]*>/g,' ').replace(/[<>]/g,'').replace(/\s+/g,' ').trim().slice(0,700)}
+function cleanPayload(p){if(!p||typeof p!=='object'||Array.isArray(p))return p;const out={...p};if(typeof out.message==='string')out.message=plain(out.message);if(typeof out.error==='string')out.error=plain(out.error);else if(out.error&&typeof out.error==='object'){out.error={...out.error};if(typeof out.error.message==='string')out.error.message=plain(out.error.message)}return out}
+async function sanitizeResponse(res){try{const type=res.headers?.get?.('content-type')||'';if(!/json/i.test(type))return res;const p=await res.clone().json();const c=cleanPayload(p);if(JSON.stringify(c)===JSON.stringify(p))return res;const h=new Headers(res.headers);h.set('content-type','application/json');return new Response(JSON.stringify(c),{status:res.status,statusText:res.statusText,headers:h})}catch(_){return res}}
+function install(){if(typeof window.fetch!=='function'||window.fetch.__noreyoV924)return false;const prior=window.fetch.bind(window);const wrapped=async(input,init)=>{const res=await prior(input,init);return isProvider(input)?sanitizeResponse(res):res};wrapped.__noreyoV924=true;window.fetch=wrapped;return true}
+install();window.addEventListener('pageshow',install,{passive:true});window.NOREYO_V924=Object.freeze({BUILD,isProvider,plain,cleanPayload,sanitizeResponse,install});})();
