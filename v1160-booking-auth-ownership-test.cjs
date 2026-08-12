@@ -1,0 +1,11 @@
+const fs=require('fs'),vm=require('vm');const code=fs.readFileSync(__dirname+'/noreyo-v1160.js','utf8');
+let session={access_token:'tokenA',user_id:'U1',email:'u1@example.de',expires_at:9999999999},cleared=0;
+const baseDraft=()=>Object.freeze({sessionKey:'P1|O1|999|EUR',prebookId:'P1'});
+const ctx={console,String,Object,window:{addEventListener(){},removeEventListener(){},NOREYO_V1158:{session(){return session},authenticated(){return !!session?.access_token}},NOREYO_V1148:{clear(){cleared++;delete ctx.window.NOREYO_HOTEL_BOOKING_DRAFT;return true}},NOREYO_V1146:{payload(){return baseDraft()},owned(){return true}}},document:{body:null},MutationObserver:function(){this.observe=()=>{};this.disconnect=()=>{}},requestAnimationFrame(){return 1},cancelAnimationFrame(){}};
+vm.createContext(ctx);vm.runInContext(code,ctx);const a=ctx.window.NOREYO_V1160;let fail=0;
+let d=ctx.window.NOREYO_V1146.payload({});let ok=d?.authUserId==='U1'&&!('access_token' in d)&&!('email' in d);console.log(ok?'PASS booking draft is bound to auth user without copying token/PII':'FAIL bind '+JSON.stringify(d));if(!ok)fail++;
+ctx.window.NOREYO_HOTEL_BOOKING_DRAFT=d;ok=ctx.window.NOREYO_V1146.owned(d)===true;console.log(ok?'PASS same authenticated user owns prepared booking draft':'FAIL owned');if(!ok)fail++;
+session={access_token:'tokenB',user_id:'U2',email:'u2@example.de',expires_at:9999999999};ok=a.sync()===true&&cleared===1&&!ctx.window.NOREYO_HOTEL_BOOKING_DRAFT;console.log(ok?'PASS auth user change invalidates existing booking draft':'FAIL user change');if(!ok)fail++;
+session=null;d=ctx.window.NOREYO_V1146.payload({});ok=d===null;console.log(ok?'PASS unauthenticated caller cannot prepare booking draft programmatically':'FAIL unauth payload');if(!ok)fail++;
+session={access_token:'tokenA',user_id:'',email:'',expires_at:9999999999};d=ctx.window.NOREYO_V1146.payload({});ok=d===null;console.log(ok?'PASS token without validated user_id is insufficient for booking preparation':'FAIL unvalidated');if(!ok)fail++;
+process.exit(fail?1:0);
