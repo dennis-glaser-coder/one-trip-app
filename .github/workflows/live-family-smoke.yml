@@ -73,7 +73,7 @@ jobs:
 
               if status != 200:
                   raise SystemExit(f'Unexpected HTTP status: {status}')
-              if route != 'hotels/rates':
+              if route != 'hotels':
                   raise SystemExit(f'Unexpected provider route: {route!r}')
               data = body.get('data')
               if isinstance(data, dict):
