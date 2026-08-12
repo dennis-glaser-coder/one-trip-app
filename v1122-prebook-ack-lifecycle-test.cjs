@@ -1,0 +1,15 @@
+const fs=require('fs'),vm=require('vm');const code=fs.readFileSync('noreyo-v1122.js','utf8');
+const ctx={console,String,window:{addEventListener(){},NOREYO_HOTEL_PREBOOK:{prebookId:'P1'},NOREYO_HOTEL_PREBOOK_ACCEPTED:{prebookId:'P1'}},document:{body:null},MutationObserver:function(){this.observe=()=>{};this.disconnect=()=>{}},requestAnimationFrame(){return 1},cancelAnimationFrame(){}};
+vm.createContext(ctx);vm.runInContext(code,ctx);const a=ctx.window.NOREYO_V1122;let fail=0;
+let ok=a.owned()&&a.sync()===false;
+console.log(ok?'PASS matching PREBOOK acknowledgement survives':'FAIL matching');if(!ok)fail++;
+ctx.window.NOREYO_HOTEL_PREBOOK={prebookId:'P2'};
+ok=a.sync()===true&&!ctx.window.NOREYO_HOTEL_PREBOOK_ACCEPTED;
+console.log(ok?'PASS new PREBOOK session clears old price acknowledgement':'FAIL changed');if(!ok)fail++;
+ctx.window.NOREYO_HOTEL_PREBOOK={prebookId:'P3'};ctx.window.NOREYO_HOTEL_PREBOOK_ACCEPTED={prebookId:'P3'};delete ctx.window.NOREYO_HOTEL_PREBOOK;
+ok=a.sync()===true&&!ctx.window.NOREYO_HOTEL_PREBOOK_ACCEPTED;
+console.log(ok?'PASS leaving PREBOOK context clears acknowledgement even without ack UI':'FAIL clear');if(!ok)fail++;
+ctx.window.NOREYO_HOTEL_PREBOOK={prebookId:'P4'};ctx.window.NOREYO_HOTEL_PREBOOK_ACCEPTED={prebookId:''};
+ok=a.sync()===true&&!ctx.window.NOREYO_HOTEL_PREBOOK_ACCEPTED;
+console.log(ok?'PASS malformed acknowledgement cannot be checkout-owned':'FAIL malformed');if(!ok)fail++;
+process.exit(fail?1:0);
