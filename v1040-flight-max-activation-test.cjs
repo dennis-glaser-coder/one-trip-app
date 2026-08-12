@@ -1,0 +1,9 @@
+const fs=require('fs'),vm=require('vm');const code=fs.readFileSync('./noreyo-v1040.js','utf8');
+let store={};const ctx={console,Number,String,Object,Array,Set,limits:{maxFlightMinutes:270},excluded:new Set(),localStorage:{getItem(k){return store[k]||null},setItem(k,v){store[k]=String(v)}},window:{addEventListener(){},removeEventListener(){}},document:{body:null,getElementById(){return null},addEventListener(){},removeEventListener(){}},MutationObserver:function(){this.observe=()=>{};this.disconnect=()=>{}},requestAnimationFrame(){return 1},cancelAnimationFrame(){}};
+vm.createContext(ctx);vm.runInContext(code,ctx);const a=ctx.window.NOREYO_V1040;let fail=0;
+let ok=a.explicitMax()===false&&a.activeConstraints().length===0;console.log(ok?'PASS untouched legacy 270-minute default is neutral':'FAIL default '+JSON.stringify(a.activeConstraints()));if(!ok)fail++;
+ctx.limits.maxFlightMinutes=240;ok=a.explicitMax()===true&&a.activeConstraints().some(x=>/4:00/.test(x));console.log(ok?'PASS non-default legacy value is treated as intentional':'FAIL nondefault');if(!ok)fail++;
+ctx.limits.maxFlightMinutes=270;a.mark();ok=a.explicitMax()===true&&a.activeConstraints().some(x=>/4:30/.test(x));console.log(ok?'PASS user-changing slider makes 270 explicit':'FAIL explicit');if(!ok)fail++;
+ctx.limits.maxFlightMinutes=480;ok=a.explicitMax()===false;console.log(ok?'PASS 480-minute endpoint acts as no hard limit':'FAIL nolimit');if(!ok)fail++;
+ctx.excluded.add('Nachtflug');ok=a.activeConstraints().includes('Nachtflug');console.log(ok?'PASS flight exclusions remain hard independently':'FAIL exclusion');if(!ok)fail++;
+process.exit(fail?1:0);
