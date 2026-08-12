@@ -1,0 +1,16 @@
+/* NOREYO V9.16 — persisted-state hygiene for airports and saved offer snapshots. */
+(function(){
+'use strict';
+const BUILD='9.16',MAX_AIRPORTS=6,MAX_SAVED=100,MAX_ALERTS=50;
+function iata(v){const s=String(v||'').trim().toUpperCase();return /^[A-Z]{3}$/.test(s)?s:'';}
+function airports(v){const out=[];for(const x of Array.isArray(v)?v:[]){const c=iata(x);if(c&&!out.includes(c))out.push(c);if(out.length>=MAX_AIRPORTS)break;}return out;}
+function finitePrice(v){const n=Number(v);return Number.isFinite(n)&&n>=0?n:null;}
+function text(v,max=160){return String(v??'').replace(/[\u0000-\u001f\u007f]/g,' ').trim().slice(0,max);}
+function date(v){const s=String(v||'');if(!/^\d{4}-\d{2}-\d{2}$/.test(s))return'';const d=new Date(s+'T12:00:00');return Number.isNaN(d.getTime())?'':s;}
+function snapshot(o){if(!o||typeof o!=='object')return null;const key=text(o.key,240);if(!key)return null;const clean={...o,key};clean.hotel=text(o.hotel||'Hotel',180);clean.destination=text(o.destination||o.region||'',120);clean.region=text(o.region||'',120);clean.img=text(o.img||'',500);clean.room=text(o.room||'',180);clean.board=text(o.board||'',120);clean.airports=airports(o.airports);clean.childAges=(Array.isArray(o.childAges)?o.childAges:[]).slice(0,4).map(x=>Math.min(17,Math.max(0,Number(x)||0)));clean.adults=Math.min(6,Math.max(1,Number(o.adults)||2));const p=finitePrice(o.price);clean.price=p===null?null:p;clean.checkin=date(o.checkin);clean.checkout=date(o.checkout);clean.stars=Math.min(5,Math.max(0,Number(o.stars)||0));return clean;}
+function snapshotList(v,max=MAX_SAVED){const out=[];for(const raw of Array.isArray(v)?v:[]){const s=snapshot(raw);if(!s||out.some(x=>x.key===s.key))continue;out.push(s);if(out.length>=max)break;}return out;}
+function alert(a){if(!a||typeof a!=='object')return null;const offer=snapshot(a.offer);const key=text(a.key||offer?.key,240);if(!key||!offer)return null;const target=finitePrice(a.target);return{...a,key,target:target===null?offer.price:target,offer};}
+function alertList(v){const out=[];for(const raw of Array.isArray(v)?v:[]){const a=alert(raw);if(!a||out.some(x=>x.key===a.key))continue;out.push(a);if(out.length>=MAX_ALERTS)break;}return out;}
+function sanitize(){let changed=false;try{if(typeof searchState!=='undefined'&&searchState){const next=airports(searchState.airports);if(JSON.stringify(next)!==JSON.stringify(searchState.airports)){searchState.airports=next;changed=true;}}}catch(_){}try{if(typeof savedFavorites!=='undefined'){const next=snapshotList(savedFavorites);if(JSON.stringify(next)!==JSON.stringify(savedFavorites)){savedFavorites=next;changed=true;}}}catch(_){}try{if(typeof savedTrips!=='undefined'){const next=snapshotList(savedTrips);if(JSON.stringify(next)!==JSON.stringify(savedTrips)){savedTrips=next;changed=true;}}}catch(_){}try{if(typeof priceAlerts!=='undefined'){const next=alertList(priceAlerts);if(JSON.stringify(next)!==JSON.stringify(priceAlerts)){priceAlerts=next;changed=true;}}}catch(_){}if(changed){try{persistState?.();}catch(_){}try{updateProfileStats?.();}catch(_){}}return changed;}
+sanitize();window.addEventListener('pageshow',sanitize,{passive:true});window.NOREYO_V916=Object.freeze({BUILD,MAX_AIRPORTS,MAX_SAVED,MAX_ALERTS,iata,airports,finitePrice,text,date,snapshot,snapshotList,alert,alertList,sanitize});
+})();
