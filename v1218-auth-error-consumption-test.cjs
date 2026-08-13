@@ -1,0 +1,17 @@
+const fs=require('fs'),vm=require('vm');const code=fs.readFileSync('./noreyo-v1218.js','utf8');
+let stored='otp_expired provider raw',clears=0;
+const ctx={console,String,Object,window:{addEventListener(){},NOREYO_V1158:{authError(){return stored}},NOREYO_V1210:{clear(){clears++;return true}}}};
+vm.createContext(ctx);vm.runInContext(code,ctx);const a=ctx.window.NOREYO_V1218;let fail=0;
+let ok=a.visibleRaw()==='otp_expired provider raw'&&ctx.window.NOREYO_V1158.authError()==='otp_expired provider raw';
+console.log(ok?'PASS unconsumed legacy auth error remains available for first safe bridge':'FAIL initial');if(!ok)fail++;
+ctx.window.NOREYO_V1210.clear();
+ok=clears===1&&a.consumed==='otp_expired provider raw'&&ctx.window.NOREYO_V1158.authError()==='';
+console.log(ok?'PASS clearing auth UI marks exact legacy error consumed':'FAIL consume '+JSON.stringify({clears,consumed:a.consumed,visible:ctx.window.NOREYO_V1158.authError()}));if(!ok)fail++;
+ok=ctx.window.NOREYO_V1158.authError()==='';
+console.log(ok?'PASS same retired error cannot be re-captured on later DOM updates':'FAIL recapture');if(!ok)fail++;
+stored='different_auth_error';
+ok=ctx.window.NOREYO_V1158.authError()==='different_auth_error';
+console.log(ok?'PASS a different captured auth error is not accidentally suppressed':'FAIL different');if(!ok)fail++;
+ok=a.patchAuth()===false&&a.patchClear()===false;
+console.log(ok?'PASS one-shot legacy auth consumption patch is idempotent':'FAIL idempotent');if(!ok)fail++;
+process.exit(fail?1:0);
