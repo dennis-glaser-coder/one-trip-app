@@ -1,0 +1,15 @@
+const fs=require('fs'),vm=require('vm');const code=fs.readFileSync('./noreyo-v1250.js','utf8');
+function ClassList(items=[]){this.s=new Set(items)}ClassList.prototype.contains=function(x){return this.s.has(x)};
+const sh={classList:new ClassList(['show']),style:{}},body={style:{}};let vvHeight=700;
+const vv={get height(){return vvHeight},addEventListener(){},removeEventListener(){}};
+const ctx={console,Number,Object,Math,window:{visualViewport:vv,innerHeight:800,addEventListener(){},removeEventListener(){}},document:{getElementById(id){return id==='plannerSheet'?sh:id==='plannerBody'?body:null}},MutationObserver:function(){this.observe=()=>{};this.disconnect=()=>{}},requestAnimationFrame(){return 1},cancelAnimationFrame(){}};
+vm.createContext(ctx);vm.runInContext(code,ctx);const a=ctx.window.NOREYO_V1250;let fail=0;
+let m=a.metrics(700),ok=m.sheetMax===574&&m.bodyMax===502;
+console.log(ok?'PASS planner uses 82% of visible 700px viewport':'FAIL metrics '+JSON.stringify(m));if(!ok)fail++;
+a.sync();ok=sh.style.maxHeight==='574px'&&body.style.maxHeight==='502px';
+console.log(ok?'PASS open planner receives visualViewport max heights':'FAIL sync '+JSON.stringify({sheet:sh.style,body:body.style}));if(!ok)fail++;
+vvHeight=260;a.sync();m=a.metrics(260);ok=m.sheetMax<=256&&m.bodyMax>=80&&Number.parseInt(sh.style.maxHeight)<=256;
+console.log(ok?'PASS small Safari viewport never overflows planner ceiling':'FAIL small '+JSON.stringify({m,sheet:sh.style}));if(!ok)fail++;
+sh.classList=new ClassList([]);a.reset();ok=sh.style.maxHeight===''&&body.style.maxHeight==='';
+console.log(ok?'PASS closed planner restores packed fallback sizing':'FAIL reset');if(!ok)fail++;
+process.exit(fail?1:0);
