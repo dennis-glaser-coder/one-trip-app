@@ -20,7 +20,7 @@ html,body{margin:0;min-height:100%;font-family:-apple-system,BlinkMacSystemFont,
 <script>
 (()=>{
 'use strict';
-const SRC='./noreyo-bootstrap-v1257.js?build=1257',ATTEMPTS=2,RETRY_MS=300,TIMEOUT_MS=15000;
+const SRC='./noreyo-bootstrap-v1259.js?build=1259',ATTEMPTS=2,RETRY_MS=300,TIMEOUT_MS=15000;
 let attempt=0,timer=0,done=false;
 const status=document.getElementById('status'),bar=document.getElementById('bar'),error=document.getElementById('error');
 function fail(message){if(done)return;done=true;if(timer){clearTimeout(timer);timer=0;}if(bar)bar.style.display='none';if(status)status.textContent='NOREYO konnte nicht geladen werden';if(!error)return;error.style.display='block';error.setAttribute('role','alert');error.setAttribute('aria-live','assertive');error.textContent='Die Verbindung zum Reisemodul ist fehlgeschlagen.';const button=document.createElement('button');button.type='button';button.className='boot-retry';button.textContent='Erneut versuchen';button.addEventListener('click',()=>location.reload());error.appendChild(document.createElement('br'));error.appendChild(button);try{button.focus({preventScroll:true});}catch(_){}console.error(message||'NOREYO bootstrap failed');}
