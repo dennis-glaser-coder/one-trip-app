@@ -87,6 +87,9 @@ jobs:
                   raise SystemExit(f'Live provider request HTTP {e.code}: {text}')
 
           selected_offer_id = None
+          selected_origin = None
+          selected_destination = None
+          selected_body = None
           for origin, destination in routes:
               payload = {
                   'action': 'flightSearch',
@@ -116,10 +119,16 @@ jobs:
                   selected_offer_id = find_offer_id(data[0]) or find_offer_id(body)
                   if not selected_offer_id:
                       raise SystemExit('Live flight result did not expose a usable offerId for Verify')
+                  selected_origin, selected_destination, selected_body = origin, destination, body
                   print('PASS live Supabase/LiteAPI flight search returned offer data')
                   break
           else:
               raise SystemExit(f'Both live flight searches returned zero offers; last={last}')
+
+          with open('.noreyo-live-flight.json','w',encoding='utf-8') as f:
+              json.dump(selected_body,f)
+          with open('.noreyo-live-flight-meta.json','w',encoding='utf-8') as f:
+              json.dump({'origin':selected_origin,'destination':selected_destination,'offerId':selected_offer_id},f)
 
           status, route, verified = post(verify_endpoint, {'offerId': selected_offer_id}, timeout=30)
           if status != 200:
@@ -130,3 +139,25 @@ jobs:
               raise SystemExit('Flight Verify returned an invalid/error payload')
           print('PASS selected live flight offer verified through Supabase -> LiteAPI')
           PY
+
+      - name: Run NOREYO flight normalizer against the live LiteAPI response
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs=require('fs'),vm=require('vm');
+          const code=fs.readFileSync('noreyo-v943.js','utf8');
+          const payload=JSON.parse(fs.readFileSync('.noreyo-live-flight.json','utf8'));
+          const meta=JSON.parse(fs.readFileSync('.noreyo-live-flight-meta.json','utf8'));
+          const ctx={console,window:{}};
+          vm.createContext(ctx);vm.runInContext(code,ctx);
+          const api=ctx.window.NOREYO_V943;
+          if(!api)throw new Error('NOREYO V9.43 flight normalizer unavailable');
+          const normalized=api.normalizedOffers(meta.origin,meta.destination,payload);
+          if(!normalized.length)throw new Error('Live provider response produced zero NOREYO-normalized offers');
+          const selected=normalized.find(x=>x.offerId===meta.offerId)||normalized[0];
+          if(!selected.offerId)throw new Error('Normalized live offer lost offerId');
+          if(!Number.isFinite(selected.price)||selected.price<0)throw new Error(`Normalized live offer has no finite price: ${selected.price}`);
+          if(!/^[A-Z]{3}$/.test(selected.currency))throw new Error(`Normalized live offer has invalid currency: ${selected.currency}`);
+          console.log(`PASS NOREYO V9.43 normalized live offer ${selected.origin}->${selected.destination}, price=${selected.price} ${selected.currency}`);
+          NODE
