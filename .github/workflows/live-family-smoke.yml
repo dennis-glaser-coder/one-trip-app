@@ -39,7 +39,7 @@ jobs:
 
           for query in queries:
               payload = {
-                  'occupancies': [{'adults': 2, 'children': [5]}],
+                  'occupancies': [{'adults': 2, 'children': [5, 8]}],
                   'currency': 'EUR',
                   'guestNationality': 'DE',
                   'checkin': start.isoformat(),
@@ -81,10 +81,10 @@ jobs:
               if not isinstance(data, list):
                   raise SystemExit('Provider response does not expose a hotel-rate list')
               last = (query, len(data))
-              print(f'Live family search {query!r}: HTTP 200, route={route}, rate_items={len(data)}')
+              print(f'Live family search {query!r}: 2 adults + children ages 5/8, HTTP 200, route={route}, rate_items={len(data)}')
               if data:
-                  print('PASS live Supabase/LiteAPI family hotel search returned bookable rate data')
+                  print('PASS live Supabase/LiteAPI multi-child family hotel search returned bookable rate data')
                   break
           else:
-              raise SystemExit(f'Both live family searches returned zero rate items; last={last}')
+              raise SystemExit(f'Both live multi-child family searches returned zero rate items; last={last}')
           PY
