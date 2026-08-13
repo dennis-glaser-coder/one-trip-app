@@ -16,7 +16,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Run one live family hotel search through Supabase -> LiteAPI
+      - name: Run live family hotel search and anonymous PREBOOK boundary check
         shell: bash
         run: |
           set -euo pipefail
@@ -33,10 +33,28 @@ jobs:
 
           start = date.today() + timedelta(days=45)
           end = start + timedelta(days=3)
-          endpoint = 'https://fcvffslhnaqlwitaeers.supabase.co/functions/v1/search-travel'
+          search_endpoint = 'https://fcvffslhnaqlwitaeers.supabase.co/functions/v1/search-travel'
+          prebook_endpoint = 'https://fcvffslhnaqlwitaeers.supabase.co/functions/v1/hotel-prebook'
           queries = ['family-friendly hotels in Mallorca', 'family-friendly hotels in Tenerife']
           last = None
 
+          def find_offer_id(value):
+              if isinstance(value, dict):
+                  for key, item in value.items():
+                      if str(key).replace('_','').lower() == 'offerid' and isinstance(item, str) and len(item.strip()) >= 8:
+                          return item.strip()
+                  for item in value.values():
+                      found = find_offer_id(item)
+                      if found:
+                          return found
+              elif isinstance(value, list):
+                  for item in value:
+                      found = find_offer_id(item)
+                      if found:
+                          return found
+              return None
+
+          selected_offer_id = None
           for query in queries:
               payload = {
                   'occupancies': [{'adults': 2, 'children': [5, 8]}],
@@ -53,7 +71,7 @@ jobs:
                   'sessionId': 'github-live-family-smoke'
               }
               req = urllib.request.Request(
-                  endpoint,
+                  search_endpoint,
                   data=json.dumps(payload).encode('utf-8'),
                   method='POST',
                   headers={
@@ -83,8 +101,36 @@ jobs:
               last = (query, len(data))
               print(f'Live family search {query!r}: 2 adults + children ages 5/8, HTTP 200, route={route}, rate_items={len(data)}')
               if data:
+                  selected_offer_id = find_offer_id(data[0]) or find_offer_id(body)
+                  if not selected_offer_id:
+                      raise SystemExit('Live hotel result did not expose a usable offerId for auth-boundary check')
                   print('PASS live Supabase/LiteAPI multi-child family hotel search returned bookable rate data')
                   break
           else:
               raise SystemExit(f'Both live multi-child family searches returned zero rate items; last={last}')
+
+          prebook_req = urllib.request.Request(
+              prebook_endpoint,
+              data=json.dumps({'offerId': selected_offer_id}).encode('utf-8'),
+              method='POST',
+              headers={
+                  'Content-Type': 'application/json',
+                  'apikey': anon,
+                  'Authorization': f'Bearer {anon}'
+              }
+          )
+          try:
+              with urllib.request.urlopen(prebook_req, timeout=20) as res:
+                  text = res.read().decode('utf-8', errors='replace')[:1000]
+                  raise SystemExit(f'Anonymous PREBOOK unexpectedly succeeded: HTTP {res.status}: {text}')
+          except urllib.error.HTTPError as e:
+              text = e.read().decode('utf-8', errors='replace')
+              try:
+                  payload = json.loads(text)
+              except Exception:
+                  payload = {}
+              code = str((payload.get('error') or {}).get('code') or '') if isinstance(payload, dict) else ''
+              if e.code != 401 or code != 'AUTH_REQUIRED':
+                  raise SystemExit(f'Unexpected anonymous PREBOOK rejection HTTP {e.code}, code={code!r}: {text[:1000]}')
+              print('PASS anonymous hotel PREBOOK is rejected server-side with AUTH_REQUIRED before provider checkout')
           PY
