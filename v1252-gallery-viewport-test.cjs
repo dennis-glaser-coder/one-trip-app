@@ -1,0 +1,11 @@
+const fs=require('fs'),vm=require('vm');const code=fs.readFileSync('./noreyo-v1252.js','utf8');
+function ClassList(items=[]){this.s=new Set(items)}ClassList.prototype.contains=function(x){return this.s.has(x)};
+const img={style:{}},modal={classList:new ClassList(['show']),querySelector(sel){return sel==='img'?img:null}};let h=500;
+const vv={get height(){return h},addEventListener(){},removeEventListener(){}};
+const ctx={console,Number,Math,Object,window:{visualViewport:vv,innerHeight:800,addEventListener(){},removeEventListener(){}},document:{getElementById(id){return id==='galleryModal'?modal:null}},MutationObserver:function(){this.observe=()=>{}},requestAnimationFrame(){return 1},cancelAnimationFrame(){}};
+vm.createContext(ctx);vm.runInContext(code,ctx);const a=ctx.window.NOREYO_V1252;let fail=0;
+let ok=a.maxImageHeight(500)===404;console.log(ok?'PASS gallery reserves top/bottom controls inside 500px visual viewport':'FAIL metric');if(!ok)fail++;
+a.sync();ok=img.style.maxHeight==='404px';console.log(ok?'PASS open gallery image follows current visual viewport':'FAIL sync '+img.style.maxHeight);if(!ok)fail++;
+h=260;a.sync();ok=img.style.maxHeight==='164px';console.log(ok?'PASS short/landscape Safari viewport keeps gallery media visible':'FAIL short '+img.style.maxHeight);if(!ok)fail++;
+modal.classList=new ClassList([]);a.reset();ok=img.style.maxHeight==='';console.log(ok?'PASS gallery close restores packed fallback max-height':'FAIL reset');if(!ok)fail++;
+process.exit(fail?1:0);
