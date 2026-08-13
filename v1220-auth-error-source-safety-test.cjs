@@ -1,0 +1,15 @@
+const fs=require('fs'),vm=require('vm');const code=fs.readFileSync('./noreyo-v1220.js','utf8');
+let value='otp_expired email=user@example.test provider_trace=SECRET';
+const ctx={console,String,Object,window:{addEventListener(){},NOREYO_V1158:{authError(){return value}}}};
+vm.createContext(ctx);vm.runInContext(code,ctx);const a=ctx.window.NOREYO_V1220;let fail=0;
+let out=ctx.window.NOREYO_V1158.authError();
+let ok=out.includes('abgelaufen')&&!out.includes('user@example')&&!out.includes('SECRET')&&!out.includes('provider_trace');
+console.log(ok?'PASS public authError never exposes raw Supabase/provider detail':'FAIL sanitized '+out);if(!ok)fail++;
+value='some totally different internal provider text';out=ctx.window.NOREYO_V1158.authError();
+ok=out.includes('nicht abgeschlossen')&&!out.includes('internal provider');
+console.log(ok?'PASS unknown raw auth errors map to generic safe copy':'FAIL generic '+out);if(!ok)fail++;
+value='';ok=ctx.window.NOREYO_V1158.authError()==='';
+console.log(ok?'PASS empty auth error remains empty':'FAIL empty');if(!ok)fail++;
+ok=a.patch()===false;
+console.log(ok?'PASS auth-error source patch is idempotent':'FAIL idempotent');if(!ok)fail++;
+process.exit(fail?1:0);
