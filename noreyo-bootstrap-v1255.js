@@ -1,0 +1,23 @@
+/* NOREYO V12.55 bootstrap — V12.53 plus truthful missing hotel-rating presentation. */
+(()=>{
+'use strict';
+const BUILD='12.55-safe',ATTEMPTS=2,RETRY_MS=260,TIMEOUT_MS=15000,READY_TIMEOUT_MS=45000,POLL_MS=25,KEY='__NOREYO_V1255_SINGLE_FLIGHT__';
+const COMPONENTS=Object.freeze([
+  {name:'V12.41',src:'./noreyo-bootstrap-v1241.js?build=1241',asyncReady:true,ready:()=>window.NOREYO_V1241?.state?.().status==='ready'},
+  {name:'Profile placeholder contrast V12.42',src:'./noreyo-v1242.js?build=1242',ready:()=>window.NOREYO_V1242?.BUILD==='12.42'},
+  {name:'Traveller persistent save V12.46',src:'./noreyo-v1246.js?build=1246',ready:()=>window.NOREYO_V1246?.BUILD==='12.46'},
+  {name:'Filter visualViewport V12.48',src:'./noreyo-v1248.js?build=1248',ready:()=>window.NOREYO_V1248?.BUILD==='12.48'},
+  {name:'Planner visualViewport V12.50',src:'./noreyo-v1250.js?build=1250',ready:()=>window.NOREYO_V1250?.BUILD==='12.50'},
+  {name:'Gallery visualViewport V12.52',src:'./noreyo-v1252.js?build=1252',ready:()=>window.NOREYO_V1252?.BUILD==='12.52'},
+  {name:'Hotel rating truth V12.54',src:'./noreyo-v1254.js?build=1254',ready:()=>window.NOREYO_V1254?.BUILD==='12.54'}
+]);
+function state(){const o=window[KEY];if(o?.status)return o;const s={status:'idle',promise:null,error:null,component:null,attempt:0};try{window[KEY]=s}catch(_){}return s}
+function src(base,attempt){return attempt<=1?base:base+(base.includes('?')?'&':'?')+'noreyo_v1255_retry='+attempt}
+function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
+async function waitReady(c){if(c.ready())return true;const start=Date.now();while(Date.now()-start<READY_TIMEOUT_MS){await sleep(POLL_MS);if(c.ready())return true;if(c.name==='V12.41'){const i=window.NOREYO_V1241?.state?.();if(i?.status==='failed')throw Object.assign(i.error||new Error('V12.41 inner failed'),{replaySafe:false})}}return false}
+function loadOnce(c,a){return new Promise((resolve,reject)=>{if(c.ready())return resolve(true);const s=document.createElement('script');let done=false,t=0,loaded=false;const finish=(ok,e)=>{if(done)return;done=true;if(t)clearTimeout(t);s.onload=s.onerror=null;if(!ok&&!loaded){try{s.remove()}catch(_){}}ok?resolve(true):reject(e||new Error(c.name+' konnte nicht geladen werden'))};t=setTimeout(()=>finish(false,Object.assign(new Error(c.name+' Netzwerk-/Script-Timeout'),{replaySafe:!loaded})),TIMEOUT_MS);s.src=src(c.src,a);s.onload=async()=>{loaded=true;if(t){clearTimeout(t);t=0}if(!c.asyncReady)return finish(c.ready(),Object.assign(new Error(c.name+' meldet keinen gültigen Build'),{replaySafe:false}));try{finish(await waitReady(c),Object.assign(new Error(c.name+' wurde geladen, aber nicht vollständig bereit'),{replaySafe:false}))}catch(e){finish(false,Object.assign(e,{replaySafe:false}))}};s.onerror=()=>finish(false,Object.assign(new Error(c.name+' konnte nicht geladen werden'),{replaySafe:true}));document.head.appendChild(s)})}
+async function loadComponent(c,st){if(c.ready())return true;st.component=c.name;let last=null;for(let a=1;a<=ATTEMPTS;a++){st.attempt=a;try{return await loadOnce(c,a)}catch(e){last=e;if(e?.replaySafe===false||a>=ATTEMPTS)break;await sleep(RETRY_MS)}}throw last}
+function fail(e){const status=document.getElementById('status'),bar=document.getElementById('bar'),box=document.getElementById('error');if(bar)bar.style.display='none';if(status)status.textContent='NOREYO konnte nicht geladen werden';if(box){box.style.display='block';box.setAttribute('role','alert');box.setAttribute('aria-live','assertive');if(!box.querySelector('[data-noreyo-v1255-retry="1"]')){box.textContent='Die Verbindung zum Reisemodul ist fehlgeschlagen.';const br=document.createElement('br'),button=document.createElement('button');button.type='button';button.className='boot-retry';button.setAttribute('data-noreyo-v1255-retry','1');button.textContent='Erneut versuchen';button.addEventListener('click',()=>location.reload());box.appendChild(br);box.appendChild(button);try{button.focus({preventScroll:true})}catch(_){}}}console.error(e)}
+async function run(){const st=state();if(st.status==='ready')return true;if(st.promise)return st.promise;st.status='loading';st.error=null;st.promise=(async()=>{try{for(const c of COMPONENTS)await loadComponent(c,st);st.status='ready';st.component=null;st.attempt=0;return true}catch(e){st.status='failed';st.error=e;fail(e);throw e}})().finally(()=>{st.promise=null});return st.promise}
+window.NOREYO_V1255=Object.freeze({BUILD,COMPONENTS,state,run});run().catch(()=>{});
+})();
