@@ -1,0 +1,17 @@
+const fs=require('fs'),vm=require('vm');const code=fs.readFileSync('./noreyo-v1254.js','utf8');
+function E(text=''){this.textContent=text;this.map={};}E.prototype.querySelector=function(sel){return this.map[sel]||null};
+const score=new E('undefined'),label=new E('Bewertet'),top=new E();top.map['.rating']=score;top.map['.detail-rating-copy b']=label;
+const reviewScore=new E('8,7'),reviewLabel=new E('Sehr gut'),reviews=new E();reviews.map['.review-detail-score']=reviewScore;reviews.map['.copy b']=reviewLabel;
+const root=new E();root.querySelector=function(sel){if(sel==='.detail-rating')return top;if(sel==='.review-detail-cta')return reviews;if(sel.includes('saved-note'))return null;return null};
+const ctx={console,String,Number,Object,window:{addEventListener(){}},document:{body:null,getElementById(){return root}},MutationObserver:function(){this.observe=()=>{};this.disconnect=()=>{}},requestAnimationFrame(){return 1},cancelAnimationFrame(){}};
+vm.createContext(ctx);vm.runInContext(code,ctx);const a=ctx.window.NOREYO_V1254;let fail=0;
+let ok=a.numeric('8,7')===8.7&&a.numeric('undefined')===null&&a.numeric('0')===null;
+console.log(ok?'PASS rating parser accepts positive provider scores only':'FAIL parser');if(!ok)fail++;
+ok=a.sync(root)===true&&score.textContent==='–'&&label.textContent==='Bewertung noch nicht verfügbar'&&reviewScore.textContent==='8,7'&&reviewLabel.textContent==='Sehr gut';
+console.log(ok?'PASS missing score becomes truthful unknown while valid score is preserved':'FAIL live '+JSON.stringify({score:score.textContent,label:label.textContent,review:reviewScore.textContent}));if(!ok)fail++;
+score.textContent='9.1';label.textContent='Ausgezeichnet';ok=a.fixScore(score,label,false)===false&&score.textContent==='9.1'&&label.textContent==='Ausgezeichnet';
+console.log(ok?'PASS finite positive rating is never rewritten':'FAIL valid preservation');if(!ok)fail++;
+score.textContent='null';label.textContent='Bewertet';root.querySelector=function(sel){if(sel==='.detail-rating')return top;if(sel==='.review-detail-cta')return null;if(sel.includes('saved-note'))return {};return null};
+ok=a.sync(root)===true&&label.textContent==='Bewertung nicht gespeichert';
+console.log(ok?'PASS saved snapshot with absent score states that rating was not stored':'FAIL saved');if(!ok)fail++;
+process.exit(fail?1:0);
