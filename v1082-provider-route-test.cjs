@@ -1,0 +1,11 @@
+const fs=require('fs'),vm=require('vm');
+const code=fs.readFileSync('noreyo-v1082.js','utf8');
+let network=0,route='flights',status=200;
+const ctx={console,JSON,String,Object,Response,Request,window:{addEventListener(){},fetch:async()=>{network++;return new Response('{}',{status,headers:{'X-Noreyo-Provider-Route':route}})}}};
+vm.createContext(ctx);vm.runInContext(code,ctx);const a=ctx.window.NOREYO_V1082;let fail=0;
+let ok=a.expectedRoute({action:'flightSearch'})==='flights'&&a.expectedRoute({hotelIds:['1']})==='hotels';console.log(ok?'PASS expected provider route classification':'FAIL classify');if(!ok)fail++;
+(async()=>{route='flights';network=0;let res=await ctx.window.fetch('https://x.supabase.co/functions/v1/search-travel',{method:'POST',body:JSON.stringify({action:'flightSearch',legs:[{}]})});ok=network===1&&res.status===200;console.log(ok?'PASS matching flight route passes through':'FAIL flight pass');if(!ok)fail++;
+route='hotels';network=0;res=await ctx.window.fetch('https://x.supabase.co/functions/v1/search-travel',{method:'POST',body:JSON.stringify({action:'flightSearch',legs:[{}]})});const payload=await res.json();ok=network===1&&res.status===502&&payload?.error?.code==='PROVIDER_ROUTE_MISMATCH';console.log(ok?'PASS mismatched successful route blocked locally':'FAIL mismatch '+JSON.stringify(payload));if(!ok)fail++;
+route='';network=0;res=await ctx.window.fetch('https://x.supabase.co/functions/v1/search-travel',{method:'POST',body:JSON.stringify({hotelIds:['1']})});ok=network===1&&res.status===200;console.log(ok?'PASS missing diagnostic header remains backwards-compatible':'FAIL missing');if(!ok)fail++;
+route='flights';status=400;network=0;res=await ctx.window.fetch('https://x.supabase.co/functions/v1/search-travel',{method:'POST',body:JSON.stringify({hotelIds:['1']})});ok=network===1&&res.status===400;console.log(ok?'PASS provider error responses are preserved':'FAIL error pass');if(!ok)fail++;
+process.exit(fail?1:0);})().catch(e=>{console.error(e);process.exit(1)});

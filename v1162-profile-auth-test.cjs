@@ -1,0 +1,8 @@
+const fs=require('fs'),vm=require('vm');const code=fs.readFileSync(__dirname+'/noreyo-v1162.js','utf8');
+let session={access_token:'A',user_id:'U1',email:'u@example.de',expires_at:9999999999},cleared=0;
+const ctx={console,String,Object,window:{addEventListener(){},NOREYO_V1158:{session(){return session},authenticated(){return !!session?.access_token},clear(){cleared++;session=null;return true}}},document:{body:null,getElementById(){return null},addEventListener(){},removeEventListener(){}},MutationObserver:function(){this.observe=()=>{};this.disconnect=()=>{}},requestAnimationFrame(){return 1},cancelAnimationFrame(){}};
+vm.createContext(ctx);vm.runInContext(code,ctx);const a=ctx.window.NOREYO_V1162;let fail=0;
+let m=a.model();let ok=m.authenticated===true&&m.email==='u@example.de'&&m.userId==='U1';console.log(ok?'PASS profile model exposes authenticated identity without token':'FAIL model '+JSON.stringify(m));if(!ok)fail++;
+session={access_token:'A',user_id:'',email:'',expires_at:9999999999};m=a.model();ok=m.authenticated===false;console.log(ok?'PASS unvalidated token does not appear as signed-in profile':'FAIL unvalidated');if(!ok)fail++;
+session={access_token:'A',user_id:'U1',email:'u@example.de',expires_at:9999999999};ok=a.logout()===true&&cleared===1&&a.model().authenticated===false;console.log(ok?'PASS profile logout clears checkout auth session':'FAIL logout');if(!ok)fail++;
+process.exit(fail?1:0);

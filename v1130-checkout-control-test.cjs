@@ -1,0 +1,8 @@
+const fs=require('fs'),vm=require('vm');const code=fs.readFileSync('noreyo-v1130.js','utf8');
+let styleNode=null;const p={id:''};const classes=new Set();const btn={attrs:{},classList:{contains:c=>classes.has(c),add:c=>classes.add(c)},getAttribute(k){return this.attrs[k]??null},setAttribute(k,v){this.attrs[k]=String(v)},closest(){return{querySelector(){return p}}}};
+const ctx={console,window:{addEventListener(){}},document:{body:null,head:{appendChild(x){styleNode=x}},getElementById(id){return styleNode?.id===id?styleNode:null},createElement(){return{id:'',textContent:''}},querySelector(sel){return sel==='.noreyo-v1128-cancel-ack'?btn:null}},MutationObserver:function(){this.observe=()=>{};this.disconnect=()=>{}},requestAnimationFrame(){return 1},cancelAnimationFrame(){}};
+vm.createContext(ctx);vm.runInContext(code,ctx);const a=ctx.window.NOREYO_V1130;let fail=0;
+let ok=styleNode?.textContent.includes('min-height:48px')&&styleNode.textContent.includes('focus-visible');console.log(ok?'PASS checkout acknowledgement has phone-safe focus/touch CSS':'FAIL style');if(!ok)fail++;
+ok=a.enhance()===true&&classes.has('dark-btn')&&btn.attrs['aria-describedby']==='noreyo-v1128-ready-copy'&&p.id==='noreyo-v1128-ready-copy';console.log(ok?'PASS checkout acknowledgement adopts primary button and description':'FAIL enhance');if(!ok)fail++;
+ok=a.enhance()===false;console.log(ok?'PASS checkout control enhancement is idempotent':'FAIL idempotent');if(!ok)fail++;
+process.exit(fail?1:0);

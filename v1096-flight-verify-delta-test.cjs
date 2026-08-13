@@ -1,0 +1,10 @@
+const fs=require('fs'),vm=require('vm');const code=fs.readFileSync('./noreyo-v1096.js','utf8');
+const ctx={console,Number,String,Object,Intl,window:{addEventListener(){},NOREYO_SELECTED_FLIGHT:{price:250,currency:'EUR'},NOREYO_VERIFIED_FLIGHT:{price:279.99,currency:'EUR',changed:true}},document:{body:null,getElementById(){return null}},MutationObserver:function(){this.observe=()=>{};this.disconnect=()=>{}},requestAnimationFrame(){return 1},cancelAnimationFrame(){}};
+vm.createContext(ctx);vm.runInContext(code,ctx);const a=ctx.window.NOREYO_V1096;let fail=0;
+let d=a.delta(),ok=d.oldPrice===250&&d.newPrice===279.99&&d.difference===29.99;
+console.log(ok?'PASS positive verify price delta normalized':'FAIL '+JSON.stringify(d));if(!ok)fail++;
+ctx.window.NOREYO_VERIFIED_FLIGHT={price:220,currency:'EUR',changed:true};d=a.delta();ok=d.difference===-30;
+console.log(ok?'PASS negative verify price delta normalized':'FAIL negative');if(!ok)fail++;
+ctx.window.NOREYO_SELECTED_FLIGHT={price:'bad'};ok=a.delta()===null;
+console.log(ok?'PASS invalid selected price does not fabricate delta':'FAIL invalid');if(!ok)fail++;
+process.exit(fail?1:0);

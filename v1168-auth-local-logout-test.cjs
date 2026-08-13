@@ -1,0 +1,5 @@
+const fs=require('fs'),vm=require('vm');const code=fs.readFileSync(require('path').join(__dirname,'noreyo-v1168.js'),'utf8');
+let url='',removed=0,checkout=0,draft=0;
+const ctx={console,Object,AbortController,setTimeout,clearTimeout,Response,fetch:async(u)=>{url=u;return new Response('{}',{status:204})},window:{addEventListener(){},NOREYO_V1158:{PROJECT_URL:'https://p.test',anon(){return'anon'},session(){return{access_token:'secret'}},clear(){removed++;return true}},NOREYO_V1160:{clear(){checkout++;return true}},NOREYO_V1148:{clear(){draft++;return true}}}};
+vm.createContext(ctx);vm.runInContext(code,ctx);let fail=0;
+(async()=>{await ctx.window.NOREYO_V1158.signOut();let ok=url==='https://p.test/auth/v1/logout?scope=local'&&removed===1&&checkout===1&&draft===1;console.log(ok?'PASS profile logout revokes only current Supabase session then clears local state':'FAIL '+JSON.stringify({url,removed,checkout,draft}));if(!ok)fail++;ok=ctx.window.NOREYO_V1158.__noreyoV1168===true;console.log(ok?'PASS local-scope signOut becomes authoritative auth API':'FAIL patch');if(!ok)fail++;process.exit(fail?1:0)})().catch(e=>{console.error(e);process.exit(1)});

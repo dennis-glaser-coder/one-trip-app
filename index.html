@@ -11,7 +11,8 @@
 <meta property="og:description" content="Premium-Reiseplattform für Hotels und Reisen, die zu deinen Wünschen passen.">
 <style>
 html,body{margin:0;min-height:100%;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sans-serif;background:#07111f;color:#fff}
-#boot{min-height:100vh;display:grid;place-items:center;padding:24px;text-align:center;box-sizing:border-box}.boot-card{max-width:430px}.logo{font-size:34px;font-weight:900;letter-spacing:3.4px}.sub{margin-top:10px;opacity:.68;font-size:14px}.bar{height:4px;background:#ffffff20;border-radius:99px;overflow:hidden;margin:22px auto 0;max-width:220px}.bar:after{content:"";display:block;width:45%;height:100%;background:#fff;border-radius:99px;animation:load 1s ease-in-out infinite alternate}@keyframes load{to{transform:translateX(125%)}}#error{display:none;white-space:pre-wrap;line-height:1.45}
+#boot{min-height:100vh;display:grid;place-items:center;padding:24px;text-align:center;box-sizing:border-box}.boot-card{max-width:430px}.logo{font-size:34px;font-weight:900;letter-spacing:3.4px}.sub{margin-top:10px;opacity:.68;font-size:14px}.bar{height:4px;background:#ffffff20;border-radius:99px;overflow:hidden;margin:22px auto 0;max-width:220px}.bar:after{content:"";display:block;width:45%;height:100%;background:#fff;border-radius:99px;animation:load 1s ease-in-out infinite alternate}@keyframes load{to{transform:translateX(125%)}}#error{display:none;white-space:pre-wrap;line-height:1.45}.boot-retry{appearance:none;border:0;border-radius:14px;padding:12px 18px;min-height:44px;margin-top:18px;background:#fff;color:#07111f;font:800 14px/1 -apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sans-serif;cursor:pointer}
+@supports (height:100dvh){#boot{min-height:100dvh}}
 </style>
 </head>
 <body>
@@ -19,39 +20,13 @@ html,body{margin:0;min-height:100%;font-family:-apple-system,BlinkMacSystemFont,
 <script>
 (()=>{
 'use strict';
-const BUILD='5.84-fix';
-const HOTFIX=`
-@media(max-width:600px){
-  .app-head{padding-top:calc(42px + env(safe-area-inset-top))!important;padding-left:18px!important;padding-right:18px!important;padding-bottom:12px!important}
-  .nav{bottom:calc(3px + env(safe-area-inset-bottom))!important;height:50px!important;width:calc(100% - 20px)!important;max-width:448px!important;padding-bottom:0!important;border:1px solid rgba(7,31,45,.08)!important;border-radius:18px!important;background:rgba(255,254,252,.90)!important;backdrop-filter:blur(24px) saturate(1.22)!important;-webkit-backdrop-filter:blur(24px) saturate(1.22)!important;box-shadow:0 10px 30px rgba(7,31,45,.10)!important}
-  .nav-btn{font-size:7px!important;gap:2px!important;line-height:1!important}.nav-btn .icon{width:17px!important;height:17px!important}
-  .nav-btn.active:before{top:3px!important;width:18px!important}
-  .view{padding-bottom:calc(145px + env(safe-area-inset-bottom))!important;scroll-padding-bottom:155px!important}#detail.view{padding-bottom:0!important}#discover .content{padding-bottom:58px!important}
-  .booking-command-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}.command-cell{min-width:0!important;padding:10px 9px!important;gap:7px!important}.command-cell .command-copy{min-width:0!important;overflow:visible!important}
-  .command-cell b{font-size:11.2px!important;line-height:1.18!important;white-space:normal!important;overflow:hidden!important;text-overflow:clip!important;display:-webkit-box!important;-webkit-box-orient:vertical!important;-webkit-line-clamp:2!important}.command-cell small{font-size:7.1px!important;letter-spacing:1px!important}.dateValue,.mealPlanValue{letter-spacing:-.1px!important}
-}
-@media(max-width:390px){.app-head{padding-top:calc(40px + env(safe-area-inset-top))!important}.nav{height:48px!important;width:calc(100% - 18px)!important}.nav-btn{font-size:6.8px!important}.nav-btn .icon{width:16px!important;height:16px!important}.command-cell b{font-size:10.8px!important}}
-`;
-const statusEl=document.getElementById('status');
-const setStatus=t=>statusEl.textContent=t;
-const mime=name=>({jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',webp:'image/webp',gif:'image/gif',svg:'image/svg+xml'})[name.split('.').pop().toLowerCase()]||'application/octet-stream';
-async function inflateRaw(bytes){const ds=new DecompressionStream('deflate-raw');return new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(ds)).arrayBuffer())}
-async function unzipNative(buffer){const u8=new Uint8Array(buffer),dv=new DataView(buffer),td=new TextDecoder(),out={};let off=0;while(off+30<=u8.length&&dv.getUint32(off,true)===0x04034b50){const flags=dv.getUint16(off+6,true),method=dv.getUint16(off+8,true),csize=dv.getUint32(off+18,true),nlen=dv.getUint16(off+26,true),xlen=dv.getUint16(off+28,true);if(flags&0x08)throw new Error('ZIP data descriptor unsupported');const name=td.decode(u8.subarray(off+30,off+30+nlen)),start=off+30+nlen+xlen,comp=u8.slice(start,start+csize);let raw;if(method===0)raw=comp;else if(method===8)raw=await inflateRaw(comp);else throw new Error('ZIP compression '+method+' unsupported');out[name]=raw;off=start+csize}if(!out['index.html'])throw new Error('index.html fehlt im Paket');return out}
-function loadScript(src){return new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=rej;document.head.appendChild(s)})}
-async function unzipFallback(buffer){setStatus('Kompatibilitätsmodus wird geladen …');await loadScript('https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js');const z=await JSZip.loadAsync(buffer),out={};for(const [name,e] of Object.entries(z.files))if(!e.dir)out[name]=new Uint8Array(await e.async('uint8array'));return out}
-function brand(html){html=html.split('ONE TRIP').join('NOREYO').split('One Trip').join('NOREYO').split('one trip').join('NOREYO').split('zeigt dir zuerst die Reisen').join('zeigt dir die Reisen');html=html.replace(/<title>.*?<\/title>/i,'<title>NOREYO – Travel made for you.</title>');html=html.replace(/<meta\s+name="application-name"[^>]*>/i,'<meta name="application-name" content="NOREYO">');if(!/name="apple-mobile-web-app-title"/i.test(html))html=html.replace('</title>','</title>\n<meta name="apple-mobile-web-app-title" content="NOREYO">');if(!/name="description"/i.test(html))html=html.replace('</title>','</title>\n<meta name="description" content="NOREYO – Travel made for you. Finde Hotels und Reisen, die wirklich zu deinen Wünschen passen.">');return html}
-function patch(html){
- html=html.split('V5.27').join('V5.84-fix').split('content="5.27"').join('content="5.84-fix"').split('BUILD 5.27').join('BUILD 5.84-fix');
- html=brand(html);
- const end='</style>';if(!html.includes(end))throw new Error('Style-Anker fehlt');
- let patched=html.replace(end,HOTFIX+end);
- if(!patched.includes('noreyo-v533.css'))patched=patched.replace('</head>','<link rel="stylesheet" href="./noreyo-v533.css?build=582"><link rel="stylesheet" data-noreyo-v534="1" href="./noreyo-v534.css?build=582"><link rel="stylesheet" href="./noreyo-v541.css?build=582"><link rel="stylesheet" href="./noreyo-v544.css?build=582"><link rel="stylesheet" href="./noreyo-v551.css?build=582"><link rel="stylesheet" href="./noreyo-v552.css?build=582"><link rel="stylesheet" href="./noreyo-v555.css?build=582"><link rel="stylesheet" href="./noreyo-v556.css?build=582"><link rel="stylesheet" href="./noreyo-v557.css?build=582"><link rel="stylesheet" href="./noreyo-v558.css?build=582"><link rel="stylesheet" href="./noreyo-v583.css?build=583"><link rel="stylesheet" href="./noreyo-v584.css?build=584"></head>');
- const enhancer='<scr'+'ipt src="./noreyo-v533.js?build=582"></scr'+'ipt><scr'+'ipt src="./noreyo-v541.js?build=582"></scr'+'ipt><scr'+'ipt src="./noreyo-v544.js?build=582"></scr'+'ipt><scr'+'ipt src="./noreyo-v546.js?build=582"></scr'+'ipt><scr'+'ipt src="./noreyo-v547.js?build=582"></scr'+'ipt><scr'+'ipt src="./noreyo-v548.js?build=582"></scr'+'ipt><scr'+'ipt src="./noreyo-v551.js?build=582"></scr'+'ipt><scr'+'ipt src="./noreyo-v552.js?build=582"></scr'+'ipt><scr'+'ipt src="./noreyo-v553.js?build=582"></scr'+'ipt><scr'+'ipt src="./noreyo-v554.js?build=582"></scr'+'ipt><scr'+'ipt src="./noreyo-v555.js?build=582"></scr'+'ipt><scr'+'ipt src="./noreyo-v556.js?build=582"></scr'+'ipt><scr'+'ipt src="./noreyo-v557.js?build=582"></scr'+'ipt><scr'+'ipt src="./noreyo-v558.js?build=582"></scr'+'ipt><scr'+'ipt src="./noreyo-v584.js?build=584"></scr'+'ipt>';
- if(!patched.includes('noreyo-v533.js'))patched=patched.replace('</body>',enhancer+'</body>');
- return patched;
-}
-async function boot(){try{setStatus('NOREYO '+BUILD+' wird vorbereitet …');const r=await fetch('./site.zip?build=noreyo-584',{cache:'no-store'});if(!r.ok)throw new Error('site.zip konnte nicht geladen werden ('+r.status+')');const buffer=await r.arrayBuffer();let files;try{files=await unzipNative(buffer)}catch(e){console.warn(e);files=await unzipFallback(buffer)}let html=patch(new TextDecoder().decode(files['index.html']));setStatus('Bilder werden vorbereitet …');for(const [name,bytes] of Object.entries(files)){if(!name.startsWith('assets/')||name.endsWith('/'))continue;const url=URL.createObjectURL(new Blob([bytes],{type:mime(name)}));html=html.split(name).join(url)}document.open();document.write(html);document.close()}catch(err){console.error(err);document.getElementById('bar').style.display='none';statusEl.textContent='NOREYO konnte nicht geladen werden';const e=document.getElementById('error');e.style.display='block';e.textContent='Bitte Seite neu laden.\n\n'+(err?.message||String(err))}}
-boot();
+const SRC='./noreyo-bootstrap-v1261.js?build=1261',ATTEMPTS=2,RETRY_MS=300,TIMEOUT_MS=15000;
+let attempt=0,timer=0,done=false;
+const status=document.getElementById('status'),bar=document.getElementById('bar'),error=document.getElementById('error');
+function fail(message){if(done)return;done=true;if(timer){clearTimeout(timer);timer=0;}if(bar)bar.style.display='none';if(status)status.textContent='NOREYO konnte nicht geladen werden';if(!error)return;error.style.display='block';error.setAttribute('role','alert');error.setAttribute('aria-live','assertive');error.textContent='Die Verbindung zum Reisemodul ist fehlgeschlagen.';const button=document.createElement('button');button.type='button';button.className='boot-retry';button.textContent='Erneut versuchen';button.addEventListener('click',()=>location.reload());error.appendChild(document.createElement('br'));error.appendChild(button);try{button.focus({preventScroll:true});}catch(_){}console.error(message||'NOREYO bootstrap failed');}
+function url(){attempt+=1;return SRC+(attempt>1?'&noreyo_outer_retry='+attempt:'');}
+function load(){if(done)return;const script=document.createElement('script');let settled=false;const finish=(ok,reason)=>{if(settled||done)return;settled=true;if(timer){clearTimeout(timer);timer=0;}script.onload=script.onerror=null;if(ok){done=true;return;}try{script.remove();}catch(_){}if(attempt<ATTEMPTS){setTimeout(load,RETRY_MS);return;}fail(reason);};timer=setTimeout(()=>finish(false,'Bootstrap-Timeout'),TIMEOUT_MS);script.src=url();script.onload=()=>finish(true);script.onerror=()=>finish(false,'Bootstrap konnte nicht geladen werden');document.head.appendChild(script);}
+load();window.NOREYO_OUTER_BOOT=Object.freeze({SRC,ATTEMPTS,RETRY_MS,TIMEOUT_MS});
 })();
 </script>
 </body>

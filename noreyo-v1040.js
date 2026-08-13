@@ -1,0 +1,34 @@
+/* NOREYO V10.40 — explicit max-flight constraint activation.
+   Packed core historically stores 270 minutes by default even though V9.04 disabled
+   the range and never enforced it. Do not reinterpret that untouched legacy default
+   as a new hard constraint. Retire V10.34's naive max-duration inference, preserve
+   hard exclusions, and activate maxFlightMinutes only after a real user change (or
+   when a non-default legacy value proves prior customization). */
+(function(){
+'use strict';
+const BUILD='10.40',LEGACY_DEFAULT=270,NO_LIMIT=480,MARKER='noreyoFlightMaxExplicitV1040';
+const EXCLUSIONS=Object.freeze(['Nachtflug','Getrennte Tickets','Transfer über 60 Min.']);
+let observer=null,raf=0,retired=false;
+function marker(){try{return localStorage.getItem(MARKER)==='1';}catch(_){return false;}}
+function mark(){try{localStorage.setItem(MARKER,'1');}catch(_){}schedule();return true;}
+function excludedSet(){try{return typeof excluded!=='undefined'?excluded:(window.excluded||new Set());}catch(_){return window.excluded||new Set();}}
+function limit(){try{return Number((typeof limits!=='undefined'?limits:window.limits)?.maxFlightMinutes);}catch(_){return NaN;}}
+function explicitMax(){const n=limit();return Number.isFinite(n)&&n>0&&n<NO_LIMIT&&(marker()||n!==LEGACY_DEFAULT);}
+function activeConstraints(){const out=[];const ex=excludedSet();for(const x of EXCLUSIONS)if(ex?.has?.(x))out.push(x);if(explicitMax()){const n=limit();out.push(`Maximale Flugzeit ${Math.floor(n/60)}:${String(n%60).padStart(2,'0')} Std.`);}return out;}
+function body(){return document.getElementById('plannerBody');}
+function flightOpen(){return document.getElementById('plannerSheet')?.classList?.contains('show')&&String(document.getElementById('plannerTitle')?.textContent||'').trim()==='Flüge';}
+function otherBlock(btn){return btn?.dataset?.noreyoV1004Bag==='1'||btn?.dataset?.noreyoV1008Must==='1';}
+function expired(offer){try{return !!window.NOREYO_V994?.expired?.(offer?.expiration);}catch(_){return false;}}
+function restore1034(){let changed=false;const old=window.NOREYO_V1034;if(old&&!retired){try{old.cleanup?.();}catch(_){}try{window.removeEventListener('pageshow',old.observe);}catch(_){}try{window.removeEventListener('pagehide',old.cleanup);}catch(_){}retired=true;changed=true;}const b=body();if(b){const list=Array.isArray(b.__noreyoV943Offers)?b.__noreyoV943Offers:[];b.querySelectorAll?.('.noreyo-v943-offer').forEach(card=>{const btn=card.querySelector('.noreyo-v943-select');if(btn?.dataset?.noreyoV1034Strict==='1'){delete btn.dataset.noreyoV1034Strict;const label=btn.dataset.noreyoV1034Label||'Angebot auswählen';delete btn.dataset.noreyoV1034Label;const offer=list[Number(card.dataset.flightOfferIndex)];if(!otherBlock(btn)&&!expired(offer)){btn.disabled=false;btn.setAttribute('aria-disabled','false');btn.textContent=label;}changed=true;}});const note=b.querySelector('.noreyo-v1034-note');if(note){note.remove();changed=true;}}return changed;}
+function blockButton(btn){if(!btn||btn.dataset.noreyoV1040Strict==='1')return false;btn.dataset.noreyoV1040Strict='1';btn.dataset.noreyoV1040Label=btn.textContent||'Angebot auswählen';btn.disabled=true;btn.setAttribute('aria-disabled','true');btn.textContent='Harte Fluggrenze nicht verifiziert';return true;}
+function restoreButton(btn,offer){if(!btn||btn.dataset.noreyoV1040Strict!=='1')return false;delete btn.dataset.noreyoV1040Strict;const label=btn.dataset.noreyoV1040Label||'Angebot auswählen';delete btn.dataset.noreyoV1040Label;if(!otherBlock(btn)&&!expired(offer)){btn.disabled=false;btn.setAttribute('aria-disabled','false');btn.textContent=label;}return true;}
+function noteText(items=activeConstraints()){return items.length?`Auswahl gesperrt: ${items.join(', ')} ${items.length===1?'ist':'sind'} als harte Grenze aktiv, kann mit den aktuell normalisierten Flugdaten aber noch nicht sicher bestätigt werden.`:'';}
+function sync(){raf=0;restore1034();if(!flightOpen())return false;const b=body();if(!b)return false;const items=activeConstraints(),block=items.length>0,list=Array.isArray(b.__noreyoV943Offers)?b.__noreyoV943Offers:[];let changed=false;b.querySelectorAll?.('.noreyo-v943-offer').forEach(card=>{const btn=card.querySelector('.noreyo-v943-select'),offer=list[Number(card.dataset.flightOfferIndex)];if(block){if(blockButton(btn))changed=true;}else if(restoreButton(btn,offer))changed=true;});let note=b.querySelector('.noreyo-v1040-note'),text=noteText(items);if(text){if(!note){note=document.createElement('div');note.className='backend-note noreyo-v1040-note';const first=b.firstElementChild;if(first)b.insertBefore(note,first);else b.appendChild(note);changed=true;}if(note.textContent!==text){note.textContent=text;changed=true;}}else if(note){note.remove();changed=true;}return changed;}
+function fixRangeCopy(root=document.getElementById('sheetScroll')){if(!root)return false;const range=[...root.querySelectorAll?.('.range')||[]].find(x=>/Maximale Flugzeit/i.test(x.textContent||''));if(!range)return false;const hint=range.querySelector('.filter-hint');if(!hint)return false;const isExplicit=explicitMax();const text=isExplicit?'Harte Grenze aktiv: Kann die aktuelle Flight-Normalisierung die Dauer nicht sicher bestätigen, wird die Angebotsauswahl konservativ gesperrt.':`Noch keine harte Flugzeit-Grenze aktiv. Der historische Standard ${Math.floor(LEGACY_DEFAULT/60)}:${String(LEGACY_DEFAULT%60).padStart(2,'0')} Std. wird erst nach einer Änderung des Reglers verbindlich.`;if(hint.textContent===text)return false;hint.textContent=text;return true;}
+function onChange(e){const input=e.target?.matches?.('.range input[type="range"]')?e.target:null;if(!input)return;const range=input.closest?.('.range');if(!/Maximale Flugzeit/i.test(range?.textContent||''))return;mark();fixRangeCopy(range.parentElement||document.getElementById('sheetScroll'));}
+function schedule(){if(!raf)raf=requestAnimationFrame(()=>{raf=0;restore1034();sync();fixRangeCopy();});}
+function observe(){if(observer){observer.disconnect();observer=null;}if(typeof MutationObserver==='undefined'||!document.body)return false;observer=new MutationObserver(schedule);observer.observe(document.body,{subtree:true,childList:true});document.addEventListener('change',onChange,true);schedule();return true;}
+function cleanup(){if(observer){observer.disconnect();observer=null;}document.removeEventListener('change',onChange,true);if(raf){cancelAnimationFrame(raf);raf=0;}}
+observe();window.addEventListener('pagehide',cleanup,{passive:true});window.addEventListener('pageshow',observe,{passive:true});
+window.NOREYO_V1040=Object.freeze({BUILD,LEGACY_DEFAULT,NO_LIMIT,MARKER,EXCLUSIONS,marker,mark,excludedSet,limit,explicitMax,activeConstraints,restore1034,blockButton,restoreButton,noteText,sync,fixRangeCopy,onChange,schedule,observe,cleanup});
+})();

@@ -1,0 +1,24 @@
+const fs=require('fs'),vm=require('vm');
+const code=fs.readFileSync('./noreyo-v1106.js','utf8');
+let calls=0;
+const ctx={console,Number,String,Object,Array,JSON,Date,Intl,Error,AbortController,Response,providerAnon:'anon-public',searchState:{checkin:'2026-09-10',checkout:'2026-09-17',adults:2,childAges:[5]},fetch:async()=>{calls++;return new Response(JSON.stringify({data:{prebookId:'pb_123456789',pricing:{display:{total:845.5,currency:'EUR'}}}}),{status:200,headers:{'content-type':'application/json','X-Noreyo-Provider-Route':'hotels/prebook'}})},setTimeout,clearTimeout,requestAnimationFrame(){return 1},cancelAnimationFrame(){},window:{addEventListener(){},renderDetail(o){return o.hotel}},document:{body:null,addEventListener(){},removeEventListener(){},querySelector(){return null}},MutationObserver:function(){this.observe=()=>{};this.disconnect=()=>{}}};
+vm.createContext(ctx);vm.runInContext(code,ctx);const a=ctx.window.NOREYO_V1106;let fail=0;
+(async()=>{
+ ctx.window.renderDetail({hotel:'Test',live:true,selectedOfferId:'offer_ABCDEFG',checkin:'2026-09-10',checkout:'2026-09-17',adults:2,childAges:[5]});
+ let snap=await a.prebook();
+ let ok=calls===1&&snap.offerId==='offer_ABCDEFG'&&snap.prebookId==='pb_123456789'&&snap.price===845.5&&snap.currency==='EUR'&&a.sameOffer();
+ console.log(ok?'PASS hotel prebook stores selected-tariff checkout snapshot':'FAIL prebook '+JSON.stringify(snap));if(!ok)fail++;
+ ok=a.prebookId({prebook:{prebookId:'x12345678'}})==='x12345678'&&a.price({pricing:{display:{total:'199.90'}}})===199.9;
+ console.log(ok?'PASS hotel prebook response normalization':'FAIL normalization');if(!ok)fail++;
+ ctx.window.renderDetail({hotel:'Test',live:true,selectedOfferId:'different_offer',checkin:'2026-09-10',checkout:'2026-09-17',adults:2,childAges:[5]});
+ ok=!ctx.window.NOREYO_HOTEL_PREBOOK;
+ console.log(ok?'PASS tariff change invalidates old prebook snapshot':'FAIL invalidation');if(!ok)fail++;
+ ctx.window.renderDetail({hotel:'Test',live:true,selectedOfferId:'offer_CONTEXT',checkin:'2026-09-10',checkout:'2026-09-17',adults:2,childAges:[5]});
+ await a.prebook();
+ ctx.window.renderDetail({hotel:'Test',live:true,selectedOfferId:'offer_CONTEXT',checkin:'2026-09-11',checkout:'2026-09-18',adults:2,childAges:[5]});
+ ok=!ctx.window.NOREYO_HOTEL_PREBOOK;
+ console.log(ok?'PASS date-context change invalidates old prebook snapshot':'FAIL context');if(!ok)fail++;
+ ok=a.message({error:{message:'Tarif weg'}},409)==='Tarif weg';
+ console.log(ok?'PASS safe server error copy propagated':'FAIL error');if(!ok)fail++;
+ process.exit(fail?1:0);
+})().catch(e=>{console.error(e);process.exit(1)});

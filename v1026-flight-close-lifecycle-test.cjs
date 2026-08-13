@@ -1,0 +1,18 @@
+const fs=require('fs'),vm=require('vm');
+const code=fs.readFileSync('noreyo-v1026.js','utf8');
+let closed=0,show=true,title='Flüge';
+const ctx={console,window:{addEventListener(){},NOREYO_SELECTED_FLIGHT:{offerId:'A'},closePlanner(){closed++;show=false;}},document:{getElementById(id){if(id==='plannerSheet')return{classList:{contains(){return show}}};if(id==='plannerTitle')return{textContent:title};return null;}}};
+vm.createContext(ctx);vm.runInContext(code,ctx);
+const a=ctx.window.NOREYO_V1026;let fail=0;
+ctx.window.closePlanner();
+let ok=closed===1&&!ctx.window.NOREYO_SELECTED_FLIGHT;
+console.log(ok?'PASS closing flight planner clears invisible selection':'FAIL flight close');if(!ok)fail++;
+show=true;title='Reisende';ctx.window.NOREYO_SELECTED_FLIGHT={offerId:'B'};
+ctx.window.closePlanner();
+ok=ctx.window.NOREYO_SELECTED_FLIGHT?.offerId==='B';
+console.log(ok?'PASS closing unrelated planner does not clear flight selection':'FAIL unrelated');if(!ok)fail++;
+show=false;title='Flüge';ctx.window.NOREYO_SELECTED_FLIGHT={offerId:'C'};
+ctx.window.closePlanner();
+ok=ctx.window.NOREYO_SELECTED_FLIGHT?.offerId==='C';
+console.log(ok?'PASS already-closed flight shell does not mutate selection':'FAIL hidden');if(!ok)fail++;
+process.exit(fail?1:0);

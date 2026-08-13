@@ -1,7 +1,8 @@
 (function(){
+  'use strict';
+  const BUILD='6.57';
   let plannerScrollY=0;
   let plannerLocked=false;
-  let vvTimer=0;
 
   function destinationOpen(){
     try{return typeof plannerMode!=='undefined'&&plannerMode==='destination'&&document.getElementById('plannerSheet')?.classList.contains('show');}
@@ -11,6 +12,7 @@
   function viewportMetrics(){
     const vv=window.visualViewport;
     return {
+      width:Math.max(260,Math.round(vv?.width||window.innerWidth||390)),
       height:Math.max(260,Math.round(vv?.height||window.innerHeight||700)),
       top:Math.max(0,Math.round(vv?.offsetTop||0)),
       left:Math.max(0,Math.round(vv?.offsetLeft||0))
@@ -20,19 +22,15 @@
   function syncVisualViewport(){
     const m=viewportMetrics();
     const root=document.documentElement;
+    root.style.setProperty('--noreyo-vv-width',m.width+'px');
     root.style.setProperty('--noreyo-vv-height',m.height+'px');
     root.style.setProperty('--noreyo-vv-top',m.top+'px');
     root.style.setProperty('--noreyo-vv-left',m.left+'px');
     if(!destinationOpen())return;
 
-    const keyboardOpen=document.activeElement?.matches?.('#plannerSheet .planner-search input')||m.height<(window.innerHeight||m.height)-100;
+    const keyboardOpen=document.activeElement?.matches?.('#plannerSheet .planner-search input')||
+      m.height<(window.innerHeight||m.height)-100;
     document.body.classList.toggle('noreyo-planner-keyboard',!!keyboardOpen);
-
-    const body=document.getElementById('plannerBody');
-    if(keyboardOpen&&body){
-      clearTimeout(vvTimer);
-      vvTimer=setTimeout(()=>{body.scrollTop=0;},30);
-    }
   }
 
   function lockPlannerPage(){
@@ -45,15 +43,19 @@
     syncVisualViewport();
   }
 
-  function unlockPlannerPage(){
-    if(!plannerLocked)return;
+  function clearPlannerLock(restoreScroll,immediate){
+    const wasLocked=plannerLocked;
     plannerLocked=false;
     document.documentElement.classList.remove('noreyo-planner-lock');
     document.body.classList.remove('noreyo-planner-lock','noreyo-planner-keyboard');
     document.body.style.top='';
     document.getElementById('plannerSheet')?.classList.remove('noreyo-destination-sheet');
-    requestAnimationFrame(()=>window.scrollTo(0,plannerScrollY));
+    if(!restoreScroll||!wasLocked)return;
+    if(immediate)window.scrollTo(0,plannerScrollY);
+    else requestAnimationFrame(()=>window.scrollTo(0,plannerScrollY));
   }
+
+  function unlockPlannerPage(){clearPlannerLock(true,false);}
 
   function stabilizeDestinationSheet(){
     if(!destinationOpen())return;
@@ -66,7 +68,7 @@
   }
 
   function installPlannerHooks(){
-    if(typeof openPlanner==='function'&&!openPlanner.__noreyo545){
+    if(typeof openPlanner==='function'&&!openPlanner.__noreyo611){
       const baseOpen=openPlanner;
       const wrapped=function(mode){
         const r=baseOpen.apply(this,arguments);
@@ -76,21 +78,21 @@
         }
         return r;
       };
-      wrapped.__noreyo545=true;
+      wrapped.__noreyo611=true;
       openPlanner=wrapped;
     }
 
-    if(typeof closePlanner==='function'&&!closePlanner.__noreyo545){
+    if(typeof closePlanner==='function'&&!closePlanner.__noreyo611){
       const baseClose=closePlanner;
       const wrapped=function(){const r=baseClose.apply(this,arguments);unlockPlannerPage();return r;};
-      wrapped.__noreyo545=true;
+      wrapped.__noreyo611=true;
       closePlanner=wrapped;
     }
 
-    if(typeof chooseDestination==='function'&&!chooseDestination.__noreyo545){
+    if(typeof chooseDestination==='function'&&!chooseDestination.__noreyo611){
       const baseChoose=chooseDestination;
       const wrapped=function(){const r=baseChoose.apply(this,arguments);unlockPlannerPage();return r;};
-      wrapped.__noreyo545=true;
+      wrapped.__noreyo611=true;
       chooseDestination=wrapped;
     }
   }
@@ -100,13 +102,9 @@
     if(!input||!destinationOpen())return;
     document.body.classList.add('noreyo-planner-keyboard');
     syncVisualViewport();
-
-    /* Important on iOS: do NOT call scrollIntoView here. Safari would pan the
-       visual viewport again and move the complete bottom sheet. */
     const body=document.getElementById('plannerBody');
     requestAnimationFrame(()=>{if(body)body.scrollTop=0;syncVisualViewport();});
-    setTimeout(()=>{if(body)body.scrollTop=0;syncVisualViewport();},80);
-    setTimeout(()=>{if(body)body.scrollTop=0;syncVisualViewport();},260);
+    setTimeout(()=>{if(body&&body.scrollTop<24)body.scrollTop=0;syncVisualViewport();},80);
   },true);
 
   document.addEventListener('focusout',e=>{
@@ -119,20 +117,21 @@
     },80);
   },true);
 
-  const onViewportChange=()=>{
-    syncVisualViewport();
-    if(destinationOpen()&&document.activeElement?.closest?.('#plannerSheet .planner-search input')){
-      const body=document.getElementById('plannerBody');
-      if(body)body.scrollTop=0;
-    }
-  };
+  const onViewportChange=()=>{syncVisualViewport();};
 
   window.visualViewport?.addEventListener('resize',onViewportChange);
   window.visualViewport?.addEventListener('scroll',onViewportChange);
   window.addEventListener('resize',onViewportChange);
-  window.addEventListener('pageshow',()=>{installPlannerHooks();syncVisualViewport();});
+  window.addEventListener('pagehide',()=>{clearPlannerLock(true,true);},{passive:true});
+  window.addEventListener('pageshow',()=>{
+    installPlannerHooks();
+    if(destinationOpen())requestAnimationFrame(stabilizeDestinationSheet);
+    else clearPlannerLock(false,true);
+    syncVisualViewport();
+  },{passive:true});
 
   installPlannerHooks();
   syncVisualViewport();
   setTimeout(installPlannerHooks,120);
+  window.NOREYO_V544=Object.freeze({BUILD,destinationOpen,viewportMetrics,stabilizeDestinationSheet,clearPlannerLock});
 })();

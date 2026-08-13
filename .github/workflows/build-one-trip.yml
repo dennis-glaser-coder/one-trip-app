@@ -1,39 +1,196 @@
-name: Build ONE TRIP
+name: Validate NOREYO
 
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - index.html
+      - site.zip
+      - 'noreyo-*.js'
+      - 'v*-test.cjs'
+      - .github/workflows/build-one-trip.yml
   push:
     branches: [main]
     paths:
+      - index.html
       - site.zip
-      - tools/apply_v528.py
+      - 'noreyo-*.js'
+      - 'v*-test.cjs'
       - .github/workflows/build-one-trip.yml
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  build:
+  validate:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Build V5.28 from verified V5.27 package
+      - name: Validate active bootstrap dependency closure
+        shell: bash
         run: |
-          unzip -p site.zip index.html > index.html
-          python tools/apply_v528.py
+          set -euo pipefail
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
 
-      - name: Commit generated index
+          index = Path('index.html').read_text(encoding='utf-8')
+          refs = re.findall(r'noreyo-bootstrap-v\d+\.js\?build=\d+', index)
+          if not refs:
+              raise SystemExit('No active bootstrap reference found in index.html')
+
+          queue = [refs[-1].split('?', 1)[0]]
+          seen = set()
+          dep_re = re.compile(r"\./(noreyo-[A-Za-z0-9._-]+\.js)\?build=\d+")
+
+          while queue:
+              rel = queue.pop(0)
+              if rel in seen:
+                  continue
+              seen.add(rel)
+              path = Path(rel)
+              if not path.is_file():
+                  raise SystemExit(f'Missing bootstrap dependency: {rel}')
+              text = path.read_text(encoding='utf-8')
+              if rel.startswith('noreyo-bootstrap-') and 'const BUILD=' not in text:
+                  raise SystemExit(f'Bootstrap has no BUILD marker: {rel}')
+              for dep in dep_re.findall(text):
+                  if dep not in seen:
+                      queue.append(dep)
+
+          print(f'Validated {len(seen)} active bootstrap/dependency files')
+          PY
+
+      - name: Check NOREYO JavaScript syntax
+        shell: bash
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add index.html
-          if git diff --cached --quiet; then
-            echo "index.html already up to date"
-          else
-            git commit -m "Build ONE TRIP V5.28"
-            git push
-          fi
+          set -euo pipefail
+          count=0
+          while IFS= read -r -d '' file; do
+            node --check "$file"
+            count=$((count + 1))
+          done < <(find . -maxdepth 1 -type f -name 'noreyo-*.js' -print0)
+          test "$count" -gt 0
+          echo "Checked $count JavaScript files"
 
-# trigger build after connector setup
+      - name: Run NOREYO regression tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          count=0
+          while IFS= read -r -d '' file; do
+            echo "Running $file"
+            timeout 20s node "$file"
+            count=$((count + 1))
+          done < <(find . -maxdepth 1 -type f -name 'v*-test.cjs' -print0 | sort -z)
+          test "$count" -gt 0
+          echo "Passed $count regression tests"
+
+      - name: Check inline index JavaScript syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from html.parser import HTMLParser
+          from pathlib import Path
+
+          class InlineScripts(HTMLParser):
+              def __init__(self):
+                  super().__init__()
+                  self.capture = False
+                  self.current = []
+                  self.scripts = []
+              def handle_starttag(self, tag, attrs):
+                  if tag.lower() != 'script':
+                      return
+                  attrs = dict(attrs)
+                  self.capture = 'src' not in attrs
+                  self.current = []
+              def handle_data(self, data):
+                  if self.capture:
+                      self.current.append(data)
+              def handle_endtag(self, tag):
+                  if tag.lower() == 'script' and self.capture:
+                      script = ''.join(self.current).strip()
+                      if script:
+                          self.scripts.append(script)
+                      self.capture = False
+                      self.current = []
+
+          parser = InlineScripts()
+          parser.feed(Path('index.html').read_text(encoding='utf-8'))
+          if not parser.scripts:
+              raise SystemExit('No inline index bootstrap script found')
+          out = Path('/tmp/noreyo-inline')
+          out.mkdir(exist_ok=True)
+          for i, script in enumerate(parser.scripts, 1):
+              (out / f'inline-{i}.js').write_text(script, encoding='utf-8')
+          print(f'Extracted {len(parser.scripts)} inline script(s)')
+          PY
+
+          for file in /tmp/noreyo-inline/*.js; do
+            node --check "$file"
+          done
+
+      - name: Validate packaged site structure
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f site.zip
+          unzip -l site.zip | grep -Eq '(^|[[:space:]])index\.html$'
+
+      - name: Assemble active browser QA runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/noreyo-runtime-qa
+          mkdir -p /tmp/noreyo-runtime-qa/site
+          cp index.html site.zip /tmp/noreyo-runtime-qa/
+          unzip -q site.zip -d /tmp/noreyo-runtime-qa/site
+          python3 - <<'PY'
+          import re, shutil
+          from pathlib import Path
+
+          root = Path('.')
+          out = Path('/tmp/noreyo-runtime-qa')
+          index = Path('index.html').read_text(encoding='utf-8')
+          refs = re.findall(r'noreyo-bootstrap-v\d+\.js\?build=\d+', index)
+          if not refs:
+              raise SystemExit('No active bootstrap reference found')
+          queue = [refs[-1].split('?', 1)[0]]
+          seen = set()
+          dep_re = re.compile(r"\./(noreyo-[A-Za-z0-9._-]+\.js)\?build=\d+")
+          while queue:
+              rel = queue.pop(0)
+              if rel in seen:
+                  continue
+              seen.add(rel)
+              src = root / rel
+              if not src.is_file():
+                  raise SystemExit(f'Missing active runtime file: {rel}')
+              shutil.copy2(src, out / rel)
+              for dep in dep_re.findall(src.read_text(encoding='utf-8')):
+                  if dep not in seen:
+                      queue.append(dep)
+          (out / 'ACTIVE_RUNTIME_FILES.txt').write_text('\n'.join(sorted(seen)) + '\n', encoding='utf-8')
+          print(f'Assembled {len(seen)} active runtime JavaScript files')
+          PY
+          test -f /tmp/noreyo-runtime-qa/site/index.html
+
+      - name: Upload packed site QA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: noreyo-site-qa
+          path: site.zip
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Upload active browser QA runtime
+        uses: actions/upload-artifact@v4
+        with:
+          name: noreyo-runtime-qa
+          path: /tmp/noreyo-runtime-qa
+          if-no-files-found: error
+          retention-days: 1

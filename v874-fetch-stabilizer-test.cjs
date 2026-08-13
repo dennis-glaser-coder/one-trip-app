@@ -1,0 +1,13 @@
+const fs=require('fs'),vm=require('vm');
+const code=fs.readFileSync('./noreyo-v874.js','utf8');
+let network=0;
+const base=async()=>{network++;return'OK'};
+const ctx={console,Object,Array,window:{fetch:base,addEventListener(){}}};
+vm.createContext(ctx);vm.runInContext(code,ctx);const a=ctx.window.NOREYO_V874;
+let fail=0;
+const first=ctx.window.fetch;
+let ok=first!==base&&first.__noreyoV874===true&&first.__noreyoV872===true&&first.__noreyoV849===true;
+console.log(ok?'PASS final wrapper advertises V8.72 and earlier fetch markers':'FAIL markers');if(!ok)fail++;
+const again=a.install();ok=again===false&&ctx.window.fetch===first;console.log(ok?'PASS repeated install does not grow wrapper stack':'FAIL repeat');if(!ok)fail++;
+const olderWouldWrap=!ctx.window.fetch.__noreyoV849;const familyWouldWrap=!ctx.window.fetch.__noreyoV872;ok=!olderWouldWrap&&!familyWouldWrap;console.log(ok?'PASS V8.49/V8.72 pageshow both remain no-op':'FAIL old layers');if(!ok)fail++;
+Promise.resolve(ctx.window.fetch('x')).then(v=>{const good=v==='OK'&&network===1;console.log(good?'PASS fetch pass-through remains single network call':'FAIL '+JSON.stringify({v,network}));if(!good)fail++;process.exit(fail?1:0);});

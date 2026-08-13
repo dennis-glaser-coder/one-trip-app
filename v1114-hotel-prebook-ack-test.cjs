@@ -1,0 +1,10 @@
+const fs=require('fs'),vm=require('vm');const code=fs.readFileSync('./noreyo-v1114.js','utf8');
+let changed=true;
+const ctx={console,String,Object,Date,window:{addEventListener(){},NOREYO_HOTEL_PREBOOK:{prebookId:'pb_1'},NOREYO_V1112:{model(){return{changed}}},NOREYO_V1106:{sameOffer(){return true}}},document:{body:null,querySelector(){return null},addEventListener(){},removeEventListener(){}},MutationObserver:function(){this.observe=()=>{};this.disconnect=()=>{}},requestAnimationFrame(){return 1},cancelAnimationFrame(){}};
+vm.createContext(ctx);vm.runInContext(code,ctx);const a=ctx.window.NOREYO_V1114;let fail=0;
+let ok=a.checkoutReady()===false&&!a.isAccepted();console.log(ok?'PASS changed final hotel price blocks checkout readiness':'FAIL block');if(!ok)fail++;
+ctx.window.NOREYO_HOTEL_PREBOOK_ACCEPTED={prebookId:'pb_1',acceptedAt:'now'};ok=a.checkoutReady()===true&&a.isAccepted();console.log(ok?'PASS explicit matching acknowledgement unlocks readiness':'FAIL accept');if(!ok)fail++;
+ctx.window.NOREYO_HOTEL_PREBOOK={prebookId:'pb_2'};ok=a.checkoutReady()===false&&a.isAccepted()===false;console.log(ok?'PASS new prebook invalidates old acknowledgement':'FAIL stale');if(!ok)fail++;
+changed=false;ctx.window.NOREYO_HOTEL_PREBOOK_ACCEPTED=undefined;ok=a.checkoutReady()===true;console.log(ok?'PASS unchanged final price requires no extra acknowledgement':'FAIL unchanged');if(!ok)fail++;
+ctx.window.NOREYO_V1106.sameOffer=()=>false;ok=a.checkoutReady()===false;console.log(ok?'PASS stale hotel context remains blocked':'FAIL context');if(!ok)fail++;
+process.exit(fail?1:0);

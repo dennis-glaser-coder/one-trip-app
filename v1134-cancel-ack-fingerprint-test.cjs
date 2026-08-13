@@ -1,0 +1,14 @@
+const fs=require('fs'),vm=require('vm');const code=fs.readFileSync('./noreyo-v1134.js','utf8');
+const ctx={console,Number,String,Object,Array,JSON,Date,setTimeout(fn){fn();},window:{addEventListener(){},NOREYO_HOTEL_PREBOOK:{prebookId:'p1',offerId:'o1'},NOREYO_HOTEL_PREBOOK_TERMS:{summary:{kind:'nonrefundable'},policies:[{refundableTag:'NRFN',cancelPolicyInfos:[]}]},NOREYO_V1128:{priceReady(){return true},termsOwned(){return true},cancellationKind(){return 'nonrefundable'},render(){}}},document:{body:null,addEventListener(){},removeEventListener(){}},MutationObserver:function(){this.observe=()=>{};this.disconnect=()=>{}},requestAnimationFrame(){return 1},cancelAnimationFrame(){}};
+vm.createContext(ctx);vm.runInContext(code,ctx);const a=ctx.window.NOREYO_V1134;let fail=0;
+let f=a.fingerprint();let ok=f.prebookId==='p1'&&f.offerId==='o1'&&f.kind==='nonrefundable'&&f.policies.includes('NRFN');
+console.log(ok?'PASS exact cancellation terms fingerprint':'FAIL fp');if(!ok)fail++;
+ctx.window.NOREYO_HOTEL_CANCEL_ACCEPTED={...f};
+ok=a.isAccepted()&&ctx.window.NOREYO_V1128.checkoutReady();
+console.log(ok?'PASS matching nonrefundable acknowledgement is checkout-ready':'FAIL matching');if(!ok)fail++;
+ctx.window.NOREYO_HOTEL_PREBOOK_TERMS={summary:{kind:'nonrefundable'},policies:[{refundableTag:'NRFN',cancelPolicyInfos:[{amount:100,cancelTime:'2026-09-01T00:00:00Z'}]}]};
+ok=!a.isAccepted()&&!ctx.window.NOREYO_V1128.checkoutReady();
+console.log(ok?'PASS same prebook with changed terms invalidates acknowledgement':'FAIL changed');if(!ok)fail++;
+a.sync();ok=!ctx.window.NOREYO_HOTEL_CANCEL_ACCEPTED;
+console.log(ok?'PASS stale cancellation acknowledgement cleared':'FAIL clear');if(!ok)fail++;
+process.exit(fail?1:0);

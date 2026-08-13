@@ -1,0 +1,1 @@
+console.log('::warning file=v1198z-checkpoint-test.cjs::NOREYO regression checkpoint reached after V11.98');

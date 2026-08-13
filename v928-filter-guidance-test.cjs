@@ -1,0 +1,10 @@
+const fs=require('fs'),vm=require('vm');const code=fs.readFileSync('noreyo-v928.js','utf8');
+const defs={Zimmer:[['Balkon'],['Meerblick']],Hotel:[['4 Sterne']],Preis:[['Gesamtpreis'],['Gebühr'],['Stornierbar']],Lage:[['Strand']],Flug:[['Direkt']]};
+const states={Zimmer0:'wish',Zimmer1:'any',Hotel0:'any',Preis0:'any',Preis1:'any',Preis2:'must',Lage0:'any',Flug0:'any'};
+const btn={textContent:'Pflichtkriterien prüfen',attrs:{onclick:"openFilter('Zimmer')"},getAttribute(k){return this.attrs[k]??null},setAttribute(k,v){this.attrs[k]=v}};
+const ctx={console,Object,String,Array,states,defs,window:{addEventListener(){}},document:{body:null,querySelectorAll(sel){return sel==='#offers .planner-save'?[btn]:[]},createTreeWalker(){return{nextNode(){return false}}}},NodeFilter:{SHOW_TEXT:4},MutationObserver:function(){this.observe=()=>{};this.disconnect=()=>{}},requestAnimationFrame(){return 1},cancelAnimationFrame(){}};
+vm.createContext(ctx);vm.runInContext(code,ctx);const a=ctx.window.NOREYO_V928;let fail=0;
+let ok=a.firstMustTab()==='Preis';console.log(ok?'PASS blocking must tab resolves to Preis':'FAIL tab');if(!ok)fail++;
+a.repairNoResultButton(ctx.document);ok=btn.textContent==='Preis-Pflichtkriterien prüfen'&&btn.attrs.onclick==="openFilter('Preis')";console.log(ok?'PASS no-result CTA opens blocking filter category':'FAIL '+JSON.stringify(btn));if(!ok)fail++;
+Object.keys(states).forEach(k=>delete states[k]);states.Zimmer0='must';ok=a.firstMustTab()==='Zimmer';console.log(ok?'PASS Zimmer fallback remains stable':'FAIL fallback');if(!ok)fail++;
+process.exit(fail?1:0);

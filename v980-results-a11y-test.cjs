@@ -1,0 +1,10 @@
+const fs=require('fs'),vm=require('vm');const code=fs.readFileSync('./noreyo-v980.js','utf8');
+function El(){this.attrs={};this.dataset={};this.listeners={};this.clicked=0;}
+El.prototype.getAttribute=function(k){return this.attrs[k]??null};El.prototype.setAttribute=function(k,v){this.attrs[k]=String(v)};El.prototype.addEventListener=function(k,fn){this.listeners[k]=fn};El.prototype.click=function(){this.clicked++};
+const summary=new El(),results=new El(),list=new El();
+const ctx={console,window:{addEventListener(){}},document:{body:{},querySelector(sel){return sel==='#results .result-summary'?summary:null},getElementById(id){return id==='results'?results:id==='list'?list:null}},MutationObserver:function(){this.observe=()=>{};this.disconnect=()=>{}},requestAnimationFrame(){return 1},cancelAnimationFrame(){}};
+vm.createContext(ctx);vm.runInContext(code,ctx);const a=ctx.window.NOREYO_V980;let fail=0;
+let ok=a.enhance()&&summary.attrs.role==='button'&&summary.attrs.tabindex==='0'&&summary.attrs['aria-label']==='Suche ändern';console.log(ok?'PASS result summary becomes keyboard button':'FAIL summary '+JSON.stringify(summary.attrs));if(!ok)fail++;
+let prevented=0,stopped=0;summary.listeners.keydown({key:'Enter',preventDefault(){prevented++},stopPropagation(){stopped++}});ok=summary.clicked===1&&prevented===1&&stopped===1;console.log(ok?'PASS Enter activates result summary once':'FAIL enter');if(!ok)fail++;
+ok=results.attrs.role==='region'&&results.attrs['aria-label']==='Suchergebnisse'&&list.attrs['aria-live']==='polite'&&list.attrs['aria-atomic']==='false';console.log(ok?'PASS result region/list semantics applied':'FAIL region '+JSON.stringify({results:results.attrs,list:list.attrs}));if(!ok)fail++;
+ok=a.enhance()===false;console.log(ok?'PASS result enhancement idempotent':'FAIL idempotency');if(!ok)fail++;process.exit(fail?1:0);

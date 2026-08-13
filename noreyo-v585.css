@@ -1,0 +1,32 @@
+/* NOREYO V6.19 — iPhone readability + touch sizing */
+@media(max-width:600px){
+  .nav{height:54px!important;bottom:calc(4px + env(safe-area-inset-bottom))!important}
+  .nav-btn{min-height:44px!important;font-size:9.5px!important;line-height:1.05!important;gap:3px!important;touch-action:manipulation}
+  .nav-btn .icon{width:18px!important;height:18px!important}
+  .nav-btn.active:before{top:3px!important;width:20px!important}
+  .booking-command-grid{gap:9px!important}
+  .command-cell{min-height:60px!important;padding:11px 10px!important;touch-action:manipulation}
+  .command-cell small{font-size:9.5px!important;line-height:1.15!important;letter-spacing:.8px!important}
+  .command-cell b{font-size:12px!important;line-height:1.22!important}
+  .noreyo-v541-booking-cta,#searchView .search-card .primary{min-height:50px!important;touch-action:manipulation}
+
+  #favorites .v584-fav-card{grid-template-columns:78px minmax(0,1fr) 46px!important}
+  #favorites .v584-fav-card button{width:44px!important;height:44px!important;min-width:44px!important;min-height:44px!important;touch-action:manipulation}
+
+  .noreyo-v557-close{width:44px!important;height:44px!important;min-width:44px!important;min-height:44px!important;touch-action:manipulation}
+  .noreyo-v557-more-toggle{min-height:44px!important;display:inline-flex!important;align-items:center!important;justify-content:flex-end!important;padding:8px 2px!important;touch-action:manipulation}
+  .noreyo-v557-foot button{height:48px!important;min-height:48px!important;touch-action:manipulation}
+  .noreyo-v557-item{min-height:48px!important;touch-action:manipulation}
+}
+@media(max-width:390px){
+  .nav{height:52px!important}
+  .nav-btn{font-size:9px!important}
+  .nav-btn .icon{width:17px!important;height:17px!important}
+  .command-cell{min-height:58px!important;padding:10px 9px!important}
+  .command-cell small{font-size:9px!important}
+  .command-cell b{font-size:11.5px!important}
+  #favorites .v584-fav-card{grid-template-columns:70px minmax(0,1fr) 44px!important;gap:8px!important}
+  #favorites .v584-fav-card>img{width:70px!important;height:64px!important}
+  .noreyo-v557-item{min-height:46px!important}
+}
+@media(prefers-reduced-motion:reduce){.nav-btn,.command-cell,.noreyo-v557-item{transition:none!important}}

@@ -1,0 +1,9 @@
+const fs=require('fs'),vm=require('vm');const code=fs.readFileSync('noreyo-v945.js','utf8');
+function Button(){this.dataset={};this.attrs={};this.disabled=false;this.textContent='Angebot auswählen'};Button.prototype.setAttribute=function(k,v){this.attrs[k]=v};Button.prototype.removeAttribute=function(k){delete this.attrs[k]};
+function Card(i,b){this.dataset={flightOfferIndex:String(i)};this.button=b;this.classes=new Set();this.classList={add:x=>this.classes.add(x),remove:x=>this.classes.delete(x)}};Card.prototype.querySelector=function(){return this.button};
+const ctx={console,Date,Number,Object,Array,window:{addEventListener(){}},document:{body:null,addEventListener(){},getElementById(){return null}},MutationObserver:function(){this.observe=()=>{};this.disconnect=()=>{}},requestAnimationFrame(){return 1},cancelAnimationFrame(){},setInterval(){return 1},clearInterval(){}};
+vm.createContext(ctx);vm.runInContext(code,ctx);const a=ctx.window.NOREYO_V945;let fail=0,now=Date.parse('2026-08-12T10:00:00Z');
+let ok=a.expired({expiration:'2026-08-12T09:59:59Z'},now)&&!a.expired({expiration:'2026-08-12T10:00:01Z'},now)&&!a.expired({},now);console.log(ok?'PASS expiry classification':'FAIL expiry');if(!ok)fail++;
+const b=new Button(),card=new Card(0,b),offers=[{expiration:'2026-08-12T09:00:00Z'}];a.applyCard(card,offers,now);ok=b.disabled&&b.attrs['aria-disabled']==='true'&&/abgelaufen/.test(b.textContent)&&card.classes.has('noreyo-v945-expired');console.log(ok?'PASS expired offer disabled accessibly':'FAIL disable');if(!ok)fail++;
+offers[0].expiration='2026-08-12T12:00:00Z';a.applyCard(card,offers,now);ok=!b.disabled&&!('aria-disabled'in b.attrs)&&b.textContent==='Angebot auswählen'&&!card.classes.has('noreyo-v945-expired');console.log(ok?'PASS refreshed offer can become selectable again':'FAIL restore');if(!ok)fail++;
+if(fail)process.exit(1);

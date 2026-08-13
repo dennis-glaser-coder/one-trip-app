@@ -1,0 +1,23 @@
+/* NOREYO V11.18 — final hotel PREBOOK cancellation-policy truth.
+   Capture only the sanitized hotel-prebook response and summarize the cancellation
+   rules of the actually confirmed prebook session in the hotel detail. */
+(function(){
+'use strict';
+const BUILD='11.18';
+let installed=false,priorFetch=null,observer=null,raf=0;
+function inputUrl(input){if(typeof input==='string')return input;try{if(typeof Request!=='undefined'&&input instanceof Request)return input.url||'';}catch(_){}return String(input?.url||'');}
+function isPrebook(input){return inputUrl(input).includes('/functions/v1/hotel-prebook');}
+function requestOfferId(input,init){try{if(typeof init?.body==='string')return String(JSON.parse(init.body)?.offerId||'').trim();}catch(_){}return'';}
+function policies(payload){const rooms=Array.isArray(payload?.data?.roomTypes)?payload.data.roomTypes:[];const out=[];for(const room of rooms)for(const rate of Array.isArray(room?.rates)?room.rates:[]){const p=rate?.cancellationPolicies;if(p&&typeof p==='object')out.push(p);}return out;}
+function positiveDeadline(p){const rows=Array.isArray(p?.cancelPolicyInfos)?p.cancelPolicyInfos:[];return rows.filter(x=>Number(x?.amount)>0&&String(x?.cancelTime||'').trim()).map(x=>String(x.cancelTime).trim()).sort()[0]||'';}
+function summary(list){if(!Array.isArray(list)||!list.length)return{kind:'unknown',text:'Finale Stornierungsbedingungen konnten aus der PREBOOK-Antwort nicht vollständig gelesen werden.'};const tags=list.map(p=>String(p?.refundableTag||'').toUpperCase());if(tags.some(t=>t==='NRFN'))return{kind:'nonrefundable',text:'Final bestätigt: Mindestens ein Tarifbestandteil ist nicht stornierbar.'};if(tags.some(t=>t!=='RFN'))return{kind:'unknown',text:'Finale Stornierbarkeit ist für mindestens einen Tarifbestandteil nicht eindeutig bestätigt.'};const deadlines=list.map(positiveDeadline).filter(Boolean).sort();if(!deadlines.length)return{kind:'refundable',text:'Final bestätigt: Tarif ist stornierbar; in den übermittelten Regeln ist keine positive Stornogebühr ausgewiesen.'};return{kind:'refundable',text:`Final bestätigt: Tarif ist stornierbar. Erste positive Stornogebühr kann ab ${deadlines[0]} greifen.`};}
+function capture(offerId,payload){const list=policies(payload);window.NOREYO_HOTEL_PREBOOK_TERMS=Object.freeze({offerId:String(offerId||''),capturedAt:new Date().toISOString(),policies:list,summary:summary(list)});schedule();}
+function install(){if(installed||typeof window.fetch!=='function'||window.fetch.__noreyoV1118)return false;priorFetch=window.fetch.bind(window);const wrapped=async function(input,init){const response=await priorFetch(input,init);if(isPrebook(input)&&response?.ok){const id=requestOfferId(input,init);try{const payload=await response.clone().json();capture(id,payload);}catch(_){}}return response;};wrapped.__noreyoV1118=true;wrapped.__noreyoV1118Prior=priorFetch;window.fetch=wrapped;installed=true;return true;}
+function terms(){return window.NOREYO_HOTEL_PREBOOK_TERMS||null;}
+function render(){raf=0;const snap=window.NOREYO_HOTEL_PREBOOK,term=terms(),status=document.querySelector('.noreyo-v1106-status');if(!status)return false;let row=status.querySelector('.noreyo-v1118-cancel');if(!snap||!term||term.offerId!==snap.offerId){if(row){row.remove();return true;}return false;}if(!row){row=document.createElement('p');row.className='noreyo-v1118-cancel';status.appendChild(row);}const text=term.summary?.text||'Finale Stornierungsbedingungen nicht verfügbar.';if(row.textContent===text)return false;row.textContent=text;return true;}
+function schedule(){if(!raf)raf=requestAnimationFrame(render);}
+function observe(){if(observer){observer.disconnect();observer=null;}if(typeof MutationObserver==='undefined'||!document.body)return false;observer=new MutationObserver(schedule);observer.observe(document.body,{subtree:true,childList:true,characterData:true});schedule();return true;}
+function cleanup(){if(observer){observer.disconnect();observer=null;}if(raf){cancelAnimationFrame(raf);raf=0;}if(installed&&window.fetch?.__noreyoV1118&&priorFetch)window.fetch=priorFetch;installed=false;priorFetch=null;}
+install();observe();window.addEventListener('pagehide',cleanup,{passive:true});window.addEventListener('pageshow',()=>{install();observe();},{passive:true});
+window.NOREYO_V1118=Object.freeze({BUILD,inputUrl,isPrebook,requestOfferId,policies,positiveDeadline,summary,capture,install,terms,render,schedule,observe,cleanup});
+})();

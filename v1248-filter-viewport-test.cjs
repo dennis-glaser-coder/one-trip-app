@@ -1,0 +1,15 @@
+const fs=require('fs'),vm=require('vm');const code=fs.readFileSync('./noreyo-v1248.js','utf8');
+function ClassList(items=[]){this.s=new Set(items)}ClassList.prototype.contains=function(x){return this.s.has(x)};
+const sh={classList:new ClassList(['show']),style:{}};const sc={style:{}};let vvHeight=600;
+const vv={get height(){return vvHeight},addEventListener(){},removeEventListener(){}};
+const ctx={console,Number,Object,Math,window:{visualViewport:vv,innerHeight:700,addEventListener(){},removeEventListener(){}},document:{getElementById(id){return id==='sheet'?sh:id==='sheetScroll'?sc:null},addEventListener(){},removeEventListener(){}},requestAnimationFrame(){return 1},cancelAnimationFrame(){}};
+vm.createContext(ctx);vm.runInContext(code,ctx);const a=ctx.window.NOREYO_V1248;let fail=0;
+let m=a.metrics(600),ok=m.sheetHeight===552&&m.scrollHeight===377;
+console.log(ok?'PASS filter sheet metrics stay inside 600px visible viewport':'FAIL metrics '+JSON.stringify(m));if(!ok)fail++;
+a.sync();ok=sh.style.height==='552px'&&sh.style.maxHeight==='600px'&&sc.style.height==='377px';
+console.log(ok?'PASS visible filter sheet receives bounded viewport dimensions':'FAIL sync '+JSON.stringify({sheet:sh.style,scroll:sc.style}));if(!ok)fail++;
+vvHeight=320;a.sync();m=a.metrics(320);ok=Number.parseInt(sh.style.height)<=320&&Number.parseInt(sc.style.height)>=80;
+console.log(ok?'PASS small Safari viewport remains bounded without negative scroll area':'FAIL small '+JSON.stringify({m,sheet:sh.style,scroll:sc.style}));if(!ok)fail++;
+sh.classList=new ClassList([]);a.reset();ok=sh.style.height===''&&sh.style.maxHeight===''&&sc.style.height==='';
+console.log(ok?'PASS closing filter restores packed fallback sizing':'FAIL reset');if(!ok)fail++;
+process.exit(fail?1:0);

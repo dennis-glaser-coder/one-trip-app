@@ -1,0 +1,11 @@
+const fs=require('fs'),vm=require('vm');
+const code=fs.readFileSync('./noreyo-v939.js','utf8');
+let nodes={};
+const head={appendChild(el){nodes[el.id]=el}};
+const ctx={console,Object,window:{},document:{head,getElementById(id){return nodes[id]||null},createElement(){return{id:'',textContent:'',remove(){delete nodes[this.id]}}}}};
+vm.createContext(ctx);vm.runInContext(code,ctx);const a=ctx.window.NOREYO_V939;let fail=0;
+let ok=!!nodes[a.STYLE_ID]&&a.CSS.includes('min-height:44px!important')&&a.CSS.includes('.product-mode{height:44px!important}');
+console.log(ok?'PASS mobile controls receive 44px minimum touch targets':'FAIL style');if(!ok)fail++;
+ok=a.install()===false&&Object.keys(nodes).length===1;
+console.log(ok?'PASS style install is idempotent':'FAIL idempotency');if(!ok)fail++;
+if(fail)process.exit(1);

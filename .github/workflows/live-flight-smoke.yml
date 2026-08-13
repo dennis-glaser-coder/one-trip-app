@@ -1,0 +1,163 @@
+name: NOREYO Live Flight Smoke
+
+on:
+  push:
+    branches:
+      - agent/v585-safety-on-main
+
+permissions:
+  contents: read
+
+jobs:
+  flight-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run live flight search and verify through Supabase -> LiteAPI
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, re, urllib.request, urllib.error, zipfile
+          from datetime import date, timedelta
+
+          with zipfile.ZipFile('site.zip') as z:
+              html = z.read('index.html').decode('utf-8', errors='ignore')
+          m = re.search(r"const anonKey='([^']+)'", html)
+          if not m:
+              raise SystemExit('Could not resolve public Supabase anon key from packed client')
+          anon = m.group(1)
+
+          start = date.today() + timedelta(days=45)
+          end = start + timedelta(days=5)
+          search_endpoint = 'https://fcvffslhnaqlwitaeers.supabase.co/functions/v1/search-travel'
+          verify_endpoint = 'https://fcvffslhnaqlwitaeers.supabase.co/functions/v1/flight-verify'
+          routes = [('DUS','PMI'), ('FRA','PMI')]
+          last = None
+
+          def offers(payload):
+              candidates = [
+                  payload.get('data') if isinstance(payload, dict) else None,
+                  payload.get('offers') if isinstance(payload, dict) else None,
+                  payload.get('flights') if isinstance(payload, dict) else None,
+              ]
+              if isinstance(payload, dict) and isinstance(payload.get('data'), dict):
+                  data = payload['data']
+                  candidates.extend([data.get('data'), data.get('offers'), data.get('flights')])
+              for candidate in candidates:
+                  if isinstance(candidate, list):
+                      return candidate
+              return None
+
+          def find_offer_id(value):
+              if isinstance(value, dict):
+                  for key, item in value.items():
+                      if str(key).replace('_','').lower() == 'offerid' and isinstance(item, str) and len(item.strip()) >= 8:
+                          return item.strip()
+                  for item in value.values():
+                      found = find_offer_id(item)
+                      if found:
+                          return found
+              elif isinstance(value, list):
+                  for item in value:
+                      found = find_offer_id(item)
+                      if found:
+                          return found
+              return None
+
+          def post(endpoint, payload, timeout=40):
+              req = urllib.request.Request(
+                  endpoint,
+                  data=json.dumps(payload).encode('utf-8'),
+                  method='POST',
+                  headers={
+                      'Content-Type': 'application/json',
+                      'apikey': anon,
+                      'Authorization': f'Bearer {anon}'
+                  }
+              )
+              try:
+                  with urllib.request.urlopen(req, timeout=timeout) as res:
+                      return res.status, (res.headers.get('X-Noreyo-Provider-Route') or '').strip().lower(), json.loads(res.read().decode('utf-8'))
+              except urllib.error.HTTPError as e:
+                  text = e.read().decode('utf-8', errors='replace')[:1000]
+                  raise SystemExit(f'Live provider request HTTP {e.code}: {text}')
+
+          selected_offer_id = None
+          selected_origin = None
+          selected_destination = None
+          selected_body = None
+          for origin, destination in routes:
+              payload = {
+                  'action': 'flightSearch',
+                  'legs': [
+                      {'origin': origin, 'destination': destination, 'date': start.isoformat(), 'direction': 'OUTBOUND'},
+                      {'origin': destination, 'destination': origin, 'date': end.isoformat(), 'direction': 'INBOUND'}
+                  ],
+                  'adults': 2,
+                  'children': 2,
+                  'childrenAges': [5, 8],
+                  'infants': 0,
+                  'infantAges': [],
+                  'currency': 'EUR',
+                  'country': 'DE'
+              }
+              status, route, body = post(search_endpoint, payload)
+              if status != 200:
+                  raise SystemExit(f'Unexpected flight-search HTTP status: {status}')
+              if route != 'flights':
+                  raise SystemExit(f'Unexpected flight-search provider route: {route!r}')
+              data = offers(body)
+              if data is None:
+                  raise SystemExit('Provider response does not expose a recognizable flight-offer list')
+              last = (origin, destination, len(data))
+              print(f'Live flight search {origin}->{destination}: 2 adults + children ages 5/8, HTTP 200, route={route}, offers={len(data)}')
+              if data:
+                  selected_offer_id = find_offer_id(data[0]) or find_offer_id(body)
+                  if not selected_offer_id:
+                      raise SystemExit('Live flight result did not expose a usable offerId for Verify')
+                  selected_origin, selected_destination, selected_body = origin, destination, body
+                  print('PASS live Supabase/LiteAPI flight search returned offer data')
+                  break
+          else:
+              raise SystemExit(f'Both live flight searches returned zero offers; last={last}')
+
+          with open('.noreyo-live-flight.json','w',encoding='utf-8') as f:
+              json.dump(selected_body,f)
+          with open('.noreyo-live-flight-meta.json','w',encoding='utf-8') as f:
+              json.dump({'origin':selected_origin,'destination':selected_destination,'offerId':selected_offer_id},f)
+
+          status, route, verified = post(verify_endpoint, {'offerId': selected_offer_id}, timeout=30)
+          if status != 200:
+              raise SystemExit(f'Unexpected flight-verify HTTP status: {status}')
+          if route != 'flights/verify':
+              raise SystemExit(f'Unexpected flight-verify provider route: {route!r}')
+          if not isinstance(verified, dict) or verified.get('error'):
+              raise SystemExit('Flight Verify returned an invalid/error payload')
+          print('PASS selected live flight offer verified through Supabase -> LiteAPI')
+          PY
+
+      - name: Run NOREYO flight normalizer against the live LiteAPI response
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs=require('fs'),vm=require('vm');
+          const code=fs.readFileSync('noreyo-v943.js','utf8');
+          const payload=JSON.parse(fs.readFileSync('.noreyo-live-flight.json','utf8'));
+          const meta=JSON.parse(fs.readFileSync('.noreyo-live-flight-meta.json','utf8'));
+          const ctx={console,window:{}};
+          vm.createContext(ctx);vm.runInContext(code,ctx);
+          const api=ctx.window.NOREYO_V943;
+          if(!api)throw new Error('NOREYO V9.43 flight normalizer unavailable');
+          const normalized=api.normalizedOffers(meta.origin,meta.destination,payload);
+          if(!normalized.length)throw new Error('Live provider response produced zero NOREYO-normalized offers');
+          const selected=normalized.find(x=>x.offerId===meta.offerId)||normalized[0];
+          if(!selected.offerId)throw new Error('Normalized live offer lost offerId');
+          if(!Number.isFinite(selected.price)||selected.price<0)throw new Error(`Normalized live offer has no finite price: ${selected.price}`);
+          if(!/^[A-Z]{3}$/.test(selected.currency))throw new Error(`Normalized live offer has invalid currency: ${selected.currency}`);
+          console.log(`PASS NOREYO V9.43 normalized live offer ${selected.origin}->${selected.destination}, price=${selected.price} ${selected.currency}`);
+          NODE

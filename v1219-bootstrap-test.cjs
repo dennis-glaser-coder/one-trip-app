@@ -1,0 +1,5 @@
+const fs=require('fs'),vm=require('vm');const code=fs.readFileSync('./noreyo-bootstrap-v1219.js','utf8');let appended=[];
+const builds={1202:'12.02',1204:'12.04',1206:'12.06',1208:'12.08',1210:'12.10',1212:'12.12',1214:'12.14',1216:'12.16',1218:'12.18'};
+const doc={getElementById(){return null},createElement(){return{src:'',onload:null,onerror:null,remove(){}}},head:{appendChild(s){appended.push(s.src);queueMicrotask(()=>{if(s.src.includes('v1201')){ctx.window.NOREYO_V1201={state:()=>({status:'ready'})};s.onload?.();return;}const id=s.src.match(/v(\d+)\.js/)?.[1];if(id&&builds[id]){ctx.window['NOREYO_V'+id]={BUILD:builds[id]};s.onload?.();}else s.onerror?.();});}}};
+const ctx={console,document:doc,window:{},location:{reload(){}},Promise,Object,String,Error,Date,queueMicrotask,setTimeout,clearTimeout};vm.createContext(ctx);vm.runInContext(code,ctx);
+setTimeout(async()=>{const api=ctx.window.NOREYO_V1219;await api.run();const ok=appended.at(-1)?.includes('v1218')&&api.state().status==='ready'&&appended.length===10;console.log(ok?'PASS V12.19 delivery/readiness':'FAIL '+JSON.stringify({appended,state:api.state()}));process.exit(ok?0:1)},1200);

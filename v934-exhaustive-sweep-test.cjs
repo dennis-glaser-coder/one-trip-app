@@ -1,0 +1,4 @@
+const fs=require('fs'),vm=require('vm');const code=fs.readFileSync('noreyo-v934.js','utf8');
+const calls=[];const yes=n=>()=>{calls.push(n);return true};
+const ctx={console,window:{addEventListener(){},NOREYO_V928:{repairNoResultButton:yes('filter-button'),repairFlightFilterCopy:yes('filter-copy')},NOREYO_V930:{syncNav:yes('nav'),syncHeader:yes('header'),syncInspiration:yes('inspiration')},NOREYO_V932:{fixProfile:yes('profile')}},document:{body:null},MutationObserver:function(){this.observe=()=>{};this.disconnect=()=>{}},requestAnimationFrame(){return 1},cancelAnimationFrame(){}};
+vm.createContext(ctx);vm.runInContext(code,ctx);const a=ctx.window.NOREYO_V934;calls.length=0;const changed=a.sweep();const want=['filter-button','filter-copy','nav','header','inspiration','profile'];const ok=changed&&JSON.stringify(calls)===JSON.stringify(want);console.log(ok?'PASS exhaustive sweep runs every independent repair':'FAIL '+JSON.stringify(calls));process.exit(ok?0:1);

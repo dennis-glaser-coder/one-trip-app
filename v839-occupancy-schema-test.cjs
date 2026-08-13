@@ -1,0 +1,6 @@
+const fs=require('fs'),vm=require('vm');
+const code=fs.readFileSync('./noreyo-v839.js','utf8');
+const ctx={console,String,Number,Object,Array,JSON,Response,Request,setTimeout(fn){fn()},window:{fetch:async()=>new Response('{}',{status:200}),addEventListener(){}}};
+vm.createContext(ctx);vm.runInContext(code,ctx);const a=ctx.window.NOREYO_V839;let fail=0;
+const cases=[[{occupancies:[{adults:2,children:{age:4}}]},true,'non-array children rejected'],[{occupancies:[{adults:2,childAges:'4'}]},true,'non-array childAges rejected'],[{occupancies:[{adults:2,children:[4],childAges:[5]}]},true,'conflicting duplicate child ages rejected'],[{occupancies:[{adults:2,children:[4],childAges:[4]}]},false,'equivalent duplicate age arrays accepted'],[{occupancies:[{adults:2,children:[{age:4},{age:8}]}]},false,'child objects accepted'],[{occupancies:[{adults:1,children:[{foo:4}]}]},true,'child object without age rejected'],[{occupancies:[null]},true,'null room rejected'],[{occupancies:[[2,4]]},true,'array room rejected'],[{action:'flight',occupancies:[{adults:0,children:{}}]},false,'flight bypass preserved']];
+for(const [raw,wantProblem,label] of cases){const p=a.occupancyProblem(raw),ok=!!p===wantProblem;console.log((ok?'PASS ':'FAIL ')+label+' -> '+JSON.stringify(p));if(!ok)fail++;}if(fail)process.exit(1);

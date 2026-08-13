@@ -1,0 +1,8 @@
+const fs=require('fs'),vm=require('vm');
+const baseCode=fs.readFileSync('./noreyo-v1056.js','utf8');
+const code=fs.readFileSync('./noreyo-v1058.js','utf8');
+const ctx={console,String,Object,Set,Error,window:{addEventListener(){},async resolveDirectHotel(query){if(query==='Hilton')return{hotelId:'1',hotelName:'Hilton Dubai Palm Jumeirah'};if(query==='Riu')return{hotelId:'2',hotelName:'Hotel Riu'};if(query==='Caramelo')return{hotelId:'3',hotelName:'Hotel Caramelo Palma Beach'};return{hotelId:'4',hotelName:'Riu Palace Palmeras'};}}};
+vm.createContext(ctx);vm.runInContext(baseCode,ctx);vm.runInContext(code,ctx);const a=ctx.window.NOREYO_V1058;let fail=0;
+const cases=[['Hilton',{hotelName:'Hilton Dubai Palm Jumeirah'},true],['Caramelo',{hotelName:'Hotel Caramelo Palma Beach'},true],['Riu',{hotelName:'Hotel Riu'},false],['Riu Palace',{hotelName:'Hotel Riu Palace Palmeras'},false]];
+for(const [q,r,want] of cases){const got=a.ambiguousBrandOnly(q,r),ok=got===want;console.log((ok?'PASS ':'FAIL ')+q+' -> '+r.hotelName+' ambiguous='+got);if(!ok)fail++;}
+(async()=>{let ok=false;try{await ctx.window.resolveDirectHotel('Hilton')}catch(e){ok=e?.code==='NOREYO_HOTEL_RESOLVE_BRAND_AMBIGUOUS'}console.log(ok?'PASS ambiguous brand-only resolver result rejected':'FAIL Hilton');if(!ok)fail++;const r=await ctx.window.resolveDirectHotel('Riu');ok=r?.hotelId==='2';console.log(ok?'PASS effectively single-name hotel remains allowed':'FAIL Riu');if(!ok)fail++;const two=await ctx.window.resolveDirectHotel('Riu Palace');ok=two?.hotelId==='4';console.log(ok?'PASS multi-token specific hotel query remains allowed':'FAIL two-token');if(!ok)fail++;process.exit(fail?1:0);})().catch(e=>{console.error(e);process.exit(1)});

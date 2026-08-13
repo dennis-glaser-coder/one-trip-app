@@ -1,0 +1,28 @@
+const fs=require('fs'),vm=require('vm');
+const code=fs.readFileSync('./noreyo-v936.js','utf8');
+let steps=[],closed=0,focused='',rafFn=null;
+function Element(){this.attrs={};this.listeners={};this.style={};this.isConnected=true;this.disabled=false}
+Element.prototype.setAttribute=function(k,v){this.attrs[k]=String(v)};
+Element.prototype.getAttribute=function(k){return this.attrs[k]??null};
+Element.prototype.addEventListener=function(k,fn){this.listeners[k]=fn};
+Element.prototype.removeEventListener=function(){};
+Element.prototype.focus=function(){focused=this.name||'x'};
+Element.prototype.contains=function(){return false};
+const close=new Element();close.name='close';
+const prev=new Element();prev.name='prev';
+const next=new Element();next.name='next';
+const m=new Element();m.classList={contains:x=>x==='show',remove(){}};m.querySelector=s=>s==='.gallery-close'?close:null;m.querySelectorAll=()=>[close,prev,next];
+const vv={width:320,height:500,offsetTop:96,offsetLeft:18,addEventListener(){},removeEventListener(){}};
+const active=new Element();active.name='trigger';
+const ctx={console,Element,MutationObserver:function(){this.observe=()=>{};this.disconnect=()=>{}},document:{activeElement:active,getElementById:id=>id==='galleryModal'?m:null,addEventListener(){},removeEventListener(){}},window:{visualViewport:vv,innerWidth:390,innerHeight:844,addEventListener(){},removeEventListener(){},galleryStep:d=>steps.push(d),closeGallery:()=>{closed++}},requestAnimationFrame(fn){rafFn=fn;return 1},cancelAnimationFrame(){},setTimeout(fn){fn()}};
+vm.createContext(ctx);vm.runInContext(code,ctx);const a=ctx.window.NOREYO_V936;let fail=0;
+a.onOpened();if(rafFn)rafFn();
+let ok=m.attrs.role==='dialog'&&m.attrs['aria-modal']==='true'&&m.style.width==='320px'&&m.style.top==='96px';
+console.log(ok?'PASS gallery dialog + visualViewport':'FAIL '+JSON.stringify({attrs:m.attrs,style:m.style}));if(!ok)fail++;
+a.onTouchStart({touches:[{clientX:280}]});a.onTouchEnd({changedTouches:[{clientX:200}]});
+ok=steps.at(-1)===1;console.log(ok?'PASS left swipe advances':'FAIL swipe');if(!ok)fail++;
+a.onTouchStart({touches:[{clientX:100}]});a.onTouchEnd({changedTouches:[{clientX:170}]});
+ok=steps.at(-1)===-1;console.log(ok?'PASS right swipe goes previous':'FAIL swipe right');if(!ok)fail++;
+let prevented=0,stopped=0;a.onKey({key:'Escape',preventDefault(){prevented++},stopPropagation(){stopped++}});
+ok=closed===1&&prevented===1&&stopped===1&&focused==='trigger';console.log(ok?'PASS Escape closes and restores focus':'FAIL escape '+JSON.stringify({closed,focused}));if(!ok)fail++;
+if(fail)process.exit(1);

@@ -1,0 +1,22 @@
+const fs=require('fs'),vm=require('vm');const code=fs.readFileSync(require('path').join(__dirname,'noreyo-v1166.js'),'utf8');
+let signedOut=0,legacyRemoved=false,rendered=0;
+const status={textContent:''};
+const classes=new Set(['noreyo-v1162-logout']);
+const btn={hidden:false,disabled:false,textContent:'Abmelden',type:'',classList:{remove(x){classes.delete(x);legacyRemoved=true},add(x){classes.add(x)}},closest(){return panel}};
+const panel={querySelector(sel){if(sel==='.noreyo-v1166-logout')return classes.has('noreyo-v1166-logout')?btn:null;if(sel==='.noreyo-v1162-logout')return classes.has('noreyo-v1162-logout')?btn:null;if(sel==='.noreyo-v1162-status')return status;return null}};
+const root={querySelector(sel){return sel==='.noreyo-v1162-account'?panel:null}};
+const ctx={console,String,Object,window:{addEventListener(){},NOREYO_V1158:{async signOut(){signedOut++;return true},authError(){return''}},NOREYO_V1162:{model(){return{authenticated:true,email:'u@example.de'}},render(){rendered++}}},document:{body:null,getElementById(id){return id==='profile'?root:null},addEventListener(){},removeEventListener(){}},MutationObserver:function(){this.observe=()=>{};this.disconnect=()=>{}},requestAnimationFrame(){return 1},cancelAnimationFrame(){}};
+vm.createContext(ctx);vm.runInContext(code,ctx);const a=ctx.window.NOREYO_V1166;let fail=0;
+let b=a.secureButton();
+let ok=b===btn&&legacyRemoved&&classes.has('noreyo-v1166-logout')&&!classes.has('noreyo-v1162-logout');
+console.log(ok?'PASS legacy local-only logout control is retired from V11.62 delegation':'FAIL rename');if(!ok)fail++;
+(async()=>{
+ ok=await a.logout(panel)===true&&signedOut===1&&rendered===1&&status.textContent==='Du bist sicher abgemeldet.';
+ console.log(ok?'PASS profile logout uses secure signOut lifecycle':'FAIL logout '+JSON.stringify({signedOut,rendered,status:status.textContent}));if(!ok)fail++;
+ let stopped=0;
+ a.onClick({target:{closest(sel){return sel==='.noreyo-v1166-logout'?btn:null}},preventDefault(){},stopImmediatePropagation(){stopped++},stopPropagation(){}});
+ await new Promise(r=>setTimeout(r,0));
+ ok=stopped===1&&signedOut===2;
+ console.log(ok?'PASS secure profile logout click blocks legacy delegated handler':'FAIL click '+JSON.stringify({stopped,signedOut}));if(!ok)fail++;
+ process.exit(fail?1:0);
+})().catch(e=>{console.error(e);process.exit(1)});

@@ -1,0 +1,10 @@
+const fs=require('fs'),vm=require('vm');const code=fs.readFileSync('noreyo-v972.js','utf8');
+function El(text=''){this.attrs={};this.textContent=text;}El.prototype.getAttribute=function(k){return this.attrs[k]??null};El.prototype.setAttribute=function(k,v){this.attrs[k]=String(v)};
+const checkin=new El(),checkout=new El(),search=new El(),select=new El(),label=new El('Kind 1 · Alter');const minus=new El(),plus=new El(),strong=new El('2'),copy=new El('Erwachsene');
+const childRow={querySelector(sel){return sel==='label'?label:sel==='select'?select:null}};const counterRow={querySelector(sel){return sel==='.counter-copy b'?copy:sel==='.counter strong'?strong:null},querySelectorAll(sel){return sel==='.counter button'?[minus,plus]:[]}};
+const root={querySelector(sel){if(sel==='#checkinInput')return checkin;if(sel==='#checkoutInput')return checkout;if(sel.includes('planner-search'))return search;return null},querySelectorAll(sel){if(sel==='.child-age')return[childRow];if(sel==='.counter-row')return[counterRow];return[]}};
+const ctx={console,window:{addEventListener(){}},document:{getElementById(){return null}},MutationObserver:function(){this.observe=()=>{};this.disconnect=()=>{}},requestAnimationFrame(){return 1},cancelAnimationFrame(){}};vm.createContext(ctx);vm.runInContext(code,ctx);const a=ctx.window.NOREYO_V972;let fail=0;
+let ok=a.enhance(root)&&checkin.attrs['aria-label']==='Anreise'&&checkout.attrs['aria-label']==='Abreise'&&search.attrs['aria-label']==='Reiseziel suchen';console.log(ok?'PASS date/destination planner controls labelled':'FAIL core labels');if(!ok)fail++;
+ok=select.attrs['aria-label']==='Kind 1 · Alter'&&minus.attrs['aria-label']==='Erwachsene verringern'&&plus.attrs['aria-label']==='Erwachsene erhöhen';console.log(ok?'PASS traveller controls labelled':'FAIL traveller');if(!ok)fail++;
+ok=strong.attrs['aria-live']==='polite'&&strong.attrs['aria-atomic']==='true';console.log(ok?'PASS traveller counter value announced politely':'FAIL live');if(!ok)fail++;
+ok=a.enhance(root)===false;console.log(ok?'PASS planner control enhancement idempotent':'FAIL idempotency');if(!ok)fail++;process.exit(fail?1:0);

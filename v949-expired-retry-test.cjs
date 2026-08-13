@@ -1,0 +1,7 @@
+const fs=require('fs'),vm=require('vm');const code=fs.readFileSync('noreyo-v949.js','utf8');
+function Button(){this.disabled=true;this.attrs={'aria-disabled':'true'};this.textContent='Angebot abgelaufen · neu suchen';this.dataset={noreyoExpired:'1'}};Button.prototype.hasAttribute=function(k){return k in this.attrs};Button.prototype.removeAttribute=function(k){delete this.attrs[k]};Button.prototype.setAttribute=function(k,v){this.attrs[k]=v};
+const b=new Button();let searched=0,prevented=0,stopped=0;const ctx={console,Object,Array,window:{addEventListener(){},NOREYO_V943:{search(){searched++}}},document:{body:null,querySelectorAll(){return[]}},MutationObserver:function(){this.observe=()=>{};this.disconnect=()=>{}},requestAnimationFrame(){return 1},cancelAnimationFrame(){}};
+vm.createContext(ctx);vm.runInContext(code,ctx);const a=ctx.window.NOREYO_V949;let fail=0;
+a.repairButton(b);let ok=!b.disabled&&!('aria-disabled'in b.attrs)&&b.textContent==='Abgelaufen · Flüge neu suchen'&&/neu suchen/.test(b.attrs['aria-label']);console.log(ok?'PASS expired control becomes actionable retry':'FAIL '+JSON.stringify(b));if(!ok)fail++;
+const target={closest(sel){return sel.includes('noreyo-expired')?b:null}};a.onWindowClick({target,preventDefault(){prevented++},stopImmediatePropagation(){stopped++}});ok=searched===1&&prevented===1&&stopped===1;console.log(ok?'PASS expired retry intercepts before selection':'FAIL '+JSON.stringify({searched,prevented,stopped}));if(!ok)fail++;
+if(fail)process.exit(1);

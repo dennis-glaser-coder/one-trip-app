@@ -1,0 +1,11 @@
+/* NOREYO V9.22 — bounded hotel-detail auxiliary network requests. */
+(function(){
+'use strict';
+const BUILD='9.22';const LIMITS=Object.freeze({reviews:12000,board:14000,flex:10000});
+function url(input){if(typeof input==='string')return input;try{if(typeof Request!=='undefined'&&input instanceof Request)return input.url||'';}catch(_){}return String(input?.url||'');}
+function parseBody(init){if(typeof init?.body!=='string')return null;try{return JSON.parse(init.body);}catch(_){return null;}}
+function kind(input,init){const u=url(input);if(u.includes('/functions/v1/hotel-reviews'))return'reviews';if(!u.includes('/functions/v1/search-travel'))return'';const b=parseBody(init);if(!b||String(b.action||'').toLowerCase().startsWith('flight'))return'';if(b.boardType)return'board';if(String(b.sessionId||'').startsWith('flex-'))return'flex';return'';}
+function signal(existing,controller){if(!existing)return controller.signal;if(typeof AbortSignal!=='undefined'&&typeof AbortSignal.any==='function')return AbortSignal.any([existing,controller.signal]);if(existing.aborted){controller.abort(existing.reason);return controller.signal;}try{existing.addEventListener('abort',()=>controller.abort(existing.reason),{once:true});}catch(_){}return controller.signal;}
+function install(){try{if(typeof window.fetch!=='function'||window.fetch.__noreyoV922)return false;const prior=window.fetch.bind(window);const wrapped=async function(input,init){const k=kind(input,init);if(!k)return prior(input,init);const controller=new AbortController();const timer=setTimeout(()=>controller.abort(new DOMException('NOREYO auxiliary request timeout','AbortError')),LIMITS[k]);try{return await prior(input,{...(init||{}),signal:signal(init?.signal,controller)});}finally{clearTimeout(timer);}};wrapped.__noreyoV922=true;window.fetch=wrapped;return true;}catch(_){return false;}}
+install();window.addEventListener('pageshow',install,{passive:true});window.NOREYO_V922=Object.freeze({BUILD,LIMITS,url,parseBody,kind,signal,install});
+})();

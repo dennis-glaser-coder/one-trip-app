@@ -1,0 +1,7 @@
+const fs=require('fs'),vm=require('vm');const code=fs.readFileSync('noreyo-v886.js','utf8');
+const ctx={console,String,Number,Object,Array,encodeURIComponent,window:{addEventListener(){},renderFavs(){},renderTrips(){}},document:{addEventListener(){},getElementById(){return null}}};vm.createContext(ctx);vm.runInContext(code,ctx);const a=ctx.window.NOREYO_V886;let fail=0;
+const evil={key:"x');alert(1)//",hotel:'<img onerror=alert(1)>',destination:'Mallorca & Co',region:'Mallorca',stars:4,price:1234,checkin:'2026-09-01',checkout:'2026-09-08',img:'javascript:alert(1)'};
+let out=a.favoriteMarkup([evil]);let ok=!out.includes('<img onerror')&&out.includes('&lt;img')&&out.includes('%27')&&out.includes('role="button"')&&out.includes('tabindex="0"')&&out.includes('alt="');console.log(ok?'PASS favorite markup is escaped, quote-safe and keyboard-focusable':'FAIL '+out);if(!ok)fail++;
+out=a.tripMarkup([evil]);ok=!out.includes('<img onerror')&&out.includes('%27')&&out.includes('data-noreyo-saved-open="1"')&&out.includes('type="button"');console.log(ok?'PASS trip markup is safe and accessible':'FAIL '+out);if(!ok)fail++;
+ok=a.qkey("a'b").includes('%27');console.log(ok?'PASS saved key apostrophe encoded':'FAIL qkey');if(!ok)fail++;
+if(fail)process.exit(1);

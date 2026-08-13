@@ -1,0 +1,1 @@
+const fs=require('fs');const html=fs.readFileSync('./index.html','utf8');const m=html.match(/noreyo-bootstrap-v(\d+)\.js\?build=(\d+)/);const active=Number(m?.[1]||0),build=Number(m?.[2]||0);const ok=active>=1071&&build===active;console.log(ok?`PASS active delivery is V${active} (>= V1071)`:`FAIL active delivery ${active}/${build} is behind or mismatched`);process.exit(ok?0:1);

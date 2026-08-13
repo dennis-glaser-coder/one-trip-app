@@ -1,0 +1,7 @@
+const fs=require('fs'),vm=require('vm');
+const code=fs.readFileSync('./noreyo-bootstrap-v1055.js','utf8');
+let appended=[];
+const doc={getElementById(){return null},createElement(){return{src:'',onload:null,onerror:null,remove(){}}},head:{appendChild(s){appended.push(s.src);queueMicrotask(()=>{if(s.src.includes('v1049')){ctx.window.NOREYO_V1049={state:()=>({status:'ready'})};s.onload?.();}else if(s.src.includes('v1050')){ctx.window.NOREYO_V1050={BUILD:'10.50'};s.onload?.();}else if(s.src.includes('v1052')){ctx.window.NOREYO_V1052={BUILD:'10.52'};s.onload?.();}else if(s.src.includes('v1054')){ctx.window.NOREYO_V1054={BUILD:'10.54'};s.onload?.();}else s.onerror?.();});}}};
+const ctx={console,document:doc,window:{},location:{reload(){}},Promise,Object,String,Error,Date,queueMicrotask,setTimeout,clearTimeout};
+vm.createContext(ctx);vm.runInContext(code,ctx);
+setTimeout(async()=>{const api=ctx.window.NOREYO_V1055;await api.run();const ok=appended.at(-1)?.includes('noreyo-v1054.js?build=1054')&&api.state().status==='ready';console.log(ok?'PASS V10.55 activates tested V10.54 sort persistence':'FAIL '+JSON.stringify({appended,state:api.state()}));process.exit(ok?0:1);},500);

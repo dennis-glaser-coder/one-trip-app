@@ -1,0 +1,11 @@
+const fs=require('fs'),vm=require('vm');
+const code=fs.readFileSync('noreyo-v884.js','utf8');
+const ctx={console,String,Number,Object,Array,encodeURIComponent,window:{addEventListener(){},renderPlanner(){}},document:{getElementById(){return null}},plannerMode:''};
+vm.createContext(ctx);vm.runInContext(code,ctx);
+const a=ctx.window.NOREYO_V884;let fail=0;
+let out=a.markup([{key:"x');alert(1)//",target:1234,offer:{hotel:'<img src=x onerror=alert(1)>',destination:'Mallorca & Co',checkin:'2026-09-01',checkout:'2026-09-08'}}]);
+let ok=!out.includes('<img')&&out.includes('&lt;img')&&out.includes('Mallorca &amp; Co');console.log(ok?'PASS alert hotel/destination HTML is escaped':'FAIL '+out);if(!ok)fail++;
+ok=!out.includes("x');alert(1)//")&&out.includes('%27');console.log(ok?'PASS alert key cannot break inline handler quote':'FAIL key '+out);if(!ok)fail++;
+out=a.markup([{key:'a',target:'not-a-number',offer:{hotel:'Test'}}]);ok=out.includes('Preis nicht verfügbar');console.log(ok?'PASS invalid price does not render NaN':'FAIL money');if(!ok)fail++;
+ok=a.esc("A&B <C> \"D\" 'E'")==='A&amp;B &lt;C&gt; &quot;D&quot; &#39;E&#39;';console.log(ok?'PASS canonical HTML escaping':'FAIL esc');if(!ok)fail++;
+if(fail)process.exit(1);

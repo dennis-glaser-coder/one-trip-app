@@ -1,0 +1,12 @@
+const fs=require('fs'),vm=require('vm'),path=require('path');
+const code=fs.readFileSync(path.join(__dirname,'noreyo-v902.js'),'utf8');
+let calls=[];
+const prior=async(url,init)=>{const raw=JSON.parse(init.body);calls.push(raw);const origin=raw.legs?.[0]?.origin||'XXX';return new Response(JSON.stringify({data:[{id:origin}]}),{status:200,headers:{'content-type':'application/json'}})};
+const ctx={console,JSON,String,Number,Object,Array,Math,Promise,Error,Response,Request,searchState:{airports:['DUS','CGN']},window:{addEventListener(){},fetch:prior}};
+vm.createContext(ctx);vm.runInContext(code,ctx);const a=ctx.window.NOREYO_V902;let fail=0;
+const raw={action:'flightSearch',legs:[{origin:'DUS',destination:'PMI',date:'2026-09-15',direction:'OUTBOUND'},{origin:'PMI',destination:'DUS',date:'2026-09-22',direction:'INBOUND'}],adults:2,children:2,childrenAges:[5,15],infants:1,infantAges:[1],currency:'EUR'};
+let n=a.normalizePassengers(raw),ok=n.adults===3&&n.children===1&&JSON.stringify(n.childrenAges)==='[5]'&&n.infants===1&&JSON.stringify(n.infantAges)==='[1]';console.log(ok?'PASS 12–17 year olds normalized to flight adults':'FAIL '+JSON.stringify(n));if(!ok)fail++;
+let c=a.forOrigin(raw,'CGN');ok=c.legs[0].origin==='CGN'&&c.legs[1].destination==='CGN'&&c.legs[0].destination==='PMI'&&c.legs[1].origin==='PMI';console.log(ok?'PASS alternative origin keeps round-trip destination intact':'FAIL '+JSON.stringify(c.legs));if(!ok)fail++;
+(async()=>{calls=[];const res=await ctx.window.fetch('https://x.test/functions/v1/search-travel',{method:'POST',body:JSON.stringify(raw)}),payload=await res.json();ok=calls.length===2&&calls[0].legs[0].origin==='DUS'&&calls[1].legs[0].origin==='CGN'&&payload.data.length===2&&payload.data[0].noreyoDeparture==='DUS'&&payload.data[1].noreyoDeparture==='CGN';console.log(ok?'PASS multiple selected airports fan out and merge':'FAIL '+JSON.stringify({calls,payload}));if(!ok)fail++;
+ctx.searchState.airports=['DUS'];calls=[];await ctx.window.fetch('https://x.test/functions/v1/search-travel',{method:'POST',body:JSON.stringify(raw)});ok=calls.length===1&&calls[0].adults===3&&calls[0].children===1;console.log(ok?'PASS single-airport flight still normalizes passengers':'FAIL single');if(!ok)fail++;
+process.exit(fail?1:0)})().catch(e=>{console.error(e);process.exit(1)});

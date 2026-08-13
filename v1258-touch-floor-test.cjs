@@ -1,0 +1,16 @@
+const fs=require('fs'),vm=require('vm');
+const code=fs.readFileSync('./noreyo-v1258.js','utf8');
+let node=null;
+const document={head:{appendChild(x){node=x}},getElementById(id){return node?.id===id?node:null},createElement(){return{id:'',textContent:'',remove(){node=null}}}};
+const ctx={console,document,window:{addEventListener(){}},Object};
+vm.createContext(ctx);vm.runInContext(code,ctx);const a=ctx.window.NOREYO_V1258;let fail=0;
+const required=['.search-quick-links button','.gallery-all-btn','.board-section-title button','.seg button'];
+let ok=required.every(s=>a.CSS.includes(s))&&a.CSS.includes('min-height:44px!important');
+console.log(ok?'PASS uncovered packed phone controls receive 44px touch floor':'FAIL selector contract');if(!ok)fail++;
+ok=a.CSS.includes('@media (max-width:520px),(pointer:coarse)');
+console.log(ok?'PASS touch-floor override is scoped to phone/coarse-pointer layouts':'FAIL media scope');if(!ok)fail++;
+ok=a.install()===false;
+console.log(ok?'PASS touch-floor install is idempotent':'FAIL idempotency');if(!ok)fail++;
+ok=a.remove()===true&&node===null;
+console.log(ok?'PASS touch-floor style can be removed cleanly':'FAIL remove');if(!ok)fail++;
+process.exit(fail?1:0);
